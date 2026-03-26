@@ -100,13 +100,13 @@ export default function RebornLabsLanding() {
   };
 
   const vehicles = [
-    { name: "Mercedes-Benz E300", deposit: "800만원", monthly: "50만원대", img: "/vehicle-32.png" },
-    { name: "Porsche 718 Boxster", deposit: "1,000만원", monthly: "120만원대", img: "/vehicle-33.png" },
-    { name: "Range Rover Evoque", deposit: "1,000만원", monthly: "70만원대", img: "/vehicle-34.png" },
-    { name: "Range Rover Vogue", deposit: "1,400만원", monthly: "110만원대", img: "/vehicle-35.png" },
-    { name: "Audi New A7", deposit: "1,000만원", monthly: "90만원대", img: "/vehicle-36.png" },
-    { name: "Maybach S560", deposit: "1,500만원", monthly: "100만원대", img: "/vehicle-37.png" },
-    { name: "BMW 525d", deposit: "1,000만원", monthly: "60만원대", img: "/vehicle-38.png" },
+    { name: "Mercedes-Benz E300", deposit: "800만원", monthly: "50만원대", img: "/vehicle-45.png" },
+    { name: "Porsche 718 Boxster", deposit: "1,000만원", monthly: "120만원대", img: "/vehicle-46.png" },
+    { name: "Range Rover Evoque", deposit: "1,000만원", monthly: "70만원대", img: "/vehicle-47.png" },
+    { name: "Range Rover Vogue", deposit: "1,400만원", monthly: "110만원대", img: "/vehicle-48.png" },
+    { name: "Audi New A7", deposit: "1,000만원", monthly: "90만원대", img: "/vehicle-49.png" },
+    { name: "Maybach S560", deposit: "1,500만원", monthly: "100만원대", img: "/vehicle-50.png" },
+    { name: "BMW 525d", deposit: "1,000만원", monthly: "60만원대", img: "/vehicle-51.png" },
   ];
 
   const navItems = [
@@ -541,15 +541,15 @@ export default function RebornLabsLanding() {
         .structure-timeline::before {
           content: '';
           position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
+          left: 4px;
+          top: -28px;
+          bottom: -28px;
           width: 1px;
-          background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.15) 10%, rgba(255,255,255,0.15) 90%, transparent 100%);
+          background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.12) 90%, transparent 100%);
         }
         .structure-step {
           position: relative;
-          padding: 0 0 72px 56px;
+          padding: 0 0 72px 48px;
         }
         .structure-step:last-child {
           padding-bottom: 0;
@@ -557,13 +557,12 @@ export default function RebornLabsLanding() {
         .structure-step::before {
           content: '';
           position: absolute;
-          left: -4px;
-          top: 8px;
-          width: 9px;
-          height: 9px;
+          left: 1px;
+          top: 3px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.4);
-          border: 2px solid #000;
+          background: #b0a890;
         }
         .structure-step-num {
           font-size: 12px;
@@ -696,20 +695,9 @@ export default function RebornLabsLanding() {
         .quote-band {
           position: relative;
           padding: 160px 40px;
-          background: linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%);
+          background: #f2f0eb;
           text-align: center;
           overflow: hidden;
-        }
-        .quote-band::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 600px;
-          height: 600px;
-          background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
-          pointer-events: none;
         }
         .quote-inner {
           position: relative;
@@ -722,19 +710,25 @@ export default function RebornLabsLanding() {
           font-weight: 700;
           letter-spacing: -1.5px;
           line-height: 1.4;
-          color: #fff;
+          color: #111;
         }
         .quote-line {
           width: 48px;
           height: 1px;
-          background: rgba(255,255,255,0.2);
+          background: rgba(0,0,0,0.15);
           margin: 40px auto;
         }
         .quote-sub {
           font-size: 17.5px;
           font-weight: 400;
-          color: #a09880;
+          color: rgba(0,0,0,0.45);
           line-height: 1.8;
+        }
+        .quote-highlight {
+          background: #3a3630;
+          color: #e8dcc8;
+          font-weight: 600;
+          padding: 1px 1px;
         }
 
         /* Product */
@@ -1089,10 +1083,11 @@ export default function RebornLabsLanding() {
             grid-template-columns: 1fr;
             gap: 40px;
             margin-top: 60px;
+            text-align: center;
           }
-          .quote-band { padding: 100px 20px; }
-          .quote-text { font-size: 32px; }
-          .quote-sub { font-size: 15px; }
+          .quote-band { padding: 80px 20px; }
+          .quote-text { font-size: 30px; }
+          .quote-sub { font-size: 14px; }
 
           .product-section { padding: 80px 20px 0; }
           .product-heading { font-size: 26px; }
@@ -1405,7 +1400,7 @@ export default function RebornLabsLanding() {
           <div className={`market-bottom fade-up fade-up-d3 ${isVisible("market") ? "visible" : ""}`}>
             <div className="market-bottom-text">
               <h3 style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "-0.5px", marginBottom: "28px", color: "#fff", lineHeight: 1.4 }}>
-                닫혀 있던 시장을, 소비자에게 열다
+                닫혀 있던 시장을,<br className="mobile-br" /> 소비자에게 열다
               </h3>
               <p>
                 사고차량 시장은 보험사, 경매업체, 매매상 등
@@ -1443,7 +1438,7 @@ export default function RebornLabsLanding() {
           </p>
           <div className="quote-line" />
           <p className="quote-sub">
-            렌터카·리스 대비 월등히 저렴한 월 납입료로
+            렌터카·리스 대비 월등히 <span className="quote-highlight">저렴한 월 납입료</span>로
             <br />
             프리미엄 차량을 경험하세요.
           </p>
