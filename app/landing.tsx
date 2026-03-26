@@ -100,13 +100,13 @@ export default function RebornLabsLanding() {
   };
 
   const vehicles = [
-    { name: "Mercedes-Benz E300", deposit: "800만원", monthly: "50만원대", img: "/vehicle-45.png" },
-    { name: "Porsche 718 Boxster", deposit: "1,000만원", monthly: "120만원대", img: "/vehicle-46.png" },
-    { name: "Range Rover Evoque", deposit: "1,000만원", monthly: "70만원대", img: "/vehicle-47.png" },
-    { name: "Range Rover Vogue", deposit: "1,400만원", monthly: "110만원대", img: "/vehicle-48.png" },
-    { name: "Audi New A7", deposit: "1,000만원", monthly: "90만원대", img: "/vehicle-49.png" },
-    { name: "Maybach S560", deposit: "1,500만원", monthly: "100만원대", img: "/vehicle-50.png" },
-    { name: "BMW 525d", deposit: "1,000만원", monthly: "60만원대", img: "/vehicle-51.png" },
+    { name: "Mercedes-Benz E300", deposit: "800만원", monthly: "50만원대", img: "/vehicle-45.webp" },
+    { name: "Porsche 718 Boxster", deposit: "1,000만원", monthly: "120만원대", img: "/vehicle-46.webp" },
+    { name: "Range Rover Evoque", deposit: "1,000만원", monthly: "70만원대", img: "/vehicle-47.webp" },
+    { name: "Range Rover Vogue", deposit: "1,400만원", monthly: "110만원대", img: "/vehicle-48.webp" },
+    { name: "Audi New A7", deposit: "1,000만원", monthly: "90만원대", img: "/vehicle-49.webp" },
+    { name: "Maybach S560", deposit: "1,500만원", monthly: "100만원대", img: "/vehicle-50.webp" },
+    { name: "BMW 525d", deposit: "1,000만원", monthly: "60만원대", img: "/vehicle-51.webp" },
   ];
 
   const navItems = [
@@ -1180,7 +1180,7 @@ export default function RebornLabsLanding() {
         <div className="hero-bg">
           <Image
             className="hero-bg-desktop"
-            src="/hero-bg.png"
+            src="/hero-bg.webp"
             alt="프리미엄 차량 배경"
             fill
             priority
@@ -1190,7 +1190,7 @@ export default function RebornLabsLanding() {
           />
           <Image
             className="hero-bg-mobile"
-            src="/hero-bg-mobile.png"
+            src="/hero-bg-mobile.webp"
             alt="프리미엄 차량 배경 모바일"
             fill
             priority
@@ -1272,7 +1272,7 @@ export default function RebornLabsLanding() {
       <section className="structure-section" id="structure" ref={registerRef("structure")}>
         <div className="structure-bg">
           <Image
-            src="/structure-bg.png"
+            src="/structure-bg.webp"
             alt="자동차 정비 공업사 내부"
             fill
             quality={100}
@@ -1416,7 +1416,7 @@ export default function RebornLabsLanding() {
             </div>
             <div className="market-bottom-image" style={{ position: "relative" }}>
               <Image
-                src="/market-detail.png"
+                src="/market-detail.webp"
                 alt="차량 검수 과정"
                 fill
                 quality={100}
@@ -1479,7 +1479,7 @@ export default function RebornLabsLanding() {
             <div className="product-illust">
               <div className="product-illust-box" style={{ position: "relative", padding: 0 }}>
                 <Image
-                  src="/product-01.png"
+                  src="/product-01.webp"
                   alt="할부 60개월 구조"
                   fill
                   quality={100}
@@ -1512,7 +1512,7 @@ export default function RebornLabsLanding() {
             <div className="product-illust">
               <div className="product-illust-box" style={{ position: "relative", padding: 0 }}>
                 <Image
-                  src="/product-02.png"
+                  src="/product-02.webp"
                   alt="일반번호판 사용"
                   fill
                   quality={100}
@@ -1545,7 +1545,7 @@ export default function RebornLabsLanding() {
             <div className="product-illust">
               <div className="product-illust-box" style={{ position: "relative", padding: 0 }}>
                 <Image
-                  src="/product-03.png"
+                  src="/product-03.webp"
                   alt="보증금 제도"
                   fill
                   quality={100}
@@ -1578,7 +1578,7 @@ export default function RebornLabsLanding() {
             <div className="product-illust">
               <div className="product-illust-box" style={{ position: "relative", padding: 0 }}>
                 <Image
-                  src="/product-04.png"
+                  src="/product-04.webp"
                   alt="가격 경쟁력 비교"
                   fill
                   quality={100}
