@@ -135,6 +135,10 @@ export default function RebornLabsLanding() {
           opacity: 1;
           transform: translateY(0);
         }
+        .mobile-br { display: none; }
+        .hero-bg-desktop { display: block; }
+        .hero-bg-mobile { display: none; }
+
         .fade-up-d1 { transition-delay: 0.1s; }
         .fade-up-d2 { transition-delay: 0.2s; }
         .fade-up-d3 { transition-delay: 0.3s; }
@@ -1006,6 +1010,9 @@ export default function RebornLabsLanding() {
           }
           .hero-sub { font-size: 11px; letter-spacing: 3px; }
           .hero-title { font-size: 28px; letter-spacing: -0.5px; }
+          .mobile-br { display: block; }
+          .hero-bg-desktop { display: none; }
+          .hero-bg-mobile { display: block; }
           .hero-desc { font-size: 14px; }
           .hero-cta { padding: 14px 32px; font-size: 14px; }
 
@@ -1142,8 +1149,19 @@ export default function RebornLabsLanding() {
       <section className="hero" id="hero">
         <div className="hero-bg">
           <Image
+            className="hero-bg-desktop"
             src="/hero-bg.png"
             alt="프리미엄 차량 배경"
+            fill
+            priority
+            quality={100}
+            style={{ objectFit: "cover", objectPosition: "center" }}
+            unoptimized
+          />
+          <Image
+            className="hero-bg-mobile"
+            src="/hero-bg-mobile.png"
+            alt="프리미엄 차량 배경 모바일"
             fill
             priority
             quality={100}
@@ -1155,7 +1173,7 @@ export default function RebornLabsLanding() {
         <div className="hero-content">
           <p className="hero-sub">Reborn Labs</p>
           <h1 className="hero-title">
-            프리미엄 차량을, 새로운 방식으로.
+            프리미엄 차량을,<br className="mobile-br" /> 새로운 방식으로.
           </h1>
           <p className="hero-desc">
             완벽히 복원된 프리미엄 차량을 합리적인 비용으로.
