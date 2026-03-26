@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const PRETENDARD_URL = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcyecLRWIn5OTaTewKtQgGqtXzYKRVgwGgiEhEB8Ju6-665Cyh7PKQEjYdEPSA_Imo/exec";
 
 export default function RebornLabsLanding() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function RebornLabsLanding() {
   });
   const [utmSource, setUtmSource] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [visibleSections, setVisibleSections] = useState(new Set<string>());
@@ -21,8 +23,15 @@ export default function RebornLabsLanding() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref") || params.get("utm_source") || "direct";
-    setUtmSource(ref);
+    const paramRef = params.get("ref") || params.get("utm_source");
+
+    if (paramRef) {
+      sessionStorage.setItem("reborn_ref", paramRef);
+      setUtmSource(paramRef);
+    } else {
+      const stored = sessionStorage.getItem("reborn_ref");
+      setUtmSource(stored || "direct");
+    }
 
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
@@ -54,9 +63,35 @@ export default function RebornLabsLanding() {
 
   const isVisible = (id: string) => visibleSections.has(id);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.phone) return;
-    setSubmitted(true);
+    setSubmitting(true);
+
+    const payload = {
+      name: formData.name,
+      phone: formData.phone,
+      vehicle: formData.vehicle,
+      message: formData.message,
+      ref: utmSource,
+    };
+
+    try {
+      if (!APPS_SCRIPT_URL) {
+        console.log("[DEV] 폼 제출 데이터:", payload);
+      } else {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+      setSubmitted(true);
+    } catch {
+      alert("신청 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const scrollTo = (id: string) => {
@@ -1680,9 +1715,9 @@ export default function RebornLabsLanding() {
                     <button
                       className="form-submit"
                       onClick={handleSubmit}
-                      disabled={!formData.name || !formData.phone}
+                      disabled={!formData.name || !formData.phone || submitting}
                     >
-                      상담 신청하기
+                      {submitting ? "신청 중..." : "상담 신청하기"}
                     </button>
                     {utmSource && utmSource !== "direct" && (
                       <p className="utm-badge">ref: {utmSource}</p>
