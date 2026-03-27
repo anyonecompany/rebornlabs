@@ -1688,104 +1688,92 @@ export default function RebornLabsLanding() {
                         }
                       >
                         <option value="">현재 출고 가능한 차량입니다</option>
-                        <optgroup label="현대">
-                          <option value="현대 그랜저">현대 그랜저</option>
-                          <option value="현대 싼타페">현대 싼타페</option>
-                          <option value="현대 펠리세이드">현대 펠리세이드</option>
-                          <option value="현대 아이오닉6">현대 아이오닉6</option>
-                        </optgroup>
-                        <optgroup label="제네시스">
-                          <option value="제네시스 G70">제네시스 G70</option>
-                          <option value="제네시스 G80">제네시스 G80</option>
-                          <option value="제네시스 EQ900">제네시스 EQ900</option>
-                          <option value="제네시스 GV70">제네시스 GV70</option>
-                          <option value="제네시스 GV80">제네시스 GV80</option>
-                        </optgroup>
-                        <optgroup label="BMW">
-                          <option value="BMW 3시리즈">BMW 3시리즈</option>
-                          <option value="BMW 5시리즈">BMW 5시리즈</option>
-                          <option value="BMW 7시리즈">BMW 7시리즈</option>
-                          <option value="BMW 8시리즈">BMW 8시리즈</option>
-                          <option value="BMW X3">BMW X3</option>
-                          <option value="BMW X5">BMW X5</option>
-                          <option value="BMW X6">BMW X6</option>
-                          <option value="BMW X7">BMW X7</option>
-                        </optgroup>
-                        <optgroup label="랜드로버">
-                          <option value="랜드로버 디스커버리 스포츠">랜드로버 디스커버리 스포츠</option>
-                          <option value="랜드로버 디스커버리">랜드로버 디스커버리</option>
-                          <option value="랜드로버 디펜더">랜드로버 디펜더</option>
-                          <option value="랜드로버 레인지로버 벨라">랜드로버 레인지로버 벨라</option>
-                          <option value="랜드로버 레인지로버 스포츠">랜드로버 레인지로버 스포츠</option>
-                          <option value="랜드로버 레인지로버 이보크">랜드로버 레인지로버 이보크</option>
-                          <option value="랜드로버 레인지로버">랜드로버 레인지로버</option>
-                        </optgroup>
-                        <optgroup label="마세라티">
-                          <option value="마세라티 르반떼">마세라티 르반떼</option>
-                          <option value="마세라티 기블리">마세라티 기블리</option>
-                          <option value="마세라티 콰트로포르테">마세라티 콰트로포르테</option>
-                          <option value="마세라티 그란투리스모">마세라티 그란투리스모</option>
-                          <option value="마세라티 그란카브리오">마세라티 그란카브리오</option>
-                        </optgroup>
-                        <optgroup label="마이바흐">
-                          <option value="마이바흐 57">마이바흐 57</option>
-                          <option value="마이바흐 57S">마이바흐 57S</option>
-                          <option value="마이바흐 62">마이바흐 62</option>
-                          <option value="마이바흐 62S">마이바흐 62S</option>
-                          <option value="마이바흐 57제플린">마이바흐 57제플린</option>
-                          <option value="마이바흐 62제플린">마이바흐 62제플린</option>
-                          <option value="마이바흐 62S렌들렛">마이바흐 62S렌들렛</option>
-                        </optgroup>
-                        <optgroup label="벤츠">
-                          <option value="벤츠 C-클래스">벤츠 C-클래스</option>
-                          <option value="벤츠 E-클래스">벤츠 E-클래스</option>
-                          <option value="벤츠 S-클래스">벤츠 S-클래스</option>
-                          <option value="벤츠 CLS-클래스">벤츠 CLS-클래스</option>
-                          <option value="벤츠 GLC-클래스">벤츠 GLC-클래스</option>
-                          <option value="벤츠 GLE-클래스">벤츠 GLE-클래스</option>
-                        </optgroup>
-                        <optgroup label="아우디">
-                          <option value="아우디 A4">아우디 A4</option>
-                          <option value="아우디 A5">아우디 A5</option>
-                          <option value="아우디 A6">아우디 A6</option>
-                          <option value="아우디 A7">아우디 A7</option>
-                          <option value="아우디 Q5">아우디 Q5</option>
-                          <option value="아우디 Q7">아우디 Q7</option>
-                        </optgroup>
-                        <optgroup label="지프">
-                          <option value="지프 글래디에이터">지프 글래디에이터</option>
-                          <option value="지프 랭글러">지프 랭글러</option>
-                          <option value="지프 레니게이드">지프 레니게이드</option>
-                          <option value="지프 체로키">지프 체로키</option>
-                        </optgroup>
-                        <optgroup label="재규어">
-                          <option value="재규어 XF">재규어 XF</option>
-                          <option value="재규어 F-TYPE">재규어 F-TYPE</option>
-                          <option value="재규어 F-PACE">재규어 F-PACE</option>
-                          <option value="재규어 XE">재규어 XE</option>
-                        </optgroup>
-                        <optgroup label="테슬라">
-                          <option value="테슬라 모델3">테슬라 모델3</option>
-                          <option value="테슬라 모델S">테슬라 모델S</option>
-                          <option value="테슬라 모델X">테슬라 모델X</option>
-                          <option value="테슬라 모델Y">테슬라 모델Y</option>
-                        </optgroup>
-                        <optgroup label="포르쉐">
-                          <option value="포르쉐 718">포르쉐 718</option>
-                          <option value="포르쉐 911">포르쉐 911</option>
-                          <option value="포르쉐 카이엔">포르쉐 카이엔</option>
-                          <option value="포르쉐 파나메라">포르쉐 파나메라</option>
-                          <option value="포르쉐 마칸">포르쉐 마칸</option>
-                          <option value="포르쉐 타이칸">포르쉐 타이칸</option>
-                        </optgroup>
-                        <optgroup label="폭스바겐">
-                          <option value="폭스바겐 티구안">폭스바겐 티구안</option>
-                          <option value="폭스바겐 아테온">폭스바겐 아테온</option>
-                          <option value="폭스바겐 제타">폭스바겐 제타</option>
-                          <option value="폭스바겐 골프">폭스바겐 골프</option>
-                          <option value="폭스바겐 투아렉">폭스바겐 투아렉</option>
-                          <option value="폭스바겐 파사트">폭스바겐 파사트</option>
-                        </optgroup>
+                        <option disabled>── 현대 ──</option>
+                        <option value="현대 그랜저">현대 그랜저</option>
+                        <option value="현대 싼타페">현대 싼타페</option>
+                        <option value="현대 펠리세이드">현대 펠리세이드</option>
+                        <option value="현대 아이오닉6">현대 아이오닉6</option>
+                        <option disabled>── 제네시스 ──</option>
+                        <option value="제네시스 G70">제네시스 G70</option>
+                        <option value="제네시스 G80">제네시스 G80</option>
+                        <option value="제네시스 EQ900">제네시스 EQ900</option>
+                        <option value="제네시스 GV70">제네시스 GV70</option>
+                        <option value="제네시스 GV80">제네시스 GV80</option>
+                        <option disabled>── BMW ──</option>
+                        <option value="BMW 3시리즈">BMW 3시리즈</option>
+                        <option value="BMW 5시리즈">BMW 5시리즈</option>
+                        <option value="BMW 7시리즈">BMW 7시리즈</option>
+                        <option value="BMW 8시리즈">BMW 8시리즈</option>
+                        <option value="BMW X3">BMW X3</option>
+                        <option value="BMW X5">BMW X5</option>
+                        <option value="BMW X6">BMW X6</option>
+                        <option value="BMW X7">BMW X7</option>
+                        <option disabled>── 랜드로버 ──</option>
+                        <option value="랜드로버 디스커버리 스포츠">랜드로버 디스커버리 스포츠</option>
+                        <option value="랜드로버 디스커버리">랜드로버 디스커버리</option>
+                        <option value="랜드로버 디펜더">랜드로버 디펜더</option>
+                        <option value="랜드로버 레인지로버 벨라">랜드로버 레인지로버 벨라</option>
+                        <option value="랜드로버 레인지로버 스포츠">랜드로버 레인지로버 스포츠</option>
+                        <option value="랜드로버 레인지로버 이보크">랜드로버 레인지로버 이보크</option>
+                        <option value="랜드로버 레인지로버">랜드로버 레인지로버</option>
+                        <option disabled>── 마세라티 ──</option>
+                        <option value="마세라티 르반떼">마세라티 르반떼</option>
+                        <option value="마세라티 기블리">마세라티 기블리</option>
+                        <option value="마세라티 콰트로포르테">마세라티 콰트로포르테</option>
+                        <option value="마세라티 그란투리스모">마세라티 그란투리스모</option>
+                        <option value="마세라티 그란카브리오">마세라티 그란카브리오</option>
+                        <option disabled>── 마이바흐 ──</option>
+                        <option value="마이바흐 57">마이바흐 57</option>
+                        <option value="마이바흐 57S">마이바흐 57S</option>
+                        <option value="마이바흐 62">마이바흐 62</option>
+                        <option value="마이바흐 62S">마이바흐 62S</option>
+                        <option value="마이바흐 57제플린">마이바흐 57제플린</option>
+                        <option value="마이바흐 62제플린">마이바흐 62제플린</option>
+                        <option value="마이바흐 62S렌들렛">마이바흐 62S렌들렛</option>
+                        <option disabled>── 벤츠 ──</option>
+                        <option value="벤츠 C-클래스">벤츠 C-클래스</option>
+                        <option value="벤츠 E-클래스">벤츠 E-클래스</option>
+                        <option value="벤츠 S-클래스">벤츠 S-클래스</option>
+                        <option value="벤츠 CLS-클래스">벤츠 CLS-클래스</option>
+                        <option value="벤츠 GLC-클래스">벤츠 GLC-클래스</option>
+                        <option value="벤츠 GLE-클래스">벤츠 GLE-클래스</option>
+                        <option disabled>── 아우디 ──</option>
+                        <option value="아우디 A4">아우디 A4</option>
+                        <option value="아우디 A5">아우디 A5</option>
+                        <option value="아우디 A6">아우디 A6</option>
+                        <option value="아우디 A7">아우디 A7</option>
+                        <option value="아우디 Q5">아우디 Q5</option>
+                        <option value="아우디 Q7">아우디 Q7</option>
+                        <option disabled>── 지프 ──</option>
+                        <option value="지프 글래디에이터">지프 글래디에이터</option>
+                        <option value="지프 랭글러">지프 랭글러</option>
+                        <option value="지프 레니게이드">지프 레니게이드</option>
+                        <option value="지프 체로키">지프 체로키</option>
+                        <option disabled>── 재규어 ──</option>
+                        <option value="재규어 XF">재규어 XF</option>
+                        <option value="재규어 F-TYPE">재규어 F-TYPE</option>
+                        <option value="재규어 F-PACE">재규어 F-PACE</option>
+                        <option value="재규어 XE">재규어 XE</option>
+                        <option disabled>── 테슬라 ──</option>
+                        <option value="테슬라 모델3">테슬라 모델3</option>
+                        <option value="테슬라 모델S">테슬라 모델S</option>
+                        <option value="테슬라 모델X">테슬라 모델X</option>
+                        <option value="테슬라 모델Y">테슬라 모델Y</option>
+                        <option disabled>── 포르쉐 ──</option>
+                        <option value="포르쉐 718">포르쉐 718</option>
+                        <option value="포르쉐 911">포르쉐 911</option>
+                        <option value="포르쉐 카이엔">포르쉐 카이엔</option>
+                        <option value="포르쉐 파나메라">포르쉐 파나메라</option>
+                        <option value="포르쉐 마칸">포르쉐 마칸</option>
+                        <option value="포르쉐 타이칸">포르쉐 타이칸</option>
+                        <option disabled>── 폭스바겐 ──</option>
+                        <option value="폭스바겐 티구안">폭스바겐 티구안</option>
+                        <option value="폭스바겐 아테온">폭스바겐 아테온</option>
+                        <option value="폭스바겐 제타">폭스바겐 제타</option>
+                        <option value="폭스바겐 골프">폭스바겐 골프</option>
+                        <option value="폭스바겐 투아렉">폭스바겐 투아렉</option>
+                        <option value="폭스바겐 파사트">폭스바겐 파사트</option>
+                        <option disabled>────────</option>
                         <option value="기타">기타 (문의사항에 기재)</option>
                       </select>
                     </div>
