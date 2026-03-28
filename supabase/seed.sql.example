@@ -1,0 +1,91 @@
+-- =============================================================
+-- seed.sql.example — Reborn Labs Admin: 초기 관리자 계정 시딩 템플릿
+--
+-- ⚠️ 사용법:
+--   1. 이 파일을 supabase/seed.sql로 복사
+--   2. <ADMIN_EMAIL_1~3>을 실제 경영진 이메일로 교체
+--   3. <SECURE_PASSWORD_1~3>을 12자리 이상 강력한 비밀번호로 교체
+--   4. supabase db seed 실행 (로컬) 또는 Auth Admin API 호출 (프로덕션)
+--
+-- ⚠️ 주의:
+--   - seed.sql은 .gitignore에 포함되어 있으므로 커밋되지 않음
+--   - 비밀번호를 절대 git에 커밋하지 말 것
+--   - must_change_password = true → 최초 로그인 시 변경 강제
+-- =============================================================
+
+-- =============================================================
+-- 방법 1: Supabase Auth Admin API (프로덕션 권장)
+-- =============================================================
+-- 서버에서 아래 curl을 실행한다. 반환된 UUID를 profiles INSERT에 사용.
+--
+-- ```bash
+-- curl -X POST 'https://<PROJECT_REF>.supabase.co/auth/v1/admin/users' \
+--   -H 'apikey: <SERVICE_ROLE_KEY>' \
+--   -H 'Authorization: Bearer <SERVICE_ROLE_KEY>' \
+--   -H 'Content-Type: application/json' \
+--   -d '{"email":"<ADMIN_EMAIL_1>","password":"<SECURE_PASSWORD_1>","email_confirm":true}'
+-- ```
+-- 위 명령을 Admin 2, 3에 대해서도 반복 실행한다.
+
+-- =============================================================
+-- 방법 2: profiles INSERT (Auth 계정 생성 후 실행)
+-- =============================================================
+-- Auth Admin API 응답에서 받은 UUID를 아래 <UUID_1/2/3>에 대입한다.
+--
+-- INSERT INTO profiles (id, email, name, phone, role, is_active, must_change_password)
+-- VALUES
+--   ('<UUID_1>', '<ADMIN_EMAIL_1>', '관리자1', NULL, 'admin', true, true),
+--   ('<UUID_2>', '<ADMIN_EMAIL_2>', '관리자2', NULL, 'admin', true, true),
+--   ('<UUID_3>', '<ADMIN_EMAIL_3>', '관리자3', NULL, 'admin', true, true);
+
+-- =============================================================
+-- 방법 3: 로컬 개발용 (supabase db seed)
+-- auth.users에 직접 INSERT 가능한 환경에서만 사용
+-- =============================================================
+
+DO $$
+DECLARE
+    v_uid1 UUID := gen_random_uuid();
+    v_uid2 UUID := gen_random_uuid();
+    v_uid3 UUID := gen_random_uuid();
+BEGIN
+    INSERT INTO auth.users (
+        id, instance_id, email, encrypted_password,
+        email_confirmed_at, created_at, updated_at,
+        raw_app_meta_data, raw_user_meta_data,
+        aud, role
+    )
+    VALUES
+        (v_uid1, '00000000-0000-0000-0000-000000000000',
+         '<ADMIN_EMAIL_1>',
+         crypt('<SECURE_PASSWORD_1>', gen_salt('bf')),
+         now(), now(), now(),
+         '{"provider":"email","providers":["email"]}'::JSONB,
+         '{"name":"관리자1"}'::JSONB,
+         'authenticated', 'authenticated'),
+
+        (v_uid2, '00000000-0000-0000-0000-000000000000',
+         '<ADMIN_EMAIL_2>',
+         crypt('<SECURE_PASSWORD_2>', gen_salt('bf')),
+         now(), now(), now(),
+         '{"provider":"email","providers":["email"]}'::JSONB,
+         '{"name":"관리자2"}'::JSONB,
+         'authenticated', 'authenticated'),
+
+        (v_uid3, '00000000-0000-0000-0000-000000000000',
+         '<ADMIN_EMAIL_3>',
+         crypt('<SECURE_PASSWORD_3>', gen_salt('bf')),
+         now(), now(), now(),
+         '{"provider":"email","providers":["email"]}'::JSONB,
+         '{"name":"관리자3"}'::JSONB,
+         'authenticated', 'authenticated');
+
+    INSERT INTO profiles (id, email, name, phone, role, is_active, must_change_password)
+    VALUES
+        (v_uid1, '<ADMIN_EMAIL_1>', '관리자1', NULL, 'admin', true, true),
+        (v_uid2, '<ADMIN_EMAIL_2>', '관리자2', NULL, 'admin', true, true),
+        (v_uid3, '<ADMIN_EMAIL_3>', '관리자3', NULL, 'admin', true, true);
+
+    RAISE NOTICE '초기 관리자 계정 3개 생성 완료. UUID: %, %, %', v_uid1, v_uid2, v_uid3;
+END;
+$$;
