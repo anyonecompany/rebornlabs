@@ -262,7 +262,10 @@ export interface Database {
         Returns: void;
       };
       get_dashboard_stats: {
-        Args: Record<string, never>;
+        Args: {
+          p_user_id: string;
+          p_role: string;
+        };
         Returns: unknown;
       };
     };
