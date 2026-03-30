@@ -32,7 +32,7 @@ SELECT
 FROM vehicles
 WHERE deleted_at IS NULL
   AND status != 'deleted'
-  AND auth.user_role() IN ('admin', 'staff', 'dealer');
+  AND public.user_role() IN ('admin', 'staff', 'dealer');
 
 COMMENT ON VIEW vehicles_dealer_view IS
   '딜러용 차량 뷰. purchase_price/margin 제외. 삭제 차량 필터링.';
@@ -56,7 +56,7 @@ SELECT
     name
 FROM profiles
 WHERE role = 'dealer'
-  AND auth.user_role() IN ('admin', 'staff', 'dealer');
+  AND public.user_role() IN ('admin', 'staff', 'dealer');
 
 COMMENT ON VIEW dealers_name_view IS
   '딜러 이름만 조회 가능한 제한 뷰. email/phone/is_active 숨김.';

@@ -37,32 +37,32 @@ CREATE POLICY vehicles_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'vehicles'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY vehicles_storage_insert ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'vehicles'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY vehicles_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'vehicles'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY vehicles_storage_update ON storage.objects
   FOR UPDATE TO authenticated
   USING (
     bucket_id = 'vehicles'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   )
   WITH CHECK (
     bucket_id = 'vehicles'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 -- =============================================================
@@ -75,7 +75,7 @@ CREATE POLICY checklists_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'checklists'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY checklists_storage_insert ON storage.objects
@@ -83,8 +83,8 @@ CREATE POLICY checklists_storage_insert ON storage.objects
   WITH CHECK (
     bucket_id = 'checklists'
     AND (
-      (auth.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
-      OR auth.user_role() IN ('admin', 'staff')
+      (public.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
+      OR public.user_role() IN ('admin', 'staff')
     )
   );
 
@@ -93,15 +93,15 @@ CREATE POLICY checklists_storage_update ON storage.objects
   USING (
     bucket_id = 'checklists'
     AND (
-      (auth.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
-      OR auth.user_role() IN ('admin', 'staff')
+      (public.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
+      OR public.user_role() IN ('admin', 'staff')
     )
   )
   WITH CHECK (
     bucket_id = 'checklists'
     AND (
-      (auth.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
-      OR auth.user_role() IN ('admin', 'staff')
+      (public.user_role() = 'dealer' AND (storage.foldername(name))[1] = auth.uid()::TEXT)
+      OR public.user_role() IN ('admin', 'staff')
     )
   );
 
@@ -109,7 +109,7 @@ CREATE POLICY checklists_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'checklists'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 -- =============================================================
@@ -122,7 +122,7 @@ CREATE POLICY contracts_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'contracts'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY contracts_storage_insert ON storage.objects
@@ -130,11 +130,11 @@ CREATE POLICY contracts_storage_insert ON storage.objects
   WITH CHECK (
     bucket_id = 'contracts'
     AND (
-      (auth.user_role() = 'dealer'
+      (public.user_role() = 'dealer'
        AND (storage.foldername(name))[1] IN (
          SELECT id::TEXT FROM sales WHERE dealer_id = auth.uid()
        ))
-      OR auth.user_role() IN ('admin', 'staff')
+      OR public.user_role() IN ('admin', 'staff')
     )
   );
 
@@ -142,18 +142,18 @@ CREATE POLICY contracts_storage_update ON storage.objects
   FOR UPDATE TO authenticated
   USING (
     bucket_id = 'contracts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   )
   WITH CHECK (
     bucket_id = 'contracts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY contracts_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'contracts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 -- =============================================================
@@ -166,7 +166,7 @@ CREATE POLICY signatures_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'signatures'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY signatures_storage_insert ON storage.objects
@@ -174,11 +174,11 @@ CREATE POLICY signatures_storage_insert ON storage.objects
   WITH CHECK (
     bucket_id = 'signatures'
     AND (
-      (auth.user_role() = 'dealer'
+      (public.user_role() = 'dealer'
        AND (storage.foldername(name))[1] IN (
          SELECT id::TEXT FROM sales WHERE dealer_id = auth.uid()
        ))
-      OR auth.user_role() IN ('admin', 'staff')
+      OR public.user_role() IN ('admin', 'staff')
     )
   );
 
@@ -187,18 +187,18 @@ CREATE POLICY signatures_storage_update ON storage.objects
   FOR UPDATE TO authenticated
   USING (
     bucket_id = 'signatures'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   )
   WITH CHECK (
     bucket_id = 'signatures'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY signatures_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'signatures'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 -- =============================================================
@@ -211,32 +211,32 @@ CREATE POLICY receipts_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'receipts'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY receipts_storage_insert ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'receipts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY receipts_storage_update ON storage.objects
   FOR UPDATE TO authenticated
   USING (
     bucket_id = 'receipts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   )
   WITH CHECK (
     bucket_id = 'receipts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY receipts_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'receipts'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 -- =============================================================
@@ -250,32 +250,32 @@ CREATE POLICY documents_storage_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'documents'
-    AND auth.user_role() IN ('admin', 'staff', 'dealer')
+    AND public.user_role() IN ('admin', 'staff', 'dealer')
   );
 
 CREATE POLICY documents_storage_insert ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'documents'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY documents_storage_update ON storage.objects
   FOR UPDATE TO authenticated
   USING (
     bucket_id = 'documents'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   )
   WITH CHECK (
     bucket_id = 'documents'
-    AND auth.user_role() IN ('admin', 'staff')
+    AND public.user_role() IN ('admin', 'staff')
   );
 
 CREATE POLICY documents_storage_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'documents'
-    AND auth.user_role() = 'admin'
+    AND public.user_role() = 'admin'
   );
 
 COMMIT;
