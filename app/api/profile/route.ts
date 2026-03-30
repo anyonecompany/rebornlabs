@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { AuthError, verifyUser } from "@/lib/auth/verify";
+import { createSSRClient } from "@/lib/supabase/server-ssr";
+
+interface ProfileUpdateRequest {
+  name?: string;
+  phone?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+function extractToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+  return request.cookies.get("sb-access-token")?.value ?? null;
+}
+
+export async function PATCH(request: NextRequest) {
+  const token = extractToken(request);
+  if (!token) {
+    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  }
+
+  let currentUser;
+  try {
+    currentUser = await verifyUser(token);
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
+    return NextResponse.json(
+      { error: "인증 처리 중 오류가 발생했습니다." },
+      { status: 500 },
+    );
+  }
+
+  let body: ProfileUpdateRequest;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "요청 데이터 형식이 올바르지 않습니다." },
+      { status: 400 },
+    );
+  }
+
+  const { name, phone, newPassword } = body;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = (await createSSRClient()) as any;
+
+    if (name !== undefined || phone !== undefined) {
+      const profileUpdate: Record<string, string | null> = {};
+      if (name !== undefined) profileUpdate.name = name;
+      if (phone !== undefined) profileUpdate.phone = phone;
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", currentUser.id);
+
+      if (profileError) {
+        return NextResponse.json(
+          { error: "프로필 업데이트 중 오류가 발생했습니다." },
+          { status: 500 },
+        );
+      }
+    }
+
+    if (newPassword) {
+      const { error: passwordError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (passwordError) {
+        return NextResponse.json(
+          { error: "비밀번호 변경 중 오류가 발생했습니다." },
+          { status: 500 },
+        );
+      }
+
+      await supabase
+        .from("profiles")
+        .update({ must_change_password: false })
+        .eq("id", currentUser.id);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json(
+      { error: "프로필 업데이트 중 오류가 발생했습니다." },
+      { status: 500 },
+    );
+  }
+}

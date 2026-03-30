@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+import { Toaster } from "@/components/ui/sonner";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "REBORN LABS - 프리미엄 차량을 새로운 방식으로",
-  description:
-    "완벽히 복원된 프리미엄 차량을 합리적인 비용으로. 36개월 이용 후 반납하는 새로운 카 라이프를 경험하세요.",
+  title: "REBORN LABS Admin",
+  description: "리본랩스 어드민 시스템",
 };
 
 export default function RootLayout({
@@ -16,8 +13,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html lang="ko" className="dark">
+      <head>
+        <link
+          rel="preconnect"
+          href="https://cdn.jsdelivr.net"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          as="style"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        {children}
+        <Toaster richColors position="top-right" />
+      </body>
     </html>
   );
 }
