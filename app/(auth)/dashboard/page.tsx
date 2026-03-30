@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole, ConsultationStatus } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -339,27 +339,11 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
+  const { role: userRole } = useUserRole();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recent, setRecent] = useState<RecentData>({ consultations: [], sales: [] });
   const [dealerConsultations, setDealerConsultations] = useState<DealerConsultation[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // 프로필 로드 → 역할 확인
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   // 역할 확정 후 데이터 로드
   useEffect(() => {

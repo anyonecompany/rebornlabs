@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
 interface VehicleRow {
@@ -52,27 +52,11 @@ export default function VehiclesPage() {
 
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
+  const { role: userRole } = useUserRole();
 
   // 검색/필터 상태
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
-
-  // 프로필 로드 (role 확인)
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);

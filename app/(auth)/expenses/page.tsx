@@ -28,8 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ export default function ExpensesPage() {
 
   const [month, setMonth] = useState(currentMonth);
   const [userFilter, setUserFilter] = useState<string>("all");
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
+  const { role: userRole } = useUserRole();
   const [staffOptions, setStaffOptions] = useState<UserOption[]>([]);
 
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -483,22 +483,8 @@ export default function ExpensesPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // 프로필 + 스탭 목록 로드
+  // staff/admin 목록 로드
   useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-
-    // staff/admin 목록 조회
     apiFetch("/api/users?roles=admin,staff")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {

@@ -25,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -261,26 +261,10 @@ export default function DocumentsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
+  const { role: userRole } = useUserRole();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // 프로필 로드
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   const fetchDocuments = useCallback(
     async (cursor?: string) => {

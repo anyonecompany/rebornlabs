@@ -46,7 +46,7 @@ export default async function AuthLayout({
       />
       <main className="flex-1 overflow-auto">
         {profile.must_change_password && <PasswordBanner />}
-        <div className="p-6">{children}</div>
+        <div className="p-6" data-user-role={profile.role} data-user-id={user.id}>{children}</div>
       </main>
     </div>
   );
