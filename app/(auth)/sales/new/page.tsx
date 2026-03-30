@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -57,7 +57,8 @@ export default function NewSalePage() {
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [dealers, setDealers] = useState<DealerOption[]>([]);
 
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const searchParams = useSearchParams();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(searchParams.get("vehicle_id") ?? "");
   const [selectedDealerId, setSelectedDealerId] = useState<string>("");
 
   const [submitting, setSubmitting] = useState(false);

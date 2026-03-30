@@ -18,8 +18,8 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
 interface Vehicle {
@@ -86,31 +86,13 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [checklists, setChecklists] = useState<DeliveryChecklist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
-  const [userId, setUserId] = useState<string>("");
+  const { role: userRole, userId } = useUserRole();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [checklistUpdating, setChecklistUpdating] = useState<
     Record<string, boolean>
   >({});
-
-  // 프로필 로드
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      setUserId(session.user.id);
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   const fetchVehicle = useCallback(async () => {
     setLoading(true);
@@ -253,27 +235,37 @@ export default function VehicleDetailPage() {
       </div>
 
       <PageHeader title={`${vehicle.make} ${vehicle.model}`}>
-        {isPrivileged && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {vehicle.status === "available" && (
             <Button
-              variant="outline"
               size="sm"
-              onClick={() => router.push(`/vehicles/${id}/edit`)}
+              onClick={() => router.push(`/sales/new?vehicle_id=${id}`)}
             >
-              <Pencil className="h-4 w-4 mr-1.5" />
-              수정
+              이 차량으로 판매 등록
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-400 hover:text-red-400 hover:border-red-400/50"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              삭제
-            </Button>
-          </div>
-        )}
+          )}
+          {isPrivileged && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/vehicles/${id}/edit`)}
+              >
+                <Pencil className="h-4 w-4 mr-1.5" />
+                수정
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-400 hover:text-red-400 hover:border-red-400/50"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                삭제
+              </Button>
+            </>
+          )}
+        </div>
       </PageHeader>
 
       <div className="space-y-6 max-w-3xl">
