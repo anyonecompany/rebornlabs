@@ -19,7 +19,7 @@ function isPublicPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/" || isPublicPath(pathname)) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
