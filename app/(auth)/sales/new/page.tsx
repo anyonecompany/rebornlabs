@@ -182,7 +182,7 @@ export default function NewSalePage() {
 
       <PageHeader title="직접 판매 등록" />
 
-      <div className="space-y-6 max-w-2xl">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">판매 정보</CardTitle>
@@ -211,7 +211,7 @@ export default function NewSalePage() {
                   ) : (
                     vehicles.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
-                        {v.vehicle_code} — {v.make} {v.model} ({v.year}년)
+                        {v.vehicle_code ?? v.id.slice(0, 8)} — {v.make} {v.model} ({v.year}년)
                       </SelectItem>
                     ))
                   )}

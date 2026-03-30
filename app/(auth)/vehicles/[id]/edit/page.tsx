@@ -267,7 +267,7 @@ export default function VehicleEditPage() {
 
       <PageHeader title="차량 수정" description="차량 정보를 수정합니다." />
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
         {/* 기본 정보 */}
         <Card>
           <CardContent className="pt-6 space-y-4">

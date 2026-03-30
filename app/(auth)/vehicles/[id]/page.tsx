@@ -268,7 +268,7 @@ export default function VehicleDetailPage() {
         </div>
       </PageHeader>
 
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-4xl mx-auto">
         {/* 차량 정보 카드 */}
         <Card>
           <CardContent className="pt-6">

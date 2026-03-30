@@ -450,7 +450,7 @@ export default function ConsultationDetailPage() {
           )}
       </PageHeader>
 
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-4xl mx-auto">
         {/* ── 기본 정보 카드 ── */}
         <Card>
           <CardContent className="pt-6">
