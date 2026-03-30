@@ -12,6 +12,19 @@ function isBlocked(pathname: string, blockedPaths: string[]): boolean {
 
 const PUBLIC_PATHS = ["/login", "/unauthorized", "/api", "/_next", "/favicon.ico"];
 
+// service_role 클라이언트 — 모듈 레벨 캐싱 (매 요청마다 재생성 방지)
+let _serviceClient: ReturnType<typeof createClient> | null = null;
+function getServiceClient() {
+  if (!_serviceClient) {
+    _serviceClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+  }
+  return _serviceClient;
+}
+
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
@@ -38,17 +51,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // profiles 조회 (service_role, 1회) — 결과를 헤더로 전달하여 layout 중복 조회 제거
-  const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
-  const { data: profile, error: profileError } = await serviceClient
+  // profiles 조회 (service_role, 캐싱된 클라이언트)
+  const { data: profile, error: profileError } = await getServiceClient()
     .from("profiles")
     .select("name, role, email, is_active, must_change_password")
     .eq("id", user.id)
-    .single();
+    .single() as { data: { name: string; role: string; email: string; is_active: boolean; must_change_password: boolean } | null; error: unknown };
 
   if (profileError || !profile) {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
