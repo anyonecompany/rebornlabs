@@ -21,8 +21,8 @@ import type { UserRole, ConsultationStatus } from "@/types/database";
 // ---------------------------------------------------------------------------
 
 /** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
+function formatKRW(value: number | undefined | null): string {
+  return (value ?? 0).toLocaleString("ko-KR") + "원";
 }
 
 /** ISO 날짜를 상대 시간 또는 날짜로 포맷합니다. */
@@ -127,17 +127,17 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
   const statCards = [
     {
       label: "출고가능 차량",
-      value: `${stats.available_vehicles}대`,
+      value: `${stats.available_vehicles ?? 0}대`,
       icon: Car,
     },
     {
       label: "신규 상담",
-      value: `${stats.new_consultations}건`,
+      value: `${stats.new_consultations ?? 0}건`,
       icon: MessageSquare,
     },
     {
       label: "이번 달 판매",
-      value: `${stats.monthly_sales}건`,
+      value: `${stats.monthly_sales ?? 0}건`,
       icon: TrendingUp,
     },
     {
@@ -273,7 +273,7 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
     },
     {
       label: "출고가능 차량",
-      value: `${stats.available_vehicles}대`,
+      value: `${stats.available_vehicles ?? 0}대`,
       icon: Car,
     },
     {
