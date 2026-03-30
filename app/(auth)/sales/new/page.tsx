@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -50,9 +50,7 @@ function formatKRW(value: number): string {
 export default function NewSalePage() {
   const router = useRouter();
 
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
-  const [userId, setUserId] = useState<string>("");
-  const [userDealerName, setUserDealerName] = useState<string>("");
+  const { role: userRole, userId } = useUserRole();
 
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [dealers, setDealers] = useState<DealerOption[]>([]);
@@ -65,29 +63,12 @@ export default function NewSalePage() {
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingDealers, setLoadingDealers] = useState(false);
 
-  // 프로필 로드
+  // 딜러인 경우 본인 ID를 딜러로 고정
   useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      const uid = session.user.id;
-      setUserId(uid);
-      supabase
-        .from("profiles")
-        .select("role, name")
-        .eq("id", uid)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) {
-            setUserRole(data.role as UserRole);
-            if (data.role === "dealer") {
-              setSelectedDealerId(uid);
-              setUserDealerName(data.name ?? "");
-            }
-          }
-        });
-    });
-  }, []);
+    if (userRole === "dealer" && userId) {
+      setSelectedDealerId(userId);
+    }
+  }, [userRole, userId]);
 
   // 출고가능 차량 목록 로드
   const fetchVehicles = useCallback(async () => {
@@ -245,7 +226,7 @@ export default function NewSalePage() {
                 </Select>
               ) : (
                 <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border">
-                  {userDealerName || "본인"}{" "}
+                  {"본인"}{" "}
                   <span className="text-xs text-muted-foreground">
                     (본인 고정)
                   </span>

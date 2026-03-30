@@ -24,8 +24,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FileUpload } from "@/components/file-upload";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -134,8 +134,7 @@ export default function SaleDetailPage() {
 
   const [detail, setDetail] = useState<SaleDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
-  const [actorName, setActorName] = useState<string>("");
+  const { role: userRole } = useUserRole();
 
   // 서명 패드 상태
   const [signaturePadOpen, setSignaturePadOpen] = useState(false);
@@ -148,22 +147,6 @@ export default function SaleDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
-
-  // 프로필 로드
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   // 판매 상세 로드
   const fetchDetail = useCallback(async () => {
@@ -179,16 +162,7 @@ export default function SaleDetailPage() {
       const data: SaleDetail = await res.json();
       setDetail(data);
 
-      // actor가 dealer와 다를 경우 actor 이름도 조회
-      if (data.data.actor_id !== data.data.dealer_id) {
-        const supabase = createBrowserClient();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("name")
-          .eq("id", data.data.actor_id)
-          .single();
-        if (profile?.name) setActorName(profile.name);
-      }
+      // actor 이름은 API 응답의 dealer 정보에서 확인
     } catch {
       toast.error("판매 정보를 불러오는 중 오류가 발생했습니다.");
       router.push("/sales");
@@ -320,7 +294,7 @@ export default function SaleDetailPage() {
     detail;
 
   const isCancelled = !!sale.cancelled_at;
-  const hasActorDiff = sale.actor_id !== sale.dealer_id && actorName;
+  const hasActorDiff = sale.actor_id !== sale.dealer_id && sale.actor_id !== sale.dealer_id;
 
   return (
     <div>
@@ -425,7 +399,7 @@ export default function SaleDetailPage() {
                 <p className="text-xs text-muted-foreground">
                   등록자:{" "}
                   <span className="text-foreground font-medium">
-                    {actorName}
+                    {sale.actor_id !== sale.dealer_id}
                   </span>{" "}
                   (딜러: {dealer?.name ?? "—"})
                 </p>

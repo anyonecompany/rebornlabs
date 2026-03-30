@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { processImage, uploadVehicleImage } from "@/src/lib/image-utils";
+import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
 interface FormState {
@@ -66,25 +67,7 @@ export default function VehicleEditPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // 역할 확인
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          const role = data?.role as UserRole | undefined;
-          if (role === "dealer" || role === "pending") {
-            toast.error("권한이 없습니다.");
-            router.push(`/vehicles/${id}`);
-          }
-        });
-    });
-  }, [id, router]);
+  const { role: userRole } = useUserRole();
 
   const fetchVehicle = useCallback(async () => {
     setLoading(true);

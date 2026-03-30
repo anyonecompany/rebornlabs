@@ -28,8 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { ConsultationStatus, UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ export default function ConsultationDetailPage() {
   const [dealers, setDealers] = useState<DealerOption[]>([]);
   const [logs, setLogs] = useState<ConsultationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>("dealer");
+  const { role: userRole } = useUserRole();
 
   // 딜러 배정 폼 상태
   const [selectedDealerId, setSelectedDealerId] = useState("");
@@ -169,22 +169,6 @@ export default function ConsultationDetailPage() {
   const [submittingSale, setSubmittingSale] = useState(false);
 
   const logBottomRef = useRef<HTMLDivElement>(null);
-
-  // 프로필 로드
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.role) setUserRole(data.role as UserRole);
-        });
-    });
-  }, []);
 
   // 상담 데이터 로드
   const fetchDetail = useCallback(async () => {
