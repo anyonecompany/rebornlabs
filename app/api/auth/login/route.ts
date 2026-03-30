@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       metadata: { email: profile.email },
     });
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       user: {
         id: profile.id,
         email: profile.email,
@@ -88,6 +88,24 @@ export async function POST(request: NextRequest) {
         mustChangePassword: profile.must_change_password,
       },
     });
+
+    // 프로필 캐시 쿠키 설정 (미들웨어 DB 조회 스킵)
+    res.cookies.set("x-profile-cache", encodeURIComponent(JSON.stringify({
+      id: profile.id,
+      name: profile.name,
+      role: profile.role,
+      email: profile.email,
+      must_change_password: profile.must_change_password,
+      ts: Date.now(),
+    })), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax" as const,
+      maxAge: 300,
+      path: "/",
+    });
+
+    return res;
   } catch {
     return NextResponse.json(
       { error: "로그인 처리 중 오류가 발생했습니다." },
