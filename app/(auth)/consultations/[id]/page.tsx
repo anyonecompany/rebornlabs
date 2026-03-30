@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -11,6 +11,14 @@ import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -65,6 +73,15 @@ interface RelatedConsultation {
   interested_vehicle: string | null;
   status: ConsultationStatus;
   created_at: string;
+}
+
+/** 판매 가능 차량 옵션 */
+interface AvailableVehicle {
+  id: string;
+  vehicle_code: string;
+  make: string;
+  model: string;
+  year: number;
 }
 
 interface DealerOption {
@@ -143,6 +160,13 @@ export default function ConsultationDetailPage() {
 
   // 상태 직접 변경 상태
   const [changingStatus, setChangingStatus] = useState(false);
+
+  // 판매 완료 모달 상태
+  const [saleModalOpen, setSaleModalOpen] = useState(false);
+  const [availableVehicles, setAvailableVehicles] = useState<AvailableVehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [submittingSale, setSubmittingSale] = useState(false);
 
   const logBottomRef = useRef<HTMLDivElement>(null);
 
@@ -309,6 +333,59 @@ export default function ConsultationDetailPage() {
     }
   };
 
+  // 판매 완료 모달 열기 — 차량 목록 함께 로드
+  const openSaleModal = useCallback(async () => {
+    setSelectedVehicleId("");
+    setSaleModalOpen(true);
+    setLoadingVehicles(true);
+    try {
+      const res = await apiFetch("/api/vehicles?status=available");
+      if (!res.ok) return;
+      const data = await res.json();
+      setAvailableVehicles(data.data ?? []);
+    } catch {
+      toast.error("차량 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoadingVehicles(false);
+    }
+  }, []);
+
+  // 판매 등록 (상담 경유)
+  const handleSaleSubmit = useCallback(async () => {
+    if (!selectedVehicleId) {
+      toast.error("차량을 선택해주세요.");
+      return;
+    }
+    if (!consultation?.assigned_dealer_id) {
+      toast.error("배정된 딜러가 없습니다. 먼저 딜러를 배정해주세요.");
+      return;
+    }
+    setSubmittingSale(true);
+    try {
+      const res = await apiFetch("/api/sales", {
+        method: "POST",
+        body: JSON.stringify({
+          consultation_id: id,
+          vehicle_id: selectedVehicleId,
+          dealer_id: consultation.assigned_dealer_id,
+          is_db_provided: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "판매 등록에 실패했습니다.");
+        return;
+      }
+      toast.success("판매가 등록되었습니다.");
+      setSaleModalOpen(false);
+      router.push(`/sales/${data.data.sale_id}`);
+    } catch {
+      toast.error("판매 등록 중 오류가 발생했습니다.");
+    } finally {
+      setSubmittingSale(false);
+    }
+  }, [id, selectedVehicleId, consultation, router]);
+
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
   if (loading) {
@@ -361,7 +438,17 @@ export default function ConsultationDetailPage() {
         </Link>
       </div>
 
-      <PageHeader title={`${consultation.customer_name} 님 상담`} />
+      <PageHeader title={`${consultation.customer_name} 님 상담`}>
+        {/* 판매 완료 버튼: 판매 가능 상태이고, admin/staff 또는 배정 딜러인 경우 */}
+        {consultation.status !== "sold" &&
+          consultation.status !== "rejected" &&
+          (isPrivileged || consultation.assigned_dealer_id !== null) && (
+            <Button size="sm" onClick={openSaleModal}>
+              <ShoppingCart className="h-4 w-4 mr-1.5" />
+              판매 완료
+            </Button>
+          )}
+      </PageHeader>
 
       <div className="space-y-6 max-w-3xl">
         {/* ── 기본 정보 카드 ── */}
@@ -618,6 +705,90 @@ export default function ConsultationDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── 판매 완료 모달 ── */}
+      <Dialog open={saleModalOpen} onOpenChange={setSaleModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>판매 완료 등록</DialogTitle>
+            <DialogDescription>
+              {consultation.customer_name} 님 상담을 판매 완료로 처리합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* 차량 선택 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">차량 선택 *</Label>
+              <Select
+                value={selectedVehicleId}
+                onValueChange={setSelectedVehicleId}
+                disabled={loadingVehicles}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      loadingVehicles ? "로딩 중..." : "출고가능 차량 선택"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVehicles.length === 0 ? (
+                    <SelectItem value="_empty" disabled>
+                      출고가능 차량이 없습니다
+                    </SelectItem>
+                  ) : (
+                    availableVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.vehicle_code} — {v.make} {v.model} ({v.year}년)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 고정 정보 표시 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">DB제공 여부</Label>
+              <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border text-blue-400">
+                DB제공 판매
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">수당</Label>
+                <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border text-emerald-400">
+                  500,000원
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">수수료</Label>
+                <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border">
+                  700,000원
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSaleModalOpen(false)}
+              disabled={submittingSale}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleSaleSubmit}
+              disabled={submittingSale || !selectedVehicleId}
+            >
+              {submittingSale ? "등록 중..." : "판매 등록"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

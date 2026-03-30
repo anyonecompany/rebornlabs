@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSSRClient } from "@/lib/supabase/server-ssr";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -42,7 +43,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: profileData, error: profileError } = await supabase
+    // service_role로 profiles 조회 (RLS bypass — JWT custom claim 미설정 시에도 동작)
+    const serviceClient = createServiceClient();
+    const { data: profileData, error: profileError } = await serviceClient
       .from("profiles")
       .select("id, email, name, role, is_active, must_change_password")
       .eq("id", authData.user.id)

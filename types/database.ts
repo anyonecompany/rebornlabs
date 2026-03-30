@@ -244,12 +244,22 @@ export interface Database {
         Returns: string; // UUID
       };
       complete_sale: {
-        Args: Record<string, unknown>;
-        Returns: unknown;
+        Args: {
+          p_consultation_id: string | null;
+          p_vehicle_id: string;
+          p_dealer_id: string;
+          p_actor_id: string;
+          p_is_db_provided: boolean;
+        };
+        Returns: string; // sale_id UUID
       };
       cancel_sale: {
-        Args: Record<string, unknown>;
-        Returns: unknown;
+        Args: {
+          p_sale_id: string;
+          p_actor_id: string;
+          p_reason: string;
+        };
+        Returns: void;
       };
       get_dashboard_stats: {
         Args: Record<string, never>;

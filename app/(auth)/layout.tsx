@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createSSRClient } from "@/lib/supabase/server-ssr";
+import { createServiceClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/sidebar";
 import { PasswordBanner } from "@/components/password-banner";
 import type { UserRole } from "@/types/database";
@@ -22,7 +23,9 @@ export default async function AuthLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  // service_role로 profiles 조회 (RLS bypass — JWT custom claim 미설정 환경 대응)
+  const serviceClient = createServiceClient();
+  const { data: profile } = await serviceClient
     .from("profiles")
     .select("name, role, email, must_change_password")
     .eq("id", user.id)
