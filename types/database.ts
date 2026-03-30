@@ -233,6 +233,16 @@ export interface Database {
       };
     };
     Functions: {
+      insert_consultation_from_gas: {
+        Args: {
+          p_customer_name: string;
+          p_phone: string;
+          p_interested_vehicle?: string | null;
+          p_message?: string | null;
+          p_source_ref?: string;
+        };
+        Returns: string; // UUID
+      };
       complete_sale: {
         Args: Record<string, unknown>;
         Returns: unknown;

@@ -33,6 +33,8 @@ interface DataTableProps {
   emptyMessage?: string;
   /** 페이지당 표시 수 (기본: 20) */
   pageSize?: number;
+  /** 행 클릭 핸들러 */
+  onRowClick?: (row: Record<string, unknown>) => void;
 }
 
 /**
@@ -45,6 +47,7 @@ export function DataTable({
   loading = false,
   emptyMessage = "데이터가 없습니다.",
   pageSize = 20,
+  onRowClick,
 }: DataTableProps) {
   const [page, setPage] = useState(0);
 
@@ -72,7 +75,11 @@ export function DataTable({
           </TableHeader>
           <TableBody>
             {pageData.map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
+              <TableRow
+                key={rowIndex}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={onRowClick ? "cursor-pointer" : undefined}
+              >
                 {columns.map((col) => (
                   <TableCell key={col.key}>
                     {col.render

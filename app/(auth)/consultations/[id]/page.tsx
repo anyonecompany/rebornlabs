@@ -1,0 +1,623 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { LoadingState } from "@/components/loading-state";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { createBrowserClient } from "@/src/lib/supabase/browser";
+import { apiFetch } from "@/src/lib/api-client";
+import type { ConsultationStatus, UserRole } from "@/types/database";
+
+// ---------------------------------------------------------------------------
+// 상태 전이 매트릭스
+// ---------------------------------------------------------------------------
+const ALLOWED_TRANSITIONS: Record<ConsultationStatus, ConsultationStatus[]> = {
+  new: ["consulting", "rejected"],
+  consulting: ["vehicle_waiting", "rejected"],
+  vehicle_waiting: ["consulting", "rejected"],
+  rejected: ["consulting"], // admin/staff만 허용 (UI에서 필터링)
+  sold: [],
+};
+
+const STATUS_LABELS: Record<ConsultationStatus, string> = {
+  new: "신규",
+  consulting: "상담중",
+  vehicle_waiting: "차량대기",
+  rejected: "거부",
+  sold: "판매완료",
+};
+
+// ---------------------------------------------------------------------------
+// 타입 정의
+// ---------------------------------------------------------------------------
+interface Consultation {
+  id: string;
+  customer_name: string;
+  phone: string;
+  interested_vehicle: string | null;
+  message: string | null;
+  source_ref: string | null;
+  assigned_dealer_id: string | null;
+  marketing_company: string | null;
+  status: ConsultationStatus;
+  is_duplicate: boolean;
+  created_at: string;
+}
+
+interface RelatedConsultation {
+  id: string;
+  interested_vehicle: string | null;
+  status: ConsultationStatus;
+  created_at: string;
+}
+
+interface DealerOption {
+  id: string;
+  name: string;
+}
+
+interface ConsultationLog {
+  id: string;
+  consultation_id: string;
+  dealer_id: string;
+  dealer_name?: string;
+  content: string;
+  status_snapshot: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// 날짜 헬퍼
+// ---------------------------------------------------------------------------
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const MM = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const HH = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
+}
+
+// ---------------------------------------------------------------------------
+// InfoItem 보조 컴포넌트
+// ---------------------------------------------------------------------------
+function InfoItem({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+      {children ?? <p className="font-medium text-sm">{value ?? "—"}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 메인 컴포넌트
+// ---------------------------------------------------------------------------
+export default function ConsultationDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+
+  const [consultation, setConsultation] = useState<Consultation | null>(null);
+  const [relatedConsultations, setRelatedConsultations] = useState<
+    RelatedConsultation[]
+  >([]);
+  const [dealers, setDealers] = useState<DealerOption[]>([]);
+  const [logs, setLogs] = useState<ConsultationLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole>("dealer");
+
+  // 딜러 배정 폼 상태
+  const [selectedDealerId, setSelectedDealerId] = useState("");
+  const [marketingCompany, setMarketingCompany] = useState("");
+  const [assigning, setAssigning] = useState(false);
+
+  // 상담 기록 입력 폼 상태
+  const [logContent, setLogContent] = useState("");
+  const [logStatus, setLogStatus] = useState<ConsultationStatus | "">("");
+  const [submittingLog, setSubmittingLog] = useState(false);
+
+  // 상태 직접 변경 상태
+  const [changingStatus, setChangingStatus] = useState(false);
+
+  const logBottomRef = useRef<HTMLDivElement>(null);
+
+  // 프로필 로드
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.role) setUserRole(data.role as UserRole);
+        });
+    });
+  }, []);
+
+  // 상담 데이터 로드
+  const fetchDetail = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/api/consultations/${id}`);
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error ?? "상담 정보를 불러오지 못했습니다.");
+        router.push("/consultations");
+        return;
+      }
+      const data = await res.json();
+      const c: Consultation = data.data;
+      setConsultation(c);
+      setRelatedConsultations(data.relatedConsultations ?? []);
+      setLogs(data.logs ?? []);
+      // 배정 초기값 세팅
+      setSelectedDealerId(c.assigned_dealer_id ?? "");
+      setMarketingCompany(c.marketing_company ?? "");
+    } catch {
+      toast.error("상담 정보를 불러오는 중 오류가 발생했습니다.");
+      router.push("/consultations");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, router]);
+
+  // 딜러 목록 로드
+  const fetchDealers = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/consultations/dealers");
+      if (!res.ok) return;
+      const data = await res.json();
+      setDealers(data.data ?? []);
+    } catch {
+      // 딜러 목록 로드 실패는 조용히 처리
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDetail();
+    fetchDealers();
+  }, [fetchDetail, fetchDealers]);
+
+  // 딜러 배정
+  const handleAssign = async () => {
+    if (!selectedDealerId) {
+      toast.error("딜러를 선택해주세요.");
+      return;
+    }
+    setAssigning(true);
+    try {
+      const res = await apiFetch(`/api/consultations/${id}/assign`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          dealer_id: selectedDealerId,
+          marketing_company: marketingCompany || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "딜러 배정에 실패했습니다.");
+        return;
+      }
+      toast.success("딜러가 배정되었습니다.");
+      setConsultation((prev) =>
+        prev
+          ? {
+              ...prev,
+              assigned_dealer_id: selectedDealerId,
+              marketing_company: marketingCompany || null,
+            }
+          : prev,
+      );
+    } catch {
+      toast.error("딜러 배정 중 오류가 발생했습니다.");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // 상담 기록 등록
+  const handleSubmitLog = async () => {
+    if (!logContent.trim()) {
+      toast.error("통화 내용을 입력해주세요.");
+      return;
+    }
+    setSubmittingLog(true);
+    try {
+      const body: Record<string, string> = { content: logContent.trim() };
+      if (logStatus) body.status = logStatus;
+
+      const res = await apiFetch(`/api/consultations/${id}/logs`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "상담 기록 등록에 실패했습니다.");
+        return;
+      }
+      toast.success("상담 기록이 등록되었습니다.");
+
+      // 기록 목록에 추가 + 상태 반영
+      const newLog: ConsultationLog = data.data ?? data.log;
+      setLogs((prev) => [...prev, newLog]);
+      if (logStatus && consultation) {
+        setConsultation({ ...consultation, status: logStatus });
+      }
+      setLogContent("");
+      setLogStatus("");
+
+      // 스크롤 맨 아래로
+      setTimeout(() => {
+        logBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch {
+      toast.error("상담 기록 등록 중 오류가 발생했습니다.");
+    } finally {
+      setSubmittingLog(false);
+    }
+  };
+
+  // 상태 직접 변경
+  const handleStatusChange = async (newStatus: ConsultationStatus) => {
+    setChangingStatus(true);
+    try {
+      const res = await apiFetch(`/api/consultations/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "상태 변경에 실패했습니다.");
+        return;
+      }
+      toast.success(`상태가 '${STATUS_LABELS[newStatus]}'(으)로 변경되었습니다.`);
+      setConsultation((prev) =>
+        prev ? { ...prev, status: newStatus } : prev,
+      );
+    } catch {
+      toast.error("상태 변경 중 오류가 발생했습니다.");
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
+  const isPrivileged = userRole === "admin" || userRole === "staff";
+
+  if (loading) {
+    return (
+      <div>
+        <div className="mb-4">
+          <Link
+            href="/consultations"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            상담 목록으로
+          </Link>
+        </div>
+        <LoadingState variant="form" />
+      </div>
+    );
+  }
+
+  if (!consultation) return null;
+
+  // 현재 상태에서 허용된 전이 목록
+  const allowedTransitions = ALLOWED_TRANSITIONS[consultation.status].filter(
+    (s) => {
+      // rejected → consulting은 admin/staff만
+      if (consultation.status === "rejected" && s === "consulting") {
+        return isPrivileged;
+      }
+      return true;
+    },
+  );
+
+  // 상담 기록 입력 폼에서 보여줄 상태 선택지 (sold 제외)
+  const logStatusOptions = allowedTransitions;
+
+  // 배정된 딜러명 조회
+  const assignedDealerName = dealers.find(
+    (d) => d.id === consultation.assigned_dealer_id,
+  )?.name;
+
+  return (
+    <div>
+      <div className="mb-4">
+        <Link
+          href="/consultations"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          상담 목록으로
+        </Link>
+      </div>
+
+      <PageHeader title={`${consultation.customer_name} 님 상담`} />
+
+      <div className="space-y-6 max-w-3xl">
+        {/* ── 기본 정보 카드 ── */}
+        <Card>
+          <CardContent className="pt-6">
+            {/* 상태 + 상태 변경 */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <StatusBadge
+                  type="consultation"
+                  value={consultation.status}
+                />
+                {consultation.is_duplicate && (
+                  <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full px-2 py-0.5">
+                    중복
+                  </span>
+                )}
+              </div>
+              {/* 상태 직접 변경 (admin/staff만, sold 제외) */}
+              {isPrivileged &&
+                consultation.status !== "sold" &&
+                allowedTransitions.length > 0 && (
+                  <Select
+                    disabled={changingStatus}
+                    value=""
+                    onValueChange={(v) =>
+                      handleStatusChange(v as ConsultationStatus)
+                    }
+                  >
+                    <SelectTrigger className="w-36 h-8 text-xs">
+                      <SelectValue placeholder="상태 변경" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allowedTransitions.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+              <InfoItem label="고객명" value={consultation.customer_name} />
+              <InfoItem label="전화번호">
+                <a
+                  href={`tel:${consultation.phone}`}
+                  className="font-medium text-sm text-primary hover:underline"
+                >
+                  {consultation.phone}
+                </a>
+              </InfoItem>
+              <InfoItem
+                label="관심차종"
+                value={consultation.interested_vehicle ?? "—"}
+              />
+              <InfoItem
+                label="유입경로"
+                value={consultation.source_ref ?? "—"}
+              />
+              <InfoItem
+                label="접수일"
+                value={formatDate(consultation.created_at)}
+              />
+            </div>
+
+            {consultation.message && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-1">문의 내용</p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {consultation.message}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── 동일 고객 섹션 ── */}
+        {relatedConsultations.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">
+                동일 고객 상담 ({relatedConsultations.length}건)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {relatedConsultations.map((rel) => (
+                <button
+                  key={rel.id}
+                  type="button"
+                  onClick={() => router.push(`/consultations/${rel.id}`)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm text-left"
+                >
+                  <span className="text-muted-foreground">
+                    {formatDate(rel.created_at)}
+                    {rel.interested_vehicle
+                      ? ` · ${rel.interested_vehicle}`
+                      : ""}
+                  </span>
+                  <StatusBadge type="consultation" value={rel.status} />
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── 딜러 배정 섹션 (admin/staff만) ── */}
+        {isPrivileged && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">딜러 배정</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {assignedDealerName && (
+                <p className="text-sm text-muted-foreground">
+                  현재 배정:{" "}
+                  <span className="text-foreground font-medium">
+                    {assignedDealerName}
+                  </span>
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">딜러 선택</Label>
+                  <Select
+                    value={selectedDealerId}
+                    onValueChange={setSelectedDealerId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="딜러를 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dealers.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">마케팅업체</Label>
+                  <Input
+                    placeholder="마케팅업체명 (선택)"
+                    value={marketingCompany}
+                    onChange={(e) => setMarketingCompany(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleAssign}
+                disabled={assigning || !selectedDealerId}
+              >
+                {assigning ? "배정 중..." : "배정"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── 상담 기록 타임라인 ── */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">
+              상담 기록 ({logs.length}건)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-0">
+            {/* 기록 목록 */}
+            {logs.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                아직 상담 기록이 없습니다.
+              </p>
+            ) : (
+              <div className="space-y-4 mb-6">
+                {logs.map((log) => (
+                  <div key={log.id} className="flex gap-4">
+                    {/* 왼쪽: 시간 */}
+                    <div className="shrink-0 w-32 text-xs text-muted-foreground pt-1 text-right">
+                      {formatDate(log.created_at)}
+                    </div>
+                    {/* 세로선 */}
+                    <div className="shrink-0 flex flex-col items-center">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+                      <div className="w-px flex-1 bg-border mt-1" />
+                    </div>
+                    {/* 오른쪽: 내용 카드 */}
+                    <div className="flex-1 pb-4">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {log.dealer_name ?? "알 수 없음"}
+                      </p>
+                      <div className="rounded-lg border border-border bg-muted/30 p-3">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {log.content}
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge
+                            type="consultation"
+                            value={log.status_snapshot as ConsultationStatus}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={logBottomRef} />
+              </div>
+            )}
+
+            {/* 새 기록 입력 폼 (sold 상태면 숨김) */}
+            {consultation.status !== "sold" && (
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-3">
+                  새 상담 기록
+                </p>
+                <div className="space-y-3">
+                  <Textarea
+                    placeholder="통화 내용을 입력하세요"
+                    value={logContent}
+                    onChange={(e) => setLogContent(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <div className="flex items-center gap-3">
+                    <Select
+                      value={logStatus}
+                      onValueChange={(v) =>
+                        setLogStatus(v as ConsultationStatus)
+                      }
+                    >
+                      <SelectTrigger className="flex-1 sm:w-44 sm:flex-none">
+                        <SelectValue placeholder="상태 변경 (선택)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {logStatusOptions.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      onClick={handleSubmitLog}
+                      disabled={submittingLog || !logContent.trim()}
+                    >
+                      {submittingLog ? "등록 중..." : "등록"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
