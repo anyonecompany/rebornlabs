@@ -74,5 +74,15 @@ export async function PATCH(
 
   await supabase.auth.admin.signOut(userId);
 
+  // 감사 로그 기록
+  const currentUser = await verifyUser(token!);
+  await supabase.from("audit_logs").insert({
+    actor_id: currentUser.id,
+    action: "role_changed",
+    target_type: "profile",
+    target_id: userId,
+    metadata: { new_role: role },
+  });
+
   return NextResponse.json({ success: true });
 }

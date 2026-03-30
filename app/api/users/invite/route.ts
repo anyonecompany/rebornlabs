@@ -113,6 +113,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // 감사 로그 기록
+  const currentUser = await verifyUser(token!);
+  await supabase.from("audit_logs").insert({
+    actor_id: currentUser.id,
+    action: "user_invited",
+    target_type: "profile",
+    target_id: authData.user.id,
+    metadata: { email, name, role },
+  });
+
   return NextResponse.json({
     user: { id: authData.user.id, email, name, role },
     temporaryPassword,

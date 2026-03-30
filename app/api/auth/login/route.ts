@@ -70,6 +70,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 감사 로그 기록
+    await serviceClient.from("audit_logs").insert({
+      actor_id: profile.id,
+      action: "user_login",
+      target_type: "profile",
+      target_id: profile.id,
+      metadata: { email: profile.email },
+    });
+
     return NextResponse.json({
       user: {
         id: profile.id,

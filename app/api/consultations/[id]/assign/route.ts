@@ -108,6 +108,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // 감사 로그 기록
+    await serviceClient.from("audit_logs").insert({
+      actor_id: user.id,
+      action: "dealer_assigned",
+      target_type: "consultation",
+      target_id: id,
+      metadata: { dealer_id, dealer_name: dealer.name, marketing_company: marketing_company ?? null },
+    });
+
     return NextResponse.json({ message: "딜러가 배정되었습니다." });
   } catch (err) {
     if (err instanceof AuthError) {
