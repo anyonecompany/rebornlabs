@@ -76,16 +76,12 @@ export default function RebornLabsLanding() {
     };
 
     try {
-      if (!APPS_SCRIPT_URL) {
-        console.log("[DEV] 폼 제출 데이터:", payload);
-      } else {
-        await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       setSubmitted(true);
     } catch {
       alert("신청 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -308,21 +304,105 @@ export default function RebornLabsLanding() {
           color: #c8bfa8;
           letter-spacing: 4px;
           text-transform: uppercase;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
+        }
+        .hero-anchor {
+          font-size: 24px;
+          font-weight: 600;
+          color: #fff;
+          margin-bottom: 10px;
+          line-height: 1.5;
+        }
+        .hero-anchor-strike {
+          text-decoration: none;
+          background: none;
+          color: #fff;
+          font-weight: 700;
         }
         .hero-title {
           font-size: 50px;
           font-weight: 700;
           line-height: 1.3;
           letter-spacing: -1px;
+          margin-bottom: 12px;
+        }
+        .hero-price {
+          font-size: 56px;
+          font-weight: 700;
+          letter-spacing: -1.5px;
+          line-height: 1.2;
           margin-bottom: 20px;
+        }
+        .hero-price-highlight {
+          color: #fff;
         }
         .hero-desc {
           font-size: 17.5px;
           font-weight: 400;
           color: #d4cbba;
           line-height: 1.7;
-          max-width: 480px;
+          max-width: 520px;
+          margin-bottom: 36px;
+        }
+        .hero-mini-form {
+          display: flex;
+          gap: 12px;
+          max-width: 680px;
+        }
+        .hero-mini-input {
+          flex: 1;
+          background: rgba(255,255,255,0.1);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 8px;
+          color: #fff;
+          font-family: inherit;
+          font-size: 15.5px;
+          font-weight: 400;
+          padding: 16px 20px;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .hero-mini-input:focus {
+          border-color: rgba(255,255,255,0.35);
+        }
+        .hero-mini-input::placeholder {
+          color: rgba(255,255,255,0.35);
+        }
+        .hero-mini-input option {
+          background: #111;
+          color: #fff;
+        }
+        select.hero-mini-input {
+          padding-right: 36px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        }
+        .hero-mini-submit {
+          padding: 16px 32px;
+          background: #fff;
+          color: #000;
+          font-size: 15.5px;
+          font-weight: 700;
+          font-family: inherit;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          letter-spacing: -0.3px;
+          transition: background 0.2s;
+          white-space: nowrap;
+        }
+        .hero-mini-submit:hover {
+          background: #e8dcc8;
+        }
+        .hero-mini-submit:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
         }
         .hero-cta {
           margin-top: 36px;
@@ -975,12 +1055,6 @@ export default function RebornLabsLanding() {
           opacity: 0.3;
           cursor: not-allowed;
         }
-        .utm-badge {
-          margin-top: 16px;
-          font-size: 11px;
-          color: rgba(255,255,255,0.2);
-          text-align: center;
-        }
         .success-message {
           text-align: center;
           padding: 60px 0;
@@ -1038,11 +1112,20 @@ export default function RebornLabsLanding() {
             min-height: 100svh;
           }
           .hero-sub { font-size: 11px; letter-spacing: 3px; }
-          .hero-title { font-size: 28px; letter-spacing: -0.5px; }
+          .hero-anchor { font-size: 16px; }
+          .hero-title { font-size: 24px; letter-spacing: -0.5px; }
+          .hero-price { font-size: 36px; }
           .mobile-br { display: block; }
           .hero-bg-desktop { display: none; }
           .hero-bg-mobile { display: block; }
           .hero-desc { font-size: 14px; }
+          .hero-mini-form {
+            flex-direction: column;
+            gap: 10px;
+            max-width: 100%;
+          }
+          .hero-mini-input { padding: 14px 16px; font-size: 14px; }
+          .hero-mini-submit { padding: 14px 24px; font-size: 14px; }
           .hero-cta { padding: 14px 32px; font-size: 14px; }
 
           .section { padding: 80px 20px; }
@@ -1201,18 +1284,134 @@ export default function RebornLabsLanding() {
         </div>
         <div className="hero-overlay" />
         <div className="hero-content">
-          <p className="hero-sub">Reborn Labs</p>
+          <p className="hero-anchor">
+            벤츠 E300, 월 리스료 <span className="hero-anchor-strike">120만원</span>?
+          </p>
           <h1 className="hero-title">
-            프리미엄 차량을,<br className="mobile-br" /> 새로운 방식으로.
+            여기선 <span className="hero-price-highlight">월 50만원대.</span>
           </h1>
           <p className="hero-desc">
             완벽히 복원된 프리미엄 차량을 합리적인 비용으로.
             <br />
             36개월 이용 후 반납하는 새로운 카 라이프를 경험하세요.
           </p>
-          <button className="hero-cta" onClick={() => scrollTo("contact")}>
-            상담 신청하기
-          </button>
+          <div className="hero-mini-form">
+            <input
+              className="hero-mini-input"
+              type="text"
+              placeholder="이름"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <input
+              className="hero-mini-input"
+              type="tel"
+              placeholder="연락처"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            />
+            <select
+              className="hero-mini-input"
+              value={formData.vehicle}
+              onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })}
+            >
+              <option value="">현재 출고 가능 차량</option>
+              <option disabled>── 현대 ──</option>
+              <option value="현대 그랜저">현대 그랜저</option>
+              <option value="현대 싼타페">현대 싼타페</option>
+              <option value="현대 펠리세이드">현대 펠리세이드</option>
+              <option value="현대 아이오닉6">현대 아이오닉6</option>
+              <option disabled>── 제네시스 ──</option>
+              <option value="제네시스 G70">제네시스 G70</option>
+              <option value="제네시스 G80">제네시스 G80</option>
+              <option value="제네시스 EQ900">제네시스 EQ900</option>
+              <option value="제네시스 GV70">제네시스 GV70</option>
+              <option value="제네시스 GV80">제네시스 GV80</option>
+              <option disabled>── BMW ──</option>
+              <option value="BMW 3시리즈">BMW 3시리즈</option>
+              <option value="BMW 5시리즈">BMW 5시리즈</option>
+              <option value="BMW 7시리즈">BMW 7시리즈</option>
+              <option value="BMW 8시리즈">BMW 8시리즈</option>
+              <option value="BMW X3">BMW X3</option>
+              <option value="BMW X5">BMW X5</option>
+              <option value="BMW X6">BMW X6</option>
+              <option value="BMW X7">BMW X7</option>
+              <option disabled>── 랜드로버 ──</option>
+              <option value="랜드로버 디스커버리 스포츠">랜드로버 디스커버리 스포츠</option>
+              <option value="랜드로버 디스커버리">랜드로버 디스커버리</option>
+              <option value="랜드로버 디펜더">랜드로버 디펜더</option>
+              <option value="랜드로버 레인지로버 벨라">랜드로버 레인지로버 벨라</option>
+              <option value="랜드로버 레인지로버 스포츠">랜드로버 레인지로버 스포츠</option>
+              <option value="랜드로버 레인지로버 이보크">랜드로버 레인지로버 이보크</option>
+              <option value="랜드로버 레인지로버">랜드로버 레인지로버</option>
+              <option disabled>── 마세라티 ──</option>
+              <option value="마세라티 르반떼">마세라티 르반떼</option>
+              <option value="마세라티 기블리">마세라티 기블리</option>
+              <option value="마세라티 콰트로포르테">마세라티 콰트로포르테</option>
+              <option value="마세라티 그란투리스모">마세라티 그란투리스모</option>
+              <option value="마세라티 그란카브리오">마세라티 그란카브리오</option>
+              <option disabled>── 마이바흐 ──</option>
+              <option value="마이바흐 57">마이바흐 57</option>
+              <option value="마이바흐 57S">마이바흐 57S</option>
+              <option value="마이바흐 62">마이바흐 62</option>
+              <option value="마이바흐 62S">마이바흐 62S</option>
+              <option value="마이바흐 57제플린">마이바흐 57제플린</option>
+              <option value="마이바흐 62제플린">마이바흐 62제플린</option>
+              <option value="마이바흐 62S렌들렛">마이바흐 62S렌들렛</option>
+              <option disabled>── 벤츠 ──</option>
+              <option value="벤츠 C-클래스">벤츠 C-클래스</option>
+              <option value="벤츠 E-클래스">벤츠 E-클래스</option>
+              <option value="벤츠 S-클래스">벤츠 S-클래스</option>
+              <option value="벤츠 CLS-클래스">벤츠 CLS-클래스</option>
+              <option value="벤츠 GLC-클래스">벤츠 GLC-클래스</option>
+              <option value="벤츠 GLE-클래스">벤츠 GLE-클래스</option>
+              <option disabled>── 아우디 ──</option>
+              <option value="아우디 A4">아우디 A4</option>
+              <option value="아우디 A5">아우디 A5</option>
+              <option value="아우디 A6">아우디 A6</option>
+              <option value="아우디 A7">아우디 A7</option>
+              <option value="아우디 Q5">아우디 Q5</option>
+              <option value="아우디 Q7">아우디 Q7</option>
+              <option disabled>── 지프 ──</option>
+              <option value="지프 글래디에이터">지프 글래디에이터</option>
+              <option value="지프 랭글러">지프 랭글러</option>
+              <option value="지프 레니게이드">지프 레니게이드</option>
+              <option value="지프 체로키">지프 체로키</option>
+              <option disabled>── 재규어 ──</option>
+              <option value="재규어 XF">재규어 XF</option>
+              <option value="재규어 F-TYPE">재규어 F-TYPE</option>
+              <option value="재규어 F-PACE">재규어 F-PACE</option>
+              <option value="재규어 XE">재규어 XE</option>
+              <option disabled>── 테슬라 ──</option>
+              <option value="테슬라 모델3">테슬라 모델3</option>
+              <option value="테슬라 모델S">테슬라 모델S</option>
+              <option value="테슬라 모델X">테슬라 모델X</option>
+              <option value="테슬라 모델Y">테슬라 모델Y</option>
+              <option disabled>── 포르쉐 ──</option>
+              <option value="포르쉐 718">포르쉐 718</option>
+              <option value="포르쉐 911">포르쉐 911</option>
+              <option value="포르쉐 카이엔">포르쉐 카이엔</option>
+              <option value="포르쉐 파나메라">포르쉐 파나메라</option>
+              <option value="포르쉐 마칸">포르쉐 마칸</option>
+              <option value="포르쉐 타이칸">포르쉐 타이칸</option>
+              <option disabled>── 폭스바겐 ──</option>
+              <option value="폭스바겐 티구안">폭스바겐 티구안</option>
+              <option value="폭스바겐 아테온">폭스바겐 아테온</option>
+              <option value="폭스바겐 제타">폭스바겐 제타</option>
+              <option value="폭스바겐 골프">폭스바겐 골프</option>
+              <option value="폭스바겐 투아렉">폭스바겐 투아렉</option>
+              <option value="폭스바겐 파사트">폭스바겐 파사트</option>
+              <option disabled>────────</option>
+              <option value="기타">기타 (문의사항에 기재)</option>
+            </select>
+            <button
+              className="hero-mini-submit"
+              onClick={() => scrollTo("contact")}
+              disabled={!formData.name || !formData.phone}
+            >
+              상담 신청
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1795,9 +1994,6 @@ export default function RebornLabsLanding() {
                     >
                       {submitting ? "신청 중..." : "상담 신청하기"}
                     </button>
-                    {utmSource && utmSource !== "direct" && (
-                      <p className="utm-badge">ref: {utmSource}</p>
-                    )}
                   </div>
                 </>
               ) : (
