@@ -1,54 +1,41 @@
-import { NextResponse } from "next/server";
-import { createSSRClient } from "@/lib/supabase/server-ssr";
+import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+
+function extractToken(request: NextRequest): string {
+  const authHeader = request.headers.get("Authorization") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "");
+  if (bearer) return bearer;
+  return request.cookies.get("sb-access-token")?.value ?? "";
+}
 
 /**
  * GET /api/users
  * 전체 사용자 목록 조회 (admin 전용)
+ * query: roles (optional, comma-separated) — 특정 역할만 필터
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const ssrClient = await createSSRClient();
+    const token = extractToken(request);
+    const user = await verifyUser(token);
+    requireRole(user, ["admin", "staff"]);
 
-    const {
-      data: { user },
-      error: authError,
-    } = await ssrClient.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "인증이 필요합니다." },
-        { status: 401 },
-      );
-    }
-
-    // 역할 확인
-    const { data: profile, error: profileError } = await ssrClient
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError || !profile) {
-      return NextResponse.json(
-        { error: "사용자 정보를 찾을 수 없습니다." },
-        { status: 404 },
-      );
-    }
-
-    if (profile.role !== "admin") {
-      return NextResponse.json(
-        { error: "경영진 권한이 필요합니다." },
-        { status: 403 },
-      );
-    }
-
-    // service_role로 전체 조회 (RLS 우회)
     const serviceClient = createServiceClient();
-    const { data: users, error: usersError } = await serviceClient
+
+    const { searchParams } = new URL(request.url);
+    const rolesParam = searchParams.get("roles");
+
+    let query = serviceClient
       .from("profiles")
       .select("id, email, name, phone, role, is_active, created_at")
       .order("created_at", { ascending: false });
+
+    if (rolesParam) {
+      const roles = rolesParam.split(",").map((r) => r.trim()) as ("admin" | "staff" | "dealer" | "pending")[];
+      query = query.in("role", roles);
+    }
+
+    const { data: users, error: usersError } = await query;
 
     if (usersError) {
       return NextResponse.json(
@@ -57,8 +44,12 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ users });
-  } catch {
+    return NextResponse.json({ users, data: users });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      const status = err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
+      return NextResponse.json({ error: err.message }, { status });
+    }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
       { status: 500 },

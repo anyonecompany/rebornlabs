@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { apiFetch } from "@/src/lib/api-client";
 import type { UserRole } from "@/types/database";
 
 interface UserRow {
@@ -68,10 +69,19 @@ export default function UsersPage() {
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<UserRow | null>(null);
 
+  // 편집 Dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<UserRole>("staff");
+  const [editActive, setEditActive] = useState(true);
+  const [editLoading, setEditLoading] = useState(false);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/users");
+      const res = await apiFetch("/api/users");
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error ?? "사용자 목록을 불러오지 못했습니다.");
@@ -164,6 +174,55 @@ export default function UsersPage() {
     }
   };
 
+  // 편집 모달 열기
+  const openEditDialog = (user: UserRow) => {
+    setEditUser(user);
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setEditRole(user.role);
+    setEditActive(user.is_active);
+    setEditOpen(true);
+  };
+
+  // 편집 제출
+  const handleEdit = async () => {
+    if (!editUser) return;
+    setEditLoading(true);
+    try {
+      // 역할 변경
+      if (editRole !== editUser.role) {
+        const roleRes = await apiFetch(`/api/users/${editUser.id}/role`, {
+          method: "PATCH",
+          body: JSON.stringify({ role: editRole }),
+        });
+        if (!roleRes.ok) {
+          const d = await roleRes.json();
+          toast.error(d.error ?? "역할 변경에 실패했습니다.");
+          return;
+        }
+      }
+      // 이름 변경 (service_role API 필요 — 간단히 프로필 PATCH API 활용)
+      if (editName !== editUser.name || editActive !== editUser.is_active) {
+        const profileRes = await apiFetch(`/api/users/${editUser.id}/profile`, {
+          method: "PATCH",
+          body: JSON.stringify({ name: editName, is_active: editActive }),
+        });
+        if (!profileRes.ok) {
+          const d = await profileRes.json();
+          toast.error(d.error ?? "정보 수정에 실패했습니다.");
+          return;
+        }
+      }
+      toast.success("사용자 정보가 수정되었습니다.");
+      setEditOpen(false);
+      await fetchUsers();
+    } catch {
+      toast.error("수정 중 오류가 발생했습니다.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   // 비활성화 제출
   const handleDeactivate = async () => {
     if (!deactivateTarget) return;
@@ -228,6 +287,9 @@ export default function UsersPage() {
               •••
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                정보 수정
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedUser(user);
@@ -447,6 +509,66 @@ export default function UsersPage() {
         variant="destructive"
         onConfirm={handleDeactivate}
       />
+
+      {/* 정보 수정 Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>사용자 정보 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>이메일</Label>
+              <Input value={editEmail} disabled className="opacity-60" />
+            </div>
+            <div className="space-y-2">
+              <Label>이름</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={editLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>역할</Label>
+              <Select
+                value={editRole}
+                onValueChange={(v) => setEditRole(v as UserRole)}
+                disabled={editLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">경영진</SelectItem>
+                  <SelectItem value="staff">직원</SelectItem>
+                  <SelectItem value="dealer">딜러</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label>활성 상태</Label>
+              <button
+                type="button"
+                onClick={() => setEditActive((p) => !p)}
+                disabled={editLoading}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editActive ? "bg-emerald-500" : "bg-zinc-600"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${editActive ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+              <span className="text-sm text-muted-foreground">{editActive ? "활성" : "비활성"}</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editLoading}>
+                취소
+              </Button>
+              <Button onClick={handleEdit} disabled={editLoading}>
+                {editLoading ? "저장 중..." : "저장"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
