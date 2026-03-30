@@ -20,13 +20,28 @@ const CreateLogSchema = z.object({
     .string()
     .min(1, "내용은 필수입니다.")
     .max(2000, "내용은 2000자 이하여야 합니다."),
-  status_snapshot: z.enum(ALLOWED_STATUS_SNAPSHOTS, {
-    errorMap: () => ({
-      message:
-        "유효하지 않은 상태값입니다. (new, consulting, vehicle_waiting, rejected 중 하나)",
-    }),
-  }),
-});
+  // 프론트엔드에서 'status' 키로도 전송하므로 두 필드 모두 수용하고 status_snapshot으로 통일
+  status: z
+    .enum(ALLOWED_STATUS_SNAPSHOTS, {
+      errorMap: () => ({
+        message:
+          "유효하지 않은 상태값입니다. (new, consulting, vehicle_waiting, rejected 중 하나)",
+      }),
+    })
+    .optional(),
+  status_snapshot: z
+    .enum(ALLOWED_STATUS_SNAPSHOTS, {
+      errorMap: () => ({
+        message:
+          "유효하지 않은 상태값입니다. (new, consulting, vehicle_waiting, rejected 중 하나)",
+      }),
+    })
+    .optional(),
+}).transform((data) => ({
+  content: data.content,
+  // status_snapshot이 있으면 우선, 없으면 status 사용
+  status_snapshot: data.status_snapshot ?? data.status ?? null,
+}));
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -201,13 +216,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // 상담 기록 INSERT
+    // status_snapshot이 null이면 현재 상담 상태를 스냅샷으로 사용 (DB NOT NULL 제약 대응)
     const { data: log, error: insertError } = await serviceClient
       .from("consultation_logs")
       .insert({
         consultation_id: id,
         dealer_id: user.id,
         content,
-        status_snapshot,
+        status_snapshot: status_snapshot ?? consultation.status,
       })
       .select()
       .single();

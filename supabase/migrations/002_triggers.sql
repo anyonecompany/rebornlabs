@@ -294,10 +294,11 @@ CREATE TRIGGER trg_delivery_checklists_completion
 -- 상담 상태 전이 규칙 강제
 --
 -- 허용 전이 매트릭스:
---   new          → consulting, rejected
---   consulting   → vehicle_waiting, rejected, sold
+--   new             → consulting, rejected
+--   consulting      → vehicle_waiting, rejected, sold
 --   vehicle_waiting → consulting, rejected, sold
---   sold         → (전이 불가, 취소는 cancel_sale() 통해서만)
+--   rejected        → consulting (복원, admin/staff 전용은 앱 레이어에서 강제)
+--   sold            → (전이 불가, 취소는 cancel_sale() 통해서만)
 --
 -- 우회: SET LOCAL app.bypass_transition = 'true';
 --   → cancel_sale() 등 내부 함수에서만 사용
@@ -343,6 +344,13 @@ BEGIN
     WHEN 'vehicle_waiting' THEN
       IF NEW.status NOT IN ('consulting', 'rejected', 'sold') THEN
         RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: consulting, rejected, sold',
+          OLD.status, NEW.status;
+      END IF;
+
+    WHEN 'rejected' THEN
+      -- rejected → consulting만 허용 (복원 경로, admin/staff 전용은 앱 레이어에서 강제)
+      IF NEW.status NOT IN ('consulting') THEN
+        RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: consulting',
           OLD.status, NEW.status;
       END IF;
 

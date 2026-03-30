@@ -23,17 +23,17 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <div className="rounded-full bg-muted p-4">
-        <Icon className="h-8 w-8 text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+      <div className="rounded-full bg-muted/60 border border-border p-5">
+        <Icon className="h-6 w-6 text-muted-foreground/70" />
       </div>
-      <div className="space-y-1">
-        <p className="font-medium">{title}</p>
+      <div className="space-y-1.5">
+        <p className="text-sm font-medium text-foreground/80">{title}</p>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">{description}</p>
         )}
       </div>
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   );
 }

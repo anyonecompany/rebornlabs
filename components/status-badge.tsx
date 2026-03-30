@@ -108,7 +108,13 @@ export function StatusBadge({ type, value }: StatusBadgeProps) {
   }
 
   return (
-    <Badge variant="outline" className={config.className}>
+    <Badge
+      variant="outline"
+      className={[
+        "text-xs px-2 py-0.5 font-medium tracking-tight",
+        config.className,
+      ].join(" ")}
+    >
       {config.label}
     </Badge>
   );

@@ -45,4 +45,27 @@ CREATE INDEX IF NOT EXISTS idx_rate_limits_ip_endpoint
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action
   ON audit_logs (action);
 
+-- =============================================================
+-- 쿼리 최적화 검토 결과 (2026-03-30)
+-- =============================================================
+
+-- [현황 분석]
+-- vehicles   GET: dealer는 vehicles_dealer_view(SELECT *),
+--                 admin/staff는 vehicles(SELECT *) — role별 뷰/테이블 분리로 최적
+-- consultations GET: SELECT * — customer_name/phone/status/assigned_dealer_id 등
+--                    목록 렌더링에 전 컬럼 필요, 최적화 효과 미미
+-- sales      GET: vehicles/profiles/consultations 3개 병렬 Promise.all로
+--                 이미 N+1 해소됨. 각 서브쿼리도 필요 컬럼만 select
+-- settlements: sales SELECT에서 필요 6개 컬럼만 명시 — 이미 최적화됨
+-- dashboard:  RPC get_dashboard_stats — DB 레이어 집계, 앱 최적화 불필요
+
+-- [잠재적 인덱스 추가 후보]
+-- consultations.assigned_dealer_id: dealer 역할 목록 조회 빈번
+--   → CREATE INDEX idx_consultations_assigned_dealer ON consultations (assigned_dealer_id);
+-- consultation_logs.consultation_id: 상세 페이지 기록 조회 빈번
+--   → 001_schema.sql에 이미 정의 여부 확인 필요
+-- sales.vehicle_id: 판매 목록의 vehicle 정보 배치 조회 (.in())
+--   → CREATE INDEX idx_sales_vehicle_id ON sales (vehicle_id);
+-- (위 인덱스들은 001_schema.sql 검토 후 중복 없을 때 추가할 것)
+
 COMMIT;

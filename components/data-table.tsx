@@ -78,10 +78,15 @@ export function DataTable({
               <TableRow
                 key={rowIndex}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={onRowClick ? "cursor-pointer" : undefined}
+                className={[
+                  "data-table-row transition-colors",
+                  onRowClick ? "cursor-pointer" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {columns.map((col) => (
-                  <TableCell key={col.key}>
+                  <TableCell key={col.key} className="py-3 px-4">
                     {col.render
                       ? col.render(row[col.key], row)
                       : String(row[col.key] ?? "—")}

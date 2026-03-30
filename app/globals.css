@@ -5,20 +5,20 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Background */
+  /* Background — 랜딩페이지 #0a0a0a 톤 */
   --color-background: #0a0a0a;
   --color-foreground: #fafafa;
 
-  /* Card */
+  /* Card — 랜딩페이지 대비 살짝 밝은 패널 */
   --color-card: #111111;
   --color-card-foreground: #fafafa;
 
   /* Popover */
-  --color-popover: #111111;
+  --color-popover: #141414;
   --color-popover-foreground: #fafafa;
 
-  /* Primary */
-  --color-primary: #fafafa;
+  /* Primary — 랜딩페이지 골든 베이지 강조색 */
+  --color-primary: #c8bfa8;
   --color-primary-foreground: #0a0a0a;
 
   /* Secondary */
@@ -27,10 +27,10 @@
 
   /* Muted */
   --color-muted: #1a1a1a;
-  --color-muted-foreground: #a1a1aa;
+  --color-muted-foreground: #8a8a8a;
 
   /* Accent */
-  --color-accent: #1a1a1a;
+  --color-accent: #1f1f1f;
   --color-accent-foreground: #fafafa;
 
   /* Destructive */
@@ -38,17 +38,17 @@
   --color-destructive-foreground: #fafafa;
 
   /* Border / Input / Ring */
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #d4d4d8;
+  --color-border: #242424;
+  --color-input: #1a1a1a;
+  --color-ring: #c8bfa8;
 
   /* Sidebar */
-  --color-sidebar: #0f0f0f;
+  --color-sidebar: #0d0d0d;
   --color-sidebar-foreground: #fafafa;
-  --color-sidebar-border: #1f1f1f;
+  --color-sidebar-border: #1a1a1a;
   --color-sidebar-accent: #1a1a1a;
   --color-sidebar-accent-foreground: #fafafa;
-  --color-sidebar-ring: #d4d4d8;
+  --color-sidebar-ring: #c8bfa8;
 
   /* Chart */
   --color-chart-1: #10b981;
@@ -65,8 +65,8 @@
   --color-status-new: #3b82f6;
   --color-status-vehicle-waiting: #c4b5fd;
 
-  /* Radius */
-  --radius: 0.5rem;
+  /* Radius — 더 샤프한 느낌으로 살짝 줄임 */
+  --radius: 0.4rem;
 
   /* Font */
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
@@ -216,8 +216,65 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ── 테이블 행 hover + 짝수 행 배경 ── */
+@layer components {
+  .data-table-row {
+    transition: background-color 0.12s ease;
+  }
+  .data-table-row:hover {
+    background-color: rgba(200, 191, 168, 0.04);
+  }
+  .data-table-row:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.015);
+  }
+  .data-table-row:nth-child(even):hover {
+    background-color: rgba(200, 191, 168, 0.05);
+  }
+
+  /* 카드 border/shadow 개선 */
+  .card-elevated {
+    border-color: #2a2a2a;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.4),
+      0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* 입력 필드 포커스 링 — 골든 베이지 */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(200, 191, 168, 0.35);
+    border-color: rgba(200, 191, 168, 0.5);
+  }
+
+  /* 버튼 hover 트랜지션 */
+  button {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  }
+
+  /* 스켈레톤 — 더 어두운 배경에 맞게 조정 */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #1a1a1a 25%,
+      #242424 50%,
+      #1a1a1a 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 }
