@@ -20,7 +20,7 @@ export default async function AuthLayout({
     redirect("/login");
   }
 
-  const profile = JSON.parse(profileJson) as {
+  const profile = JSON.parse(decodeURIComponent(profileJson)) as {
     name: string;
     role: string;
     email: string;

@@ -75,12 +75,12 @@ export async function proxy(request: NextRequest) {
   // profile 데이터를 request 헤더에 주입 → layout에서 DB 조회 없이 읽기
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-user-id", user.id);
-  requestHeaders.set("x-user-profile", JSON.stringify({
+  requestHeaders.set("x-user-profile", encodeURIComponent(JSON.stringify({
     name: profile.name,
     role: profile.role,
     email: profile.email,
     must_change_password: profile.must_change_password,
-  }));
+  })));
 
   return NextResponse.next({
     request: { headers: requestHeaders },
