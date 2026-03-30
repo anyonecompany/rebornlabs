@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import { createSSRClient } from "@/lib/supabase/server-ssr";
-import { createServiceClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import { Sidebar } from "@/components/sidebar";
 import { PasswordBanner } from "@/components/password-banner";
 import type { UserRole } from "@/types/database";
@@ -12,28 +11,21 @@ export default async function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSSRClient();
+  // proxy.ts에서 주입한 헤더에서 profile 읽기 (DB 조회 0회)
+  const headerStore = await headers();
+  const userId = headerStore.get("x-user-id");
+  const profileJson = headerStore.get("x-user-profile");
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
+  if (!userId || !profileJson) {
     redirect("/login");
   }
 
-  // service_role로 profiles 조회 (RLS bypass — JWT custom claim 미설정 환경 대응)
-  const serviceClient = createServiceClient();
-  const { data: profile } = await serviceClient
-    .from("profiles")
-    .select("name, role, email, must_change_password")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) {
-    redirect("/login");
-  }
+  const profile = JSON.parse(profileJson) as {
+    name: string;
+    role: string;
+    email: string;
+    must_change_password: boolean;
+  };
 
   return (
     <div className="flex h-screen">
@@ -46,7 +38,7 @@ export default async function AuthLayout({
       />
       <main className="flex-1 overflow-auto">
         {profile.must_change_password && <PasswordBanner />}
-        <div className="p-6" data-user-role={profile.role} data-user-id={user.id}>{children}</div>
+        <div className="p-6" data-user-role={profile.role} data-user-id={userId}>{children}</div>
       </main>
     </div>
   );

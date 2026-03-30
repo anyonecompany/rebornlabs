@@ -38,7 +38,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // service_role로 profiles 조회 (RLS bypass — JWT custom claim 미설정 환경 대응)
+  // profiles 조회 (service_role, 1회) — 결과를 헤더로 전달하여 layout 중복 조회 제거
   const serviceClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -46,7 +46,7 @@ export async function proxy(request: NextRequest) {
   );
   const { data: profile, error: profileError } = await serviceClient
     .from("profiles")
-    .select("role, is_active, must_change_password")
+    .select("name, role, email, is_active, must_change_password")
     .eq("id", user.id)
     .single();
 
@@ -72,7 +72,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return response;
+  // profile 데이터를 request 헤더에 주입 → layout에서 DB 조회 없이 읽기
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-user-id", user.id);
+  requestHeaders.set("x-user-profile", JSON.stringify({
+    name: profile.name,
+    role: profile.role,
+    email: profile.email,
+    must_change_password: profile.must_change_password,
+  }));
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {
