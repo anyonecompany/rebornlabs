@@ -11,10 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { processImage, uploadVehicleImage } from "@/src/lib/image-utils";
+import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
+
+const YEAR_OPTIONS = Array.from({ length: 2027 - 2015 + 1 }, (_, i) => 2027 - i);
 
 interface FormState {
   make: string;
@@ -60,29 +70,7 @@ export default function VehicleNewPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>("staff");
-
-  useEffect(() => {
-    const supabase = createBrowserClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          const role = data?.role as UserRole | undefined;
-          if (role) {
-            setUserRole(role);
-            if (role === "dealer" || role === "pending") {
-              toast.error("권한이 없습니다.");
-              router.push("/vehicles");
-            }
-          }
-        });
-    });
-  }, [router]);
+  const { role: userRole } = useUserRole();
 
   const margin =
     form.selling_price && form.purchase_price
@@ -215,7 +203,7 @@ export default function VehicleNewPage() {
 
       <PageHeader title="차량 등록" description="새 차량을 등록합니다." />
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
         {/* 기본 정보 */}
         <Card>
           <CardContent className="pt-6 space-y-4">
@@ -253,20 +241,25 @@ export default function VehicleNewPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="year">
+                <Label>
                   연식 <span className="text-red-400">*</span>
                 </Label>
-                <Input
-                  id="year"
-                  type="number"
-                  min={1990}
-                  max={new Date().getFullYear() + 1}
+                <Select
                   value={form.year}
-                  onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
-                  placeholder="2022"
-                  required
+                  onValueChange={(v) => setForm((p) => ({ ...p, year: v }))}
                   disabled={saving}
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="연식 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEAR_OPTIONS.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}년
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
