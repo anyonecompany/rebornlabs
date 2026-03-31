@@ -58,12 +58,23 @@ interface MarketingCompanyRow {
 // 마케팅업체 관리 섹션
 // ---------------------------------------------------------------------------
 
+const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL ?? "https://rebornlabs.kr";
+
 function MarketingCompaniesSection() {
   const [companies, setCompanies] = useState<MarketingCompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyLink = (company: MarketingCompanyRow) => {
+    const url = `${LANDING_URL}?ref=${encodeURIComponent(company.name)}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(company.id);
+    toast.success("UTM 링크가 복사되었습니다.");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -173,6 +184,9 @@ function MarketingCompaniesSection() {
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
                     상태
                   </th>
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                    UTM 링크
+                  </th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -199,6 +213,20 @@ function MarketingCompaniesSection() {
                           비활성
                         </Badge>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7 gap-1"
+                        onClick={() => handleCopyLink(company)}
+                      >
+                        {copiedId === company.id ? (
+                          <><Check className="h-3 w-3 text-emerald-400" /> 복사됨</>
+                        ) : (
+                          <><Copy className="h-3 w-3" /> 링크 복사</>
+                        )}
+                      </Button>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button

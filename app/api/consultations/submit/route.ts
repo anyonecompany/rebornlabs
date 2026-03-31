@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 5. DB 저장
-  const { error: insertError } = await serviceClient.rpc(
+  const { data: consultationId, error: insertError } = await serviceClient.rpc(
     "insert_consultation_from_gas",
     {
       p_customer_name: name,
@@ -113,6 +113,24 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     return corsJson({ error: "상담 접수 중 오류가 발생했습니다." }, { status: 500 });
+  }
+
+  // 5-1. ref → 마케팅업체 자동 매칭
+  if (ref && consultationId) {
+    const decoded = decodeURIComponent(ref);
+    const { data: mc } = await serviceClient
+      .from("marketing_companies")
+      .select("name")
+      .eq("name", decoded)
+      .eq("is_active", true)
+      .single();
+
+    if (mc) {
+      await serviceClient
+        .from("consultations")
+        .update({ marketing_company: mc.name })
+        .eq("id", consultationId);
+    }
   }
 
   // 6. GAS 병렬 호출 (fire-and-forget)
