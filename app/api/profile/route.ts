@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { AuthError, verifyUser } from "@/lib/auth/verify";
 import { createSSRClient } from "@/lib/supabase/server-ssr";
+import { createServiceClient } from "@/lib/supabase/server";
 
 interface ProfileUpdateRequest {
   name?: string;
@@ -16,6 +17,34 @@ function extractToken(request: NextRequest): string | null {
     return authHeader.slice(7);
   }
   return request.cookies.get("sb-access-token")?.value ?? null;
+}
+
+export async function GET(request: NextRequest) {
+  const token = extractToken(request);
+  if (!token) {
+    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  }
+
+  try {
+    const user = await verifyUser(token);
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
+      .from("profiles")
+      .select("id, email, name, phone, role")
+      .eq("id", user.id)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: "프로필을 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    return NextResponse.json({ profile: data });
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: 401 });
+    }
+    return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: NextRequest) {

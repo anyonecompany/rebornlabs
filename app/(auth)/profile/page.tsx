@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/src/lib/api-client";
 import type { UserRole } from "@/types/database";
 
 interface ProfileData {
@@ -42,7 +43,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/profile");
+      const res = await apiFetch("/api/profile");
       if (!res.ok) throw new Error("프로필을 불러오지 못했습니다.");
       const data = await res.json();
       setProfile(data.profile);
@@ -63,7 +64,7 @@ export default function ProfilePage() {
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/profile", {
+      const res = await apiFetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() || null }),
@@ -93,7 +94,7 @@ export default function ProfilePage() {
     }
     setChangingPassword(true);
     try {
-      const res = await fetch("/api/profile", {
+      const res = await apiFetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),

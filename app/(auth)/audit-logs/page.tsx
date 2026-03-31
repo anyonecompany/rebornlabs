@@ -19,13 +19,16 @@ import { apiFetch } from "@/src/lib/api-client";
 // ---------------------------------------------------------------------------
 
 const ACTION_LABELS: Record<string, string> = {
+  user_login: "로그인",
   user_invited: "사용자 초대",
   role_changed: "역할 변경",
-  user_deactivated: "사용자 비활성화",
+  user_deactivated: "비활성화",
   vehicle_deleted: "차량 삭제",
-  gas_consultation_created: "상담 접수 (GAS)",
+  gas_consultation_created: "상담 접수",
   sale_completed: "판매 완료",
   sale_cancelled: "판매 취소",
+  dealer_assigned: "딜러 배정",
+  dealer_unassigned: "배정 해제",
   document_uploaded: "문서 업로드",
   document_deleted: "문서 삭제",
   expense_created: "지출 등록",
@@ -198,8 +201,11 @@ export default function AuditLogsPage() {
       header: "대상 ID",
       render: (v: unknown) =>
         v ? (
-          <span className="text-xs font-mono text-muted-foreground truncate max-w-[100px] block">
-            {v as string}
+          <span
+            className="text-xs font-mono text-muted-foreground"
+            title={v as string}
+          >
+            {(v as string).slice(0, 8)}...
           </span>
         ) : (
           <span className="text-muted-foreground text-xs">—</span>

@@ -64,7 +64,7 @@ export function DataTable({
     <div className="space-y-3">
       <div className="rounded-lg border border-border overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow className="hover:bg-transparent">
               {columns.map((col) => (
                 <TableHead key={col.key} className="text-muted-foreground">

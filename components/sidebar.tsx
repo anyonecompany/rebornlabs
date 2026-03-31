@@ -97,8 +97,8 @@ function NavList({ items, currentPath, onNavigate }: NavListProps) {
             className={[
               "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
               isActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-primary"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent",
             ].join(" ")}
           >
             <Icon className="w-4 h-4 shrink-0" />
@@ -139,23 +139,22 @@ function SidebarContent({
 
       <Separator className="bg-sidebar-border mt-auto" />
 
-      <div className="px-4 py-4 flex items-center gap-3">
-        <Avatar className="w-8 h-8 shrink-0">
-          <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-medium">
-            {getInitials(user.name)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-sidebar-foreground truncate">
-            {user.name}
-          </p>
-          <Badge
-            variant="secondary"
-            className="text-[10px] px-1.5 py-0 mt-0.5 bg-sidebar-accent text-sidebar-accent-foreground border-0"
-          >
-            {ROLE_LABELS[user.role]}
-          </Badge>
-        </div>
+      <div className="px-4 py-3 flex items-center gap-3">
+        <Link href="/profile" className="flex items-center gap-3 flex-1 min-w-0 rounded-md hover:bg-sidebar-accent transition-colors px-1 py-1">
+          <Avatar className="w-8 h-8 shrink-0">
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs font-medium">
+              {getInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">
+              {user.name}
+            </p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">
+              {ROLE_LABELS[user.role]}
+            </p>
+          </div>
+        </Link>
         <Button
           variant="ghost"
           size="icon"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Car,
@@ -94,11 +95,12 @@ interface StatCardProps {
   label: string;
   value: string;
   icon: React.ElementType;
+  href?: string;
 }
 
-function StatCard({ label, value, icon: Icon }: StatCardProps) {
-  return (
-    <Card>
+function StatCard({ label, value, icon: Icon, href }: StatCardProps) {
+  const card = (
+    <Card className={href ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {label}
@@ -110,6 +112,11 @@ function StatCard({ label, value, icon: Icon }: StatCardProps) {
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{card}</Link>;
+  }
+  return card;
 }
 
 // ---------------------------------------------------------------------------
@@ -129,16 +136,19 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
       label: "출고가능 차량",
       value: `${stats.available_vehicles ?? 0}대`,
       icon: Car,
+      href: "/vehicles",
     },
     {
       label: "신규 상담",
       value: `${stats.new_consultations ?? 0}건`,
       icon: MessageSquare,
+      href: "/consultations",
     },
     {
       label: "이번 달 판매",
       value: `${stats.monthly_sales ?? 0}건`,
       icon: TrendingUp,
+      href: "/sales",
     },
     {
       label: "딜러 수당 합계",
@@ -156,8 +166,8 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
     <div>
       {/* 통계 카드: 모바일 1열, sm 2열, lg 3열 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {statCards.map(({ label, value, icon }) => (
-          <StatCard key={label} label={label} value={value} icon={icon} />
+        {statCards.map(({ label, value, icon, href }) => (
+          <StatCard key={label} label={label} value={value} icon={icon} href={href} />
         ))}
       </div>
 
@@ -270,16 +280,19 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
       label: "내 활성 상담",
       value: `${stats.my_active_consultations ?? 0}건`,
       icon: MessageSquare,
+      href: "/consultations",
     },
     {
       label: "출고가능 차량",
       value: `${stats.available_vehicles ?? 0}대`,
       icon: Car,
+      href: "/vehicles",
     },
     {
       label: "이번 달 내 판매",
       value: `${stats.my_monthly_sales ?? 0}건`,
       icon: TrendingUp,
+      href: "/sales",
     },
   ];
 
@@ -287,8 +300,8 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
     <div>
       {/* 통계 카드: 모바일 1열, sm 3열 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {statCards.map(({ label, value, icon }) => (
-          <StatCard key={label} label={label} value={value} icon={icon} />
+        {statCards.map(({ label, value, icon, href }) => (
+          <StatCard key={label} label={label} value={value} icon={icon} href={href} />
         ))}
       </div>
 
