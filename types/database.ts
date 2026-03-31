@@ -215,6 +215,20 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      marketing_companies: {
+        Row: {
+          id: string;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["marketing_companies"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<Database["public"]["Tables"]["marketing_companies"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       vehicles_dealer_view: {

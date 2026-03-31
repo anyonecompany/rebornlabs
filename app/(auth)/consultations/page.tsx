@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatPhone } from "@/src/lib/format-phone";
 import type { ConsultationStatus } from "@/types/database";
 
 interface ConsultationRow {
@@ -85,7 +86,11 @@ export default function ConsultationsPage() {
 
   const columns = [
     { key: "customer_name", header: "고객명" },
-    { key: "phone", header: "전화번호" },
+    {
+      key: "phone",
+      header: "전화번호",
+      render: (value: unknown) => formatPhone(value as string | null),
+    },
     {
       key: "interested_vehicle",
       header: "관심차종",

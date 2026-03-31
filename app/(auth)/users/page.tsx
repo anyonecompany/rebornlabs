@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Copy, Check, UserPlus } from "lucide-react";
+import { Copy, Check, UserPlus, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
 interface UserRow {
@@ -45,7 +47,191 @@ interface UserRow {
 
 type InviteRole = "staff" | "dealer";
 
+interface MarketingCompanyRow {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// 마케팅업체 관리 섹션
+// ---------------------------------------------------------------------------
+
+function MarketingCompaniesSection() {
+  const [companies, setCompanies] = useState<MarketingCompanyRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch("/api/marketing-companies");
+      if (!res.ok) return;
+      const data = await res.json();
+      setCompanies(data.data ?? []);
+    } catch {
+      // 조용히 처리
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [fetchCompanies]);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) {
+      toast.error("업체명을 입력해주세요.");
+      return;
+    }
+    setAdding(true);
+    try {
+      const res = await apiFetch("/api/marketing-companies", {
+        method: "POST",
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "업체 추가에 실패했습니다.");
+        return;
+      }
+      toast.success("업체가 추가되었습니다.");
+      setNewName("");
+      await fetchCompanies();
+    } catch {
+      toast.error("업체 추가 중 오류가 발생했습니다.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleToggleActive = async (company: MarketingCompanyRow) => {
+    setTogglingId(company.id);
+    try {
+      const res = await apiFetch(`/api/marketing-companies/${company.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !company.is_active }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "상태 변경에 실패했습니다.");
+        return;
+      }
+      setCompanies((prev) =>
+        prev.map((c) =>
+          c.id === company.id ? { ...c, is_active: !c.is_active } : c,
+        ),
+      );
+    } catch {
+      toast.error("상태 변경 중 오류가 발생했습니다.");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  return (
+    <Card className="mt-8">
+      <CardHeader>
+        <CardTitle className="text-base">마케팅업체 관리</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* 추가 폼 */}
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <Input
+            placeholder="업체명 입력"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            disabled={adding}
+            className="flex-1 max-w-xs"
+          />
+          <Button type="submit" size="sm" disabled={adding}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            {adding ? "추가 중..." : "추가"}
+          </Button>
+        </form>
+
+        {/* 업체 목록 */}
+        {loading ? (
+          <p className="text-sm text-muted-foreground">불러오는 중...</p>
+        ) : companies.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            등록된 마케팅업체가 없습니다.
+          </p>
+        ) : (
+          <div className="rounded-md border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                    업체명
+                  </th>
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
+                    상태
+                  </th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map((company) => (
+                  <tr
+                    key={company.id}
+                    className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium">{company.name}</td>
+                    <td className="px-4 py-3">
+                      {company.is_active ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        >
+                          활성
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        >
+                          비활성
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => handleToggleActive(company)}
+                        disabled={togglingId === company.id}
+                      >
+                        {togglingId === company.id
+                          ? "처리 중..."
+                          : company.is_active
+                            ? "비활성화"
+                            : "활성화"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 메인 컴포넌트
+// ---------------------------------------------------------------------------
+
 export default function UsersPage() {
+  const { role: currentUserRole } = useUserRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -331,6 +517,9 @@ export default function UsersPage() {
         loading={loading}
         emptyMessage="등록된 사용자가 없습니다."
       />
+
+      {/* 마케팅업체 관리 (admin만) */}
+      {currentUserRole === "admin" && <MarketingCompaniesSection />}
 
       {/* 초대 Dialog */}
       <Dialog

@@ -128,7 +128,7 @@ export default function ProfilePage() {
     <div>
       <PageHeader title="내 프로필" />
 
-      <div className="space-y-6 max-w-lg">
+      <div className="space-y-6 max-w-xl mx-auto">
         {/* 프로필 정보 */}
         <Card>
           <CardHeader>

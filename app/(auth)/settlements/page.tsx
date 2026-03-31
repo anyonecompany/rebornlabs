@@ -250,13 +250,10 @@ function DealerSettlementTab() {
 // 마케팅업체 정산 탭
 // ---------------------------------------------------------------------------
 
-const MARKETING_COMPANIES = [
-  "카캐럿",
-  "오토플러스",
-  "KB캐피탈",
-  "현대캐피탈",
-  "기타",
-];
+interface MarketingCompanyOption {
+  id: string;
+  name: string;
+}
 
 function MarketingSettlementTab() {
   const [rows, setRows] = useState<MarketingSettlementRow[]>([]);
@@ -264,6 +261,17 @@ function MarketingSettlementTab() {
   const [startDate, setStartDate] = useState(firstDayOfMonth());
   const [endDate, setEndDate] = useState(today());
   const [company, setCompany] = useState<string>("all");
+  const [marketingCompanies, setMarketingCompanies] = useState<MarketingCompanyOption[]>([]);
+
+  // 마케팅업체 목록 로드
+  useEffect(() => {
+    apiFetch("/api/marketing-companies")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.data) setMarketingCompanies(d.data as MarketingCompanyOption[]);
+      })
+      .catch(() => null);
+  }, []);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -329,9 +337,9 @@ function MarketingSettlementTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체 업체</SelectItem>
-            {MARKETING_COMPANIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
+            {marketingCompanies.map((c) => (
+              <SelectItem key={c.id} value={c.name}>
+                {c.name}
               </SelectItem>
             ))}
           </SelectContent>

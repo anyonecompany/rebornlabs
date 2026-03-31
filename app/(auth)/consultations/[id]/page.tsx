@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { formatPhone } from "@/src/lib/format-phone";
 import type { ConsultationStatus, UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -89,6 +90,12 @@ interface DealerOption {
   name: string;
 }
 
+interface MarketingCompanyOption {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
 interface ConsultationLog {
   id: string;
   consultation_id: string;
@@ -144,6 +151,7 @@ export default function ConsultationDetailPage() {
     RelatedConsultation[]
   >([]);
   const [dealers, setDealers] = useState<DealerOption[]>([]);
+  const [marketingCompanies, setMarketingCompanies] = useState<MarketingCompanyOption[]>([]);
   const [logs, setLogs] = useState<ConsultationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const { role: userRole } = useUserRole();
@@ -151,6 +159,8 @@ export default function ConsultationDetailPage() {
   // 딜러 배정 폼 상태
   const [selectedDealerId, setSelectedDealerId] = useState("");
   const [marketingCompany, setMarketingCompany] = useState("");
+  // 마케팅업체 선택 모드: "select" | "custom"
+  const [marketingMode, setMarketingMode] = useState<"select" | "custom">("select");
   const [assigning, setAssigning] = useState(false);
 
   // 상담 기록 입력 폼 상태
@@ -209,10 +219,23 @@ export default function ConsultationDetailPage() {
     }
   }, []);
 
+  // 마케팅업체 목록 로드
+  const fetchMarketingCompanies = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/marketing-companies?is_active=true");
+      if (!res.ok) return;
+      const data = await res.json();
+      setMarketingCompanies(data.data ?? []);
+    } catch {
+      // 마케팅업체 목록 로드 실패는 조용히 처리
+    }
+  }, []);
+
   useEffect(() => {
     fetchDetail();
     fetchDealers();
-  }, [fetchDetail, fetchDealers]);
+    fetchMarketingCompanies();
+  }, [fetchDetail, fetchDealers, fetchMarketingCompanies]);
 
   // 딜러 배정
   const handleAssign = async () => {
@@ -514,7 +537,7 @@ export default function ConsultationDetailPage() {
                   href={`tel:${consultation.phone}`}
                   className="font-medium text-sm text-primary hover:underline"
                 >
-                  {consultation.phone}
+                  {formatPhone(consultation.phone)}
                 </a>
               </InfoItem>
               <InfoItem
@@ -618,11 +641,55 @@ export default function ConsultationDetailPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">마케팅업체</Label>
-                  <Input
-                    placeholder="마케팅업체명 (선택)"
-                    value={marketingCompany}
-                    onChange={(e) => setMarketingCompany(e.target.value)}
-                  />
+                  {marketingMode === "select" ? (
+                    <Select
+                      value={marketingCompany}
+                      onValueChange={(v) => {
+                        if (v === "__custom__") {
+                          setMarketingMode("custom");
+                          setMarketingCompany("");
+                        } else {
+                          setMarketingCompany(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="업체 선택 (선택)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">선택 안함</SelectItem>
+                        {marketingCompanies.map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__">
+                          기타 (직접 입력)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <Input
+                        placeholder="업체명 직접 입력"
+                        value={marketingCompany}
+                        onChange={(e) => setMarketingCompany(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs shrink-0"
+                        onClick={() => {
+                          setMarketingMode("select");
+                          setMarketingCompany("");
+                        }}
+                      >
+                        목록
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
               <Button
