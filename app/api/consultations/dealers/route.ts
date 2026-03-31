@@ -26,9 +26,13 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
+    // dealers_name_view는 user_role() 함수에 의존하여 service_role에서 빈 결과 반환
+    // profiles 테이블에서 직접 조회 (service_role → RLS 우회)
     const { data, error } = await serviceClient
-      .from("dealers_name_view")
+      .from("profiles")
       .select("id, name")
+      .eq("role", "dealer")
+      .eq("is_active", true)
       .order("name", { ascending: true });
 
     if (error) {
