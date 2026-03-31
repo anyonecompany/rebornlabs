@@ -7,8 +7,8 @@ import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
 const AssignSchema = z.object({
-  dealer_id: z.string().uuid("유효한 딜러 ID가 아닙니다."),
-  marketing_company: z.string().optional(),
+  dealer_id: z.string().uuid("유효한 딜러 ID가 아닙니다.").nullable(),
+  marketing_company: z.string().nullable().optional(),
 });
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -71,6 +71,32 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         { error: "상담을 찾을 수 없습니다." },
         { status: 404 },
       );
+    }
+
+    // 배정 해제 (dealer_id === null)
+    if (dealer_id === null) {
+      const { error: clearErr } = await serviceClient
+        .from("consultations")
+        .update({
+          assigned_dealer_id: null,
+          marketing_company: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (clearErr) {
+        return NextResponse.json({ error: "배정 해제에 실패했습니다." }, { status: 500 });
+      }
+
+      await serviceClient.from("audit_logs").insert({
+        actor_id: user.id,
+        action: "dealer_unassigned",
+        target_type: "consultation",
+        target_id: id,
+        metadata: {},
+      });
+
+      return NextResponse.json({ message: "배정이 해제되었습니다." });
     }
 
     // 딜러 존재 확인 (dealers_name_view)

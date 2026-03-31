@@ -37,9 +37,9 @@ import type { ConsultationStatus, UserRole } from "@/types/database";
 // ---------------------------------------------------------------------------
 const ALLOWED_TRANSITIONS: Record<ConsultationStatus, ConsultationStatus[]> = {
   new: ["consulting", "rejected"],
-  consulting: ["vehicle_waiting", "rejected"],
+  consulting: ["new", "vehicle_waiting", "rejected"],
   vehicle_waiting: ["consulting", "rejected"],
-  rejected: ["consulting"], // admin/staff만 허용 (UI에서 필터링)
+  rejected: ["new", "consulting"], // admin/staff만 허용 (UI에서 필터링)
   sold: [],
 };
 
@@ -246,6 +246,37 @@ export default function ConsultationDetailPage() {
       );
     } catch {
       toast.error("딜러 배정 중 오류가 발생했습니다.");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // 배정 해제
+  const handleUnassign = async () => {
+    setAssigning(true);
+    try {
+      // 배정 해제: dealer_id를 빈 문자열로 전송 → API에서 null 처리
+      const res = await apiFetch(`/api/consultations/${id}/assign`, {
+        method: "PATCH",
+        body: JSON.stringify({ dealer_id: null, marketing_company: null }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        toast.error(d.error ?? "배정 해제에 실패했습니다.");
+        return;
+      }
+      // 상태를 신규로 변경
+      const statusRes = await apiFetch(`/api/consultations/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "new" }),
+      });
+      if (!statusRes.ok) {
+        toast.error("상태 변경에 실패했습니다.");
+      }
+      toast.success("배정이 해제되었습니다.");
+      await fetchDetail();
+    } catch {
+      toast.error("배정 해제 중 오류가 발생했습니다.");
     } finally {
       setAssigning(false);
     }
@@ -548,12 +579,23 @@ export default function ConsultationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {assignedDealerName && (
-                <p className="text-sm text-muted-foreground">
-                  현재 배정:{" "}
-                  <span className="text-foreground font-medium">
-                    {assignedDealerName}
-                  </span>
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    현재 배정:{" "}
+                    <span className="text-foreground font-medium">
+                      {assignedDealerName}
+                    </span>
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-400 hover:text-red-400 hover:border-red-400/50 text-xs"
+                    onClick={handleUnassign}
+                    disabled={assigning}
+                  >
+                    배정 해제
+                  </Button>
+                </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">

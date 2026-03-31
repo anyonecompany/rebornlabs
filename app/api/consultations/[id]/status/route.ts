@@ -14,9 +14,9 @@ import type { ConsultationStatus } from "@/types/database";
  */
 const ALLOWED_TRANSITIONS: Record<ConsultationStatus, ConsultationStatus[]> = {
   new: ["consulting", "rejected"],
-  consulting: ["vehicle_waiting", "rejected"],
+  consulting: ["new", "vehicle_waiting", "rejected"],
   vehicle_waiting: ["consulting", "rejected"],
-  rejected: ["consulting"],
+  rejected: ["new", "consulting"],
   sold: [],
 };
 

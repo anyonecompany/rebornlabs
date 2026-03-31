@@ -336,8 +336,8 @@ BEGIN
       END IF;
 
     WHEN 'consulting' THEN
-      IF NEW.status NOT IN ('vehicle_waiting', 'rejected', 'sold') THEN
-        RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: vehicle_waiting, rejected, sold',
+      IF NEW.status NOT IN ('new', 'vehicle_waiting', 'rejected', 'sold') THEN
+        RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: new, vehicle_waiting, rejected, sold',
           OLD.status, NEW.status;
       END IF;
 
@@ -348,9 +348,9 @@ BEGIN
       END IF;
 
     WHEN 'rejected' THEN
-      -- rejected → consulting만 허용 (복원 경로, admin/staff 전용은 앱 레이어에서 강제)
-      IF NEW.status NOT IN ('consulting') THEN
-        RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: consulting',
+      -- rejected → new, consulting 허용 (복원 경로, admin/staff 전용은 앱 레이어에서 강제)
+      IF NEW.status NOT IN ('new', 'consulting') THEN
+        RAISE EXCEPTION '유효하지 않은 상태 전이: % → %. 허용: new, consulting',
           OLD.status, NEW.status;
       END IF;
 
