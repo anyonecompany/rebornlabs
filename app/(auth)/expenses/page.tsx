@@ -344,14 +344,23 @@ function RegisterExpenseDialog({
           {/* 금액 */}
           <div className="space-y-1.5">
             <Label>금액 (원) *</Label>
-            <Input
-              type="number"
-              placeholder="0"
-              min={1}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={submitting}
-            />
+            <div className="relative">
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={amount ? Number(amount).toLocaleString("ko-KR") : ""}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  setAmount(raw);
+                }}
+                disabled={submitting}
+                className="pr-6"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                원
+              </span>
+            </div>
           </div>
 
           {/* 목적 */}
