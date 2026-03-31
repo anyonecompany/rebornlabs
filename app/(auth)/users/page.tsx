@@ -58,7 +58,7 @@ interface MarketingCompanyRow {
 // 마케팅업체 관리 섹션
 // ---------------------------------------------------------------------------
 
-const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL ?? "https://rebornlabs.kr";
+const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL ?? "https://rebornlabs.vercel.app";
 
 function MarketingCompaniesSection() {
   const [companies, setCompanies] = useState<MarketingCompanyRow[]>([]);
