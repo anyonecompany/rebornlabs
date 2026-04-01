@@ -76,6 +76,7 @@ interface DealerInfo {
 interface ConsultationInfo {
   id: string;
   customer_name: string;
+  customer_phone: string;
 }
 
 interface ContractFile {
@@ -460,7 +461,7 @@ export default function SaleDetailPage() {
         sellingPrice: detail.vehicle.selling_price,
         deposit: detail.vehicle.deposit,
         customerName: detail.consultation?.customer_name ?? "—",
-        customerPhone: detail.dealer?.email ?? "—",
+        customerPhone: detail.consultation?.customer_phone ?? "—",
         signatureImage,
       });
 
@@ -521,7 +522,7 @@ export default function SaleDetailPage() {
     detail;
 
   const isCancelled = !!sale.cancelled_at;
-  const hasActorDiff = sale.actor_id !== sale.dealer_id && sale.actor_id !== sale.dealer_id;
+  const hasActorDiff = sale.actor_id !== sale.dealer_id;
 
   return (
     <div>

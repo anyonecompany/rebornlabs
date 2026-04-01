@@ -46,12 +46,12 @@ function formatRelativeTime(iso: string): string {
 interface DashboardStats {
   available_vehicles: number;
   new_consultations: number;
-  monthly_sales: number;
-  monthly_dealer_fee: number;
-  monthly_marketing_fee: number;
+  month_sales: number;
+  month_dealer_fees: number;
+  month_marketing_fees: number;
   // 딜러 전용
   my_active_consultations?: number;
-  my_monthly_sales?: number;
+  my_month_sales?: number;
 }
 
 interface RecentConsultation {
@@ -146,18 +146,18 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
     },
     {
       label: "이번 달 판매",
-      value: `${stats.monthly_sales ?? 0}건`,
+      value: `${stats.month_sales ?? 0}건`,
       icon: TrendingUp,
       href: "/sales",
     },
     {
       label: "딜러 수당 합계",
-      value: formatKRW(stats.monthly_dealer_fee),
+      value: formatKRW(stats.month_dealer_fees),
       icon: DollarSign,
     },
     {
       label: "마케팅 수수료",
-      value: formatKRW(stats.monthly_marketing_fee),
+      value: formatKRW(stats.month_marketing_fees),
       icon: Users,
     },
   ];
@@ -290,7 +290,7 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
     },
     {
       label: "이번 달 내 판매",
-      value: `${stats.my_monthly_sales ?? 0}건`,
+      value: `${stats.my_month_sales ?? 0}건`,
       icon: TrendingUp,
       href: "/sales",
     },

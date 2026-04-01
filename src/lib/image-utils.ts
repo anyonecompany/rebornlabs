@@ -87,9 +87,9 @@ export async function uploadVehicleImage(
     throw new Error(`이미지 업로드 실패: ${error.message}`);
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("vehicles").getPublicUrl(path);
+  const { data: signedData } = await supabase.storage
+    .from("vehicles")
+    .createSignedUrl(path, 3600);
 
-  return publicUrl;
+  return signedData?.signedUrl ?? "";
 }

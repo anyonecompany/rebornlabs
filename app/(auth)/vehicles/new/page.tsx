@@ -101,7 +101,6 @@ export default function VehicleNewPage() {
         setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       } catch (err) {
         toast.error(`${file.name} 업로드에 실패했습니다.`);
-        console.error(err);
       }
     }
 
