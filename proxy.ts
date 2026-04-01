@@ -64,7 +64,11 @@ export async function proxy(request: NextRequest) {
 
   if (cached) {
     try {
-      profile = JSON.parse(decodeURIComponent(cached)) as CachedProfile;
+      const parsed = JSON.parse(decodeURIComponent(cached));
+      // 필수 필드 검증 — 손상된 캐시 방어
+      if (parsed?.id && parsed?.role && typeof parsed?.is_active === "boolean") {
+        profile = parsed as CachedProfile;
+      }
     } catch {
       profile = null;
     }
@@ -72,12 +76,16 @@ export async function proxy(request: NextRequest) {
 
   // ── 3. 캐시 미스 → getUser + profiles DB (네트워크 2회, 첫 요청만) ──
   let mustSetCookie = false;
+  let authCookies: { name: string; value: string }[] = [];
 
   if (!profile) {
-    const response = NextResponse.next({ request: { headers: request.headers } });
-    const supabase = createMiddlewareClient(request, response);
+    const tempRes = NextResponse.next({ request: { headers: request.headers } });
+    const supabase = createMiddlewareClient(request, tempRes);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    // auth 갱신 쿠키 보존 (토큰 리프레시 시 설정됨)
+    authCookies = tempRes.cookies.getAll();
 
     if (authError || !user) {
       const res = NextResponse.redirect(new URL("/login", request.url));
@@ -129,7 +137,12 @@ export async function proxy(request: NextRequest) {
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
 
-  // ── 6. 캐시 미스였으면 응답 쿠키에 프로필 캐싱 ──
+  // ── 6. auth 갱신 쿠키 전파 (토큰 리프레시) ──
+  for (const c of authCookies) {
+    res.cookies.set(c.name, c.value);
+  }
+
+  // ── 7. 캐시 미스였으면 응답 쿠키에 프로필 캐싱 ──
   if (mustSetCookie) {
     res.cookies.set(CACHE_COOKIE, encodeURIComponent(JSON.stringify(profile)), {
       httpOnly: true,
