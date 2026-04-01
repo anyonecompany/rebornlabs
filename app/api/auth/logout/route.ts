@@ -12,9 +12,10 @@ export async function POST() {
 
   const response = NextResponse.json({ success: true });
 
-  // 세션 쿠키 클리어
+  // 세션 쿠키 + 프로필 캐시 클리어
   response.cookies.delete("sb-access-token");
   response.cookies.delete("sb-refresh-token");
+  response.cookies.delete("x-profile-cache");
 
   return response;
 }
