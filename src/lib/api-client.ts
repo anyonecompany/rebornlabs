@@ -35,8 +35,8 @@ export async function apiFetch(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  // Content-Type은 body가 있는 경우에만 설정 (기존 값 우선)
-  if (options.body && !(headers as Record<string, string>)["Content-Type"]) {
+  // Content-Type: FormData일 때는 설정하지 않음 (브라우저가 boundary 자동 추가)
+  if (options.body && !(options.body instanceof FormData) && !(headers as Record<string, string>)["Content-Type"]) {
     (headers as Record<string, string>)["Content-Type"] = "application/json";
   }
 
