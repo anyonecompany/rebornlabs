@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Download, FileText, PenLine, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Download, FileText, PenLine, AlertTriangle, FilePlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -50,6 +50,9 @@ interface VehicleInfo {
   make: string;
   model: string;
   year: number;
+  mileage: number;
+  selling_price: number;
+  deposit: number;
 }
 
 interface DealerInfo {
@@ -142,6 +145,9 @@ export default function SaleDetailPage() {
 
   // 계약서 업로드 상태
   const [uploadingContract, setUploadingContract] = useState(false);
+
+  // 계약서 PDF 생성 상태
+  const [generatingContract, setGeneratingContract] = useState(false);
 
   // 취소 다이얼로그 상태
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -268,6 +274,76 @@ export default function SaleDetailPage() {
       setCancelling(false);
     }
   };
+
+  // 계약서 PDF 생성 핸들러
+  const handleGenerateContract = useCallback(async () => {
+    if (!detail?.vehicle) {
+      toast.error("차량 정보가 없어 계약서를 생성할 수 없습니다.");
+      return;
+    }
+
+    setGeneratingContract(true);
+    try {
+      // 클라이언트 사이드에서 PDF 생성
+      const { generateContractPDF } = await import("@/src/lib/contract-generator");
+
+      // 서명 이미지가 있으면 fetch하여 Uint8Array로 변환
+      let signatureImage: Uint8Array | undefined;
+      if (detail.signatureUrl) {
+        try {
+          const sigResponse = await fetch(detail.signatureUrl);
+          if (sigResponse.ok) {
+            const sigBuffer = await sigResponse.arrayBuffer();
+            signatureImage = new Uint8Array(sigBuffer);
+          }
+        } catch {
+          // 서명 이미지 로드 실패 시 서명 없이 계속
+        }
+      }
+
+      const pdfBytes = await generateContractPDF({
+        make: detail.vehicle.make,
+        model: detail.vehicle.model,
+        year: detail.vehicle.year,
+        mileage: detail.vehicle.mileage,
+        sellingPrice: detail.vehicle.selling_price,
+        deposit: detail.vehicle.deposit,
+        customerName: detail.consultation?.customer_name ?? "—",
+        customerPhone: detail.dealer?.email ?? "—",
+        signatureImage,
+      });
+
+      // Blob URL 생성 → 새 탭에서 PDF 열기
+      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+
+      // Storage에도 저장 (백그라운드)
+      const formData = new FormData();
+      formData.append("pdf", blob, "contract.pdf");
+
+      const saveRes = await apiFetch(`/api/sales/${id}/contract-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (saveRes.ok) {
+        toast.success("계약서가 생성되었습니다.");
+        // 계약서 목록 갱신
+        await fetchDetail();
+      } else {
+        // Storage 저장 실패 시도 PDF는 이미 열렸으므로 경고만
+        toast.warning("계약서를 열었지만 저장에 실패했습니다. 다운로드하여 보관해주세요.");
+      }
+
+      // Blob URL 해제 (메모리 정리)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch {
+      toast.error("계약서 생성 중 오류가 발생했습니다.");
+    } finally {
+      setGeneratingContract(false);
+    }
+  }, [detail, id, fetchDetail]);
 
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
@@ -464,7 +540,21 @@ export default function SaleDetailPage() {
         {/* ── 계약서 섹션 ── */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">계약서</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">계약서</CardTitle>
+              {/* 계약서 자동 생성 버튼 (취소 전 + 차량 정보 있을 때) */}
+              {!isCancelled && vehicle && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateContract}
+                  disabled={generatingContract}
+                >
+                  <FilePlus className="h-4 w-4 mr-1.5" />
+                  {generatingContract ? "생성 중..." : "계약서 생성"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* 업로드된 파일 목록 */}
