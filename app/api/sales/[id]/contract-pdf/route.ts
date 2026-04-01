@@ -110,11 +110,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { data: urlData } = serviceClient.storage
+    const { data: urlData } = await serviceClient.storage
       .from("contracts")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
-    return NextResponse.json({ url: urlData.publicUrl });
+    return NextResponse.json({ url: urlData?.signedUrl ?? "" });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

@@ -28,7 +28,7 @@ function extractToken(request: NextRequest): string {
  * Supabase Storage signed upload URL 생성 (admin/staff 전용).
  *
  * 클라이언트는 이 URL로 직접 Storage에 PUT 요청하여 업로드한다.
- * 업로드 완료 후 반환된 publicUrl을 vehicles.photos 배열에 추가하면 된다.
+ * 업로드 완료 후 반환된 signedUrl ?? ""을 vehicles.photos 배열에 추가하면 된다.
  *
  * 버킷명: "vehicle-photos"
  * 경로: "vehicles/{timestamp}_{fileName}"
@@ -81,16 +81,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 업로드 후 공개 URL
-    const {
-      data: { publicUrl },
-    } = serviceClient.storage.from(BUCKET_NAME).getPublicUrl(storagePath);
+    // 업로드 후 signed URL
+    const { data: urlData } = await serviceClient.storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(storagePath, 3600);
 
     return NextResponse.json({
-      signedUrl: data.signedUrl,
-      token: data.token,
       path: storagePath,
-      publicUrl,
+      publicUrl: urlData?.signedUrl ?? "",
       contentType,
     });
   } catch (err) {

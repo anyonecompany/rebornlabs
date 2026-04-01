@@ -123,11 +123,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { data: urlData } = serviceClient.storage
+    const { data: urlData } = await serviceClient.storage
       .from("signatures")
-      .getPublicUrl(`${saleId}/signature.png`);
+      .createSignedUrl(`${saleId}/signature.png`, 3600);
 
-    return NextResponse.json({ signatureUrl: urlData.publicUrl });
+    return NextResponse.json({ signatureUrl: urlData?.signedUrl ?? null });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

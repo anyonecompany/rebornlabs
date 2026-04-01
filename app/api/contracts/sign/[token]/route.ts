@@ -187,10 +187,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { data: signatureUrlData } = serviceClient.storage
+    const { data: signatureUrlData } = await serviceClient.storage
       .from("signatures")
-      .getPublicUrl(signaturePath);
-    const signatureUrl = signatureUrlData.publicUrl;
+      .createSignedUrl(signaturePath, 86400); // 24시간
+    const signatureUrl = signatureUrlData?.signedUrl ?? null;
 
     // PDF 생성
     const vehicleInfo = contract.vehicle_info as {
@@ -225,10 +225,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     let pdfUrl: string | null = null;
     if (!pdfUploadError) {
-      const { data: pdfUrlData } = serviceClient.storage
+      const { data: pdfUrlData } = await serviceClient.storage
         .from("contracts")
-        .getPublicUrl(pdfPath);
-      pdfUrl = pdfUrlData.publicUrl;
+        .createSignedUrl(pdfPath, 86400); // 24시간
+      pdfUrl = pdfUrlData?.signedUrl ?? null;
     }
 
     // contracts UPDATE

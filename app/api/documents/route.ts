@@ -204,9 +204,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: publicUrlData } = serviceClient.storage
+    const { data: publicUrlData } = await serviceClient.storage
       .from("documents")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
     // documents 테이블 INSERT
     const { data: document, error: insertError } = await serviceClient
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         uploaded_by: user.id,
         category,
         file_name: displayName,
-        file_url: publicUrlData.publicUrl,
+        file_url: publicUrlData?.signedUrl ?? "",
       })
       .select()
       .single();

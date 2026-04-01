@@ -132,12 +132,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { data: urlData } = serviceClient.storage
+    const { data: urlData } = await serviceClient.storage
       .from("contracts")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
     return NextResponse.json({
-      fileUrl: urlData.publicUrl,
+      fileUrl: urlData?.signedUrl ?? "",
       fileName: file.name,
     });
   } catch (err) {

@@ -94,24 +94,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
     );
     let signatureUrl: string | null = null;
     if (signatureFile) {
-      const { data: urlData } = serviceClient.storage
+      const { data: urlData } = await serviceClient.storage
         .from("signatures")
-        .getPublicUrl(`${id}/signature.png`);
-      signatureUrl = urlData.publicUrl;
+        .createSignedUrl(`${id}/signature.png`, 3600);
+      signatureUrl = urlData?.signedUrl ?? null;
     }
 
-    // 계약서 파일 목록 (publicUrl 포함)
-    const contractFiles: (FileInfo & { url: string })[] = (
-      contractsResult.data ?? []
-    ).map((file) => {
-      const { data: urlData } = serviceClient.storage
+    // 계약서 파일 목록 (signed URL — 비공개 버킷)
+    const contractFilesList = contractsResult.data ?? [];
+    const contractFiles: (FileInfo & { url: string })[] = [];
+    for (const file of contractFilesList) {
+      const { data: urlData } = await serviceClient.storage
         .from("contracts")
-        .getPublicUrl(`${id}/${file.name}`);
-      return {
+        .createSignedUrl(`${id}/${file.name}`, 3600);
+      contractFiles.push({
         ...file,
-        url: urlData.publicUrl,
-      };
-    });
+        url: urlData?.signedUrl ?? "",
+      });
+    }
 
     return NextResponse.json({
       data: sale,

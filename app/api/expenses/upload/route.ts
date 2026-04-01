@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: publicUrlData } = serviceClient.storage
+    const { data: publicUrlData } = await serviceClient.storage
       .from("receipts")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
     return NextResponse.json(
-      { fileUrl: publicUrlData.publicUrl },
+      { fileUrl: publicUrlData?.signedUrl ?? "" },
       { status: 200 },
     );
   } catch (err) {
