@@ -53,7 +53,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const { data: contract, error } = await serviceClient
       .from("contracts")
       .select(
-        "id, status, customer_name, customer_phone, vehicle_info, selling_price, deposit, signed_at",
+        "id, status, customer_name, customer_phone, customer_email, vehicle_info, selling_price, deposit, signed_at",
       )
       .eq("token", token)
       .single();
@@ -70,8 +70,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         signed: true,
         signedAt: contract.signed_at,
         contract: {
+          id: contract.id,
           customer_name: contract.customer_name,
           customer_phone: contract.customer_phone,
+          customer_email: contract.customer_email,
           vehicle_info: contract.vehicle_info,
           selling_price: contract.selling_price,
           deposit: contract.deposit,

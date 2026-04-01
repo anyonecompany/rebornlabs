@@ -247,9 +247,9 @@ export default function SignPage() {
           setError(data.error ?? "계약서를 불러올 수 없습니다.");
           return;
         }
-        setContract(data.data);
+        setContract(data.contract);
         // 이미 서명 완료된 계약서
-        if (data.data?.status === "signed") {
+        if (data.signed || data.contract?.status === "signed") {
           setSubmitted(true);
         }
       } catch {
