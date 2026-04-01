@@ -14,6 +14,8 @@ const CreateSaleSchema = z.object({
     required_error: "DB 제공 여부는 필수입니다.",
     invalid_type_error: "DB 제공 여부는 boolean 값이어야 합니다.",
   }),
+  dealer_fee: z.number().int().min(0).optional(),
+  marketing_fee: z.number().int().min(0).optional(),
 });
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -270,6 +272,15 @@ export async function POST(request: NextRequest) {
         { error: rpcError.message },
         { status: 400 },
       );
+    }
+
+    // 커스텀 수당/수수료가 지정된 경우 RPC 자동 계산값 덮어쓰기
+    const { dealer_fee: customDealerFee, marketing_fee: customMarketingFee } = parsed.data;
+    if (customDealerFee !== undefined || customMarketingFee !== undefined) {
+      const updateData: Record<string, number> = {};
+      if (customDealerFee !== undefined) updateData.dealer_fee = customDealerFee;
+      if (customMarketingFee !== undefined) updateData.marketing_fee = customMarketingFee;
+      await serviceClient.from("sales").update(updateData).eq("id", saleId);
     }
 
     return NextResponse.json(

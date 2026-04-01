@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
@@ -62,6 +63,8 @@ export default function NewSalePage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingDealers, setLoadingDealers] = useState(false);
+  const [dealerFee, setDealerFee] = useState(String(SELF_SALE_DEALER_FEE));
+  const [marketingFee, setMarketingFee] = useState(String(SELF_SALE_MARKETING_FEE));
 
   // 딜러인 경우 본인 ID를 딜러로 고정
   useEffect(() => {
@@ -131,6 +134,8 @@ export default function NewSalePage() {
           dealer_id: selectedDealerId,
           consultation_id: null,
           is_db_provided: false,
+          dealer_fee: parseInt(dealerFee, 10) || 0,
+          marketing_fee: parseInt(marketingFee, 10) || 0,
         }),
       });
       const data = await res.json();
@@ -242,19 +247,35 @@ export default function NewSalePage() {
               </p>
             </div>
 
-            {/* 수당/수수료 (읽기전용) */}
+            {/* 수당/수수료 (편집 가능) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">수당</Label>
-                <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border text-emerald-400">
-                  {formatKRW(SELF_SALE_DEALER_FEE)}
-                </p>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={dealerFee ? Number(dealerFee).toLocaleString("ko-KR") : ""}
+                    onChange={(e) => setDealerFee(e.target.value.replace(/[^0-9]/g, ""))}
+                    disabled={submitting}
+                    className="pr-6"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">원</span>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">수수료</Label>
-                <p className="text-sm font-medium px-3 py-2 rounded-md bg-muted/50 border border-border">
-                  {formatKRW(SELF_SALE_MARKETING_FEE)}
-                </p>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={marketingFee ? Number(marketingFee).toLocaleString("ko-KR") : ""}
+                    onChange={(e) => setMarketingFee(e.target.value.replace(/[^0-9]/g, ""))}
+                    disabled={submitting}
+                    className="pr-6"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">원</span>
+                </div>
               </div>
             </div>
           </CardContent>
