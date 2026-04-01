@@ -48,23 +48,23 @@ function today(): string {
 
 interface SettlementSummary {
   total_sales: number;
-  total_dealer_fee: number;
-  total_marketing_fee: number;
-  total_settlement_cost: number;
+  total_dealer_fees: number;
+  total_marketing_fees: number;
+  total_cost: number;
 }
 
 interface DealerSettlementRow {
   dealer_id: string;
   dealer_name: string;
-  total_sales: number;
+  total_count: number;
   db_provided_count: number;
-  self_sales_count: number;
+  self_count: number;
   total_dealer_fee: number;
 }
 
 interface MarketingSettlementRow {
-  company: string;
-  db_provided_sales: number;
+  marketing_company: string | null;
+  count: number;
   total_marketing_fee: number;
 }
 
@@ -97,17 +97,17 @@ function SummaryCards({ summary, loading }: SummaryCardsProps) {
     },
     {
       label: "딜러 수당 합계",
-      value: loading ? "—" : formatKRW(summary?.total_dealer_fee ?? 0),
+      value: loading ? "—" : formatKRW(summary?.total_dealer_fees ?? 0),
       icon: Users,
     },
     {
       label: "마케팅 수수료 합계",
-      value: loading ? "—" : formatKRW(summary?.total_marketing_fee ?? 0),
+      value: loading ? "—" : formatKRW(summary?.total_marketing_fees ?? 0),
       icon: DollarSign,
     },
     {
       label: "전체 정산 비용",
-      value: loading ? "—" : formatKRW(summary?.total_settlement_cost ?? 0),
+      value: loading ? "—" : formatKRW(summary?.total_cost ?? 0),
       icon: Calculator,
     },
   ];
@@ -181,19 +181,19 @@ function DealerSettlementTab() {
   const columns = [
     { key: "dealer_name", header: "딜러명" },
     {
-      key: "total_sales",
+      key: "total_count",
       header: "총 판매건수",
-      render: (v: unknown) => `${v as number}건`,
+      render: (v: unknown) => `${(v as number) ?? 0}건`,
     },
     {
       key: "db_provided_count",
       header: "DB제공 건수",
-      render: (v: unknown) => `${v as number}건`,
+      render: (v: unknown) => `${(v as number) ?? 0}건`,
     },
     {
-      key: "self_sales_count",
+      key: "self_count",
       header: "자체판매 건수",
-      render: (v: unknown) => `${v as number}건`,
+      render: (v: unknown) => `${(v as number) ?? 0}건`,
     },
     {
       key: "total_dealer_fee",
@@ -299,16 +299,20 @@ function MarketingSettlementTab() {
   }, [fetchRows]);
 
   const columns = [
-    { key: "company", header: "업체명" },
     {
-      key: "db_provided_sales",
+      key: "marketing_company",
+      header: "업체명",
+      render: (v: unknown) => (v as string) || "미지정",
+    },
+    {
+      key: "count",
       header: "DB제공 판매건수",
-      render: (v: unknown) => `${v as number}건`,
+      render: (v: unknown) => `${(v as number) ?? 0}건`,
     },
     {
       key: "total_marketing_fee",
       header: "총 수수료",
-      render: (v: unknown) => formatKRW(v as number),
+      render: (v: unknown) => formatKRW((v as number) ?? 0),
     },
   ];
 
