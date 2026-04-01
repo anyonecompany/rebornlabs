@@ -229,6 +229,33 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["marketing_companies"]["Insert"]>;
         Relationships: [];
       };
+      contracts: {
+        Row: {
+          id: string;
+          sale_id: string;
+          token: string;
+          status: "draft" | "sent" | "signed";
+          customer_name: string;
+          customer_phone: string;
+          customer_email: string;
+          customer_address: string | null;
+          customer_id_number: string | null;
+          vehicle_info: Record<string, unknown>;
+          selling_price: number;
+          deposit: number;
+          signature_url: string | null;
+          signed_at: string | null;
+          pdf_url: string | null;
+          created_at: string;
+          created_by: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["contracts"]["Row"],
+          "id" | "created_at"
+        >;
+        Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       vehicles_dealer_view: {

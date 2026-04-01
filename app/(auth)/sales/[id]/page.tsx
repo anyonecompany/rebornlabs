@@ -3,7 +3,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Download, FileText, PenLine, AlertTriangle, FilePlus } from "lucide-react";
+import {
+  ChevronLeft,
+  Download,
+  FileText,
+  PenLine,
+  AlertTriangle,
+  FilePlus,
+  Send,
+  Link2,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -15,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +86,31 @@ interface ContractFile {
   last_accessed_at: string | null;
   metadata: Record<string, unknown> | null;
   url: string;
+}
+
+/** 전자 계약서 */
+interface ElectronicContract {
+  id: string;
+  sale_id: string;
+  token: string;
+  status: "draft" | "sent" | "signed";
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  customer_address: string | null;
+  vehicle_info: {
+    make: string;
+    model: string;
+    year: number;
+    mileage: number;
+    vehicle_code: string;
+  };
+  selling_price: number;
+  deposit: number;
+  signature_url: string | null;
+  signed_at: string | null;
+  pdf_url: string | null;
+  created_at: string;
 }
 
 interface SaleDetail {
@@ -154,6 +191,21 @@ export default function SaleDetailPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
+  // 전자 계약서 상태
+  const [electronicContract, setElectronicContract] = useState<ElectronicContract | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [sendingContract, setSendingContract] = useState(false);
+
+  // 전자 계약서 생성 폼
+  const [contractForm, setContractForm] = useState({
+    customer_name: "",
+    customer_phone: "",
+    customer_email: "",
+    customer_address: "",
+  });
+  const [creatingContract, setCreatingContract] = useState(false);
+
   // 판매 상세 로드
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -180,6 +232,105 @@ export default function SaleDetailPage() {
   useEffect(() => {
     fetchDetail();
   }, [fetchDetail]);
+
+  // 전자 계약서 로드
+  const fetchElectronicContract = useCallback(async () => {
+    setContractLoading(true);
+    try {
+      const res = await apiFetch(`/api/contracts?sale_id=${id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const contracts: ElectronicContract[] = data.data ?? [];
+      // 가장 최신 계약서를 사용
+      setElectronicContract(contracts[0] ?? null);
+    } catch {
+      // 에러 시 무시 (전자 계약서는 선택 기능)
+    } finally {
+      setContractLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchElectronicContract();
+  }, [fetchElectronicContract]);
+
+  // 전자 계약서 생성 폼 초기값: 상담 정보에서 자동 입력
+  useEffect(() => {
+    if (detail?.consultation) {
+      setContractForm((prev) => ({
+        ...prev,
+        customer_name: detail.consultation?.customer_name ?? "",
+      }));
+    }
+  }, [detail]);
+
+  // 전자 계약서 생성
+  const handleCreateContract = useCallback(async () => {
+    if (!contractForm.customer_name.trim() || !contractForm.customer_email.trim()) {
+      toast.error("고객명과 이메일은 필수입니다.");
+      return;
+    }
+    setCreatingContract(true);
+    try {
+      const res = await apiFetch("/api/contracts", {
+        method: "POST",
+        body: JSON.stringify({
+          sale_id: id,
+          customer_name: contractForm.customer_name.trim(),
+          customer_phone: contractForm.customer_phone.trim(),
+          customer_email: contractForm.customer_email.trim(),
+          customer_address: contractForm.customer_address.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "계약서 생성에 실패했습니다.");
+        return;
+      }
+      toast.success("전자 계약서가 생성되었습니다.");
+      setContractDialogOpen(false);
+      setElectronicContract(data.data);
+    } catch {
+      toast.error("계약서 생성 중 오류가 발생했습니다.");
+    } finally {
+      setCreatingContract(false);
+    }
+  }, [id, contractForm]);
+
+  // 서명 요청 발송
+  const handleSendContract = useCallback(async () => {
+    if (!electronicContract) return;
+    setSendingContract(true);
+    try {
+      const res = await apiFetch(`/api/contracts/${electronicContract.id}/send`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "발송에 실패했습니다.");
+        return;
+      }
+      toast.success("서명 요청이 발송되었습니다.");
+      setElectronicContract((prev) =>
+        prev ? { ...prev, status: "sent" } : prev,
+      );
+    } catch {
+      toast.error("발송 중 오류가 발생했습니다.");
+    } finally {
+      setSendingContract(false);
+    }
+  }, [electronicContract]);
+
+  // 서명 링크 복사
+  const handleCopySignLink = useCallback(() => {
+    if (!electronicContract) return;
+    const url = `${window.location.origin}/sign/${electronicContract.token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("서명 링크가 복사되었습니다.");
+    }).catch(() => {
+      toast.error("링크 복사에 실패했습니다.");
+    });
+  }, [electronicContract]);
 
   // 서명 업로드 핸들러
   const handleSignatureComplete = useCallback(
@@ -537,11 +688,164 @@ export default function SaleDetailPage() {
           </CardContent>
         </Card>
 
-        {/* ── 계약서 섹션 ── */}
+        {/* ── 전자 계약서 섹션 ── */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">전자 계약서</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {contractLoading ? (
+              <p className="text-sm text-muted-foreground">불러오는 중...</p>
+            ) : !electronicContract ? (
+              /* a. 계약서 없음 */
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  아직 전자 계약서가 없습니다.
+                </p>
+                {!isCancelled && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      // 상담 정보 자동 입력
+                      if (consultation) {
+                        setContractForm((prev) => ({
+                          ...prev,
+                          customer_name: consultation.customer_name,
+                        }));
+                      }
+                      setContractDialogOpen(true);
+                    }}
+                  >
+                    <FilePlus className="h-4 w-4 mr-1.5" />
+                    전자 계약서 작성
+                  </Button>
+                )}
+              </div>
+            ) : electronicContract.status === "draft" ? (
+              /* b. draft — 작성됨, 미발송 */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-muted text-muted-foreground border-border"
+                  >
+                    작성됨
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">고객명</p>
+                    <p className="font-medium">{electronicContract.customer_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">전화</p>
+                    <p className="font-medium">{electronicContract.customer_phone || "—"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground mb-0.5">이메일</p>
+                    <p className="font-medium">{electronicContract.customer_email}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSendContract}
+                    disabled={sendingContract}
+                  >
+                    <Send className="h-4 w-4 mr-1.5" />
+                    {sendingContract ? "발송 중..." : "서명 요청 발송"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleCopySignLink}>
+                    <Link2 className="h-4 w-4 mr-1.5" />
+                    서명 링크 복사
+                  </Button>
+                </div>
+              </div>
+            ) : electronicContract.status === "sent" ? (
+              /* c. sent — 발송됨, 서명 대기 */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                  >
+                    <Clock className="h-3 w-3 mr-1" />
+                    서명 대기
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">서명 링크</p>
+                  <a
+                    href={`/sign/${electronicContract.token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-400 hover:underline break-all"
+                  >
+                    {`${typeof window !== "undefined" ? window.location.origin : ""}/sign/${electronicContract.token}`}
+                  </a>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleCopySignLink}>
+                  <Link2 className="h-4 w-4 mr-1.5" />
+                  서명 링크 복사
+                </Button>
+              </div>
+            ) : (
+              /* d. signed — 서명 완료 */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    서명 완료
+                  </Badge>
+                  {electronicContract.signed_at && (
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(electronicContract.signed_at)}
+                    </span>
+                  )}
+                </div>
+
+                {/* 서명 이미지 미리보기 */}
+                {electronicContract.signature_url && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">서명</p>
+                    <div className="relative aspect-[3/1] max-w-xs rounded-lg overflow-hidden border border-border bg-[#1a1a1a]">
+                      <Image
+                        src={electronicContract.signature_url}
+                        alt="고객 서명"
+                        fill
+                        className="object-contain p-2"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* PDF 다운로드 */}
+                {electronicContract.pdf_url && (
+                  <a
+                    href={electronicContract.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download="계약서.pdf"
+                  >
+                    <Button size="sm" variant="outline">
+                      <Download className="h-4 w-4 mr-1.5" />
+                      계약서 PDF 다운로드
+                    </Button>
+                  </a>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── 계약서 파일 섹션 (기존 파일 업로드) ── */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">계약서</CardTitle>
+              <CardTitle className="text-sm">계약서 파일</CardTitle>
               {/* 계약서 자동 생성 버튼 (취소 전 + 차량 정보 있을 때) */}
               {!isCancelled && vehicle && (
                 <Button
@@ -551,7 +855,7 @@ export default function SaleDetailPage() {
                   disabled={generatingContract}
                 >
                   <FilePlus className="h-4 w-4 mr-1.5" />
-                  {generatingContract ? "생성 중..." : "계약서 생성"}
+                  {generatingContract ? "생성 중..." : "PDF 생성"}
                 </Button>
               )}
             </div>
@@ -644,6 +948,104 @@ export default function SaleDetailPage() {
         onClose={() => setSignaturePadOpen(false)}
         onComplete={handleSignatureComplete}
       />
+
+      {/* 전자 계약서 생성 다이얼로그 */}
+      <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>전자 계약서 작성</DialogTitle>
+            <DialogDescription>
+              고객 정보를 입력하면 전자 계약서가 생성됩니다.
+              이메일로 서명 요청 링크를 발송할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">
+                고객명 <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="홍길동"
+                value={contractForm.customer_name}
+                onChange={(e) =>
+                  setContractForm((prev) => ({
+                    ...prev,
+                    customer_name: e.target.value,
+                  }))
+                }
+                disabled={creatingContract}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">전화번호</Label>
+              <Input
+                placeholder="010-0000-0000"
+                value={contractForm.customer_phone}
+                onChange={(e) =>
+                  setContractForm((prev) => ({
+                    ...prev,
+                    customer_phone: e.target.value,
+                  }))
+                }
+                disabled={creatingContract}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">
+                이메일 <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                type="email"
+                placeholder="example@email.com"
+                value={contractForm.customer_email}
+                onChange={(e) =>
+                  setContractForm((prev) => ({
+                    ...prev,
+                    customer_email: e.target.value,
+                  }))
+                }
+                disabled={creatingContract}
+              />
+              <p className="text-xs text-muted-foreground">
+                서명 요청 이메일 발송에 사용됩니다.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">주소 (선택)</Label>
+              <Input
+                placeholder="서울특별시 ..."
+                value={contractForm.customer_address}
+                onChange={(e) =>
+                  setContractForm((prev) => ({
+                    ...prev,
+                    customer_address: e.target.value,
+                  }))
+                }
+                disabled={creatingContract}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setContractDialogOpen(false)}
+              disabled={creatingContract}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleCreateContract}
+              disabled={
+                creatingContract ||
+                !contractForm.customer_name.trim() ||
+                !contractForm.customer_email.trim()
+              }
+            >
+              {creatingContract ? "생성 중..." : "계약서 생성"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 판매 취소 확인 다이얼로그 (사유 textarea 포함) */}
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
