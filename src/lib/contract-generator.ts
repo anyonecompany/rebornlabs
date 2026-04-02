@@ -571,9 +571,9 @@ export async function generateContractPDF(
   y -= LINE_HEIGHT_BODY + 2;
 
   const sellerFields: [string, string][] = [
-    ["대표", "_________________"],
+    ["대표", "심재윤"],
     ["사업자번호", "_________________"],
-    ["주소", "_________________"],
+    ["주소", "서울특별시 성동구 아차산로7길 21, 4층 199호"],
     ["전화", "_________________"],
   ];
 
@@ -598,6 +598,7 @@ export async function generateContractPDF(
     borderWidth: 0.5,
   });
   drawText("(직인)", MARGIN + 28, y - 28, 8, LIGHT_GRAY);
+  drawText("심재윤", MARGIN + 100, y - 28, FONT_BODY, DARK_GRAY);
 
   y -= 58;
 
