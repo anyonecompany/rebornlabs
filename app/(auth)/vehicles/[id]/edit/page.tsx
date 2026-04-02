@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { processImage, uploadVehicleImage } from "@/src/lib/image-utils";
-import { createBrowserClient } from "@/src/lib/supabase/browser";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import type { VehicleStatus, UserRole } from "@/types/database";
@@ -124,14 +123,13 @@ export default function VehicleEditPage() {
       setUploading(true);
       setUploadProgress(0);
 
-      const supabase = createBrowserClient();
       const newUrls: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
           const blob = await processImage(file);
-          const url = await uploadVehicleImage(supabase, blob, id);
+          const url = await uploadVehicleImage(null, blob, id);
           newUrls.push(url);
           setUploadProgress(Math.round(((i + 1) / files.length) * 100));
         } catch (err) {

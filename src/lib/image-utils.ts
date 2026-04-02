@@ -1,7 +1,9 @@
 /**
  * 차량 이미지 처리 유틸리티.
- * canvas API로 리사이즈 + WebP 변환, Supabase Storage 업로드.
+ * canvas API로 리사이즈 + WebP 변환, API를 통해 서버 사이드 업로드.
  */
+
+import { apiFetch } from "./api-client";
 
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
@@ -12,7 +14,7 @@ const WEBP_QUALITY = 0.85;
  */
 export async function processImage(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
@@ -20,7 +22,6 @@ export async function processImage(file: File): Promise<Blob> {
 
       let { width, height } = img;
 
-      // 비율 유지 리사이즈
       if (width > MAX_WIDTH || height > MAX_HEIGHT) {
         const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
         width = Math.round(width * ratio);
@@ -62,34 +63,27 @@ export async function processImage(file: File): Promise<Blob> {
 }
 
 /**
- * 처리된 Blob을 Supabase Storage vehicles 버킷에 업로드하고 공개 URL을 반환합니다.
- * RLS 정책에 따라 브라우저 클라이언트로 직접 업로드합니다.
+ * 처리된 Blob을 API를 통해 서버 사이드로 업로드합니다.
+ * service_role로 Storage에 직접 업로드하므로 RLS 차단 없음.
  */
 export async function uploadVehicleImage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  _supabase: unknown,
   blob: Blob,
-  vehicleId?: string,
+  _vehicleId?: string,
 ): Promise<string> {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).slice(2, 8);
-  const folder = vehicleId ?? "temp";
-  const path = `${folder}/${timestamp}_${random}.webp`;
+  const formData = new FormData();
+  formData.append("file", blob, "image.webp");
 
-  const { error } = await supabase.storage
-    .from("vehicles")
-    .upload(path, blob, {
-      contentType: "image/webp",
-      upsert: false,
-    });
+  const res = await apiFetch("/api/vehicles/upload", {
+    method: "POST",
+    body: formData,
+  });
 
-  if (error) {
-    throw new Error(`이미지 업로드 실패: ${error.message}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error ?? "이미지 업로드 실패");
   }
 
-  const { data: signedData } = await supabase.storage
-    .from("vehicles")
-    .createSignedUrl(path, 3600);
-
-  return signedData?.signedUrl ?? "";
+  const data = await res.json();
+  return data.url ?? "";
 }

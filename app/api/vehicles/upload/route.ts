@@ -1,37 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
-
-// ─── Zod 스키마 ───────────────────────────────────────────────
-
-const UploadUrlSchema = z.object({
-  fileName: z.string().min(1, "파일명은 필수입니다."),
-  contentType: z
-    .string()
-    .regex(/^image\/(jpeg|jpg|png|webp|gif)$/, "이미지 파일만 업로드 가능합니다.")
-    .optional()
-    .default("image/jpeg"),
-});
-
-// ─── 헬퍼 ────────────────────────────────────────────────────
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
   return authHeader.replace(/^Bearer\s+/i, "");
 }
 
-// ─── POST /api/vehicles/upload — 이미지 업로드 signed URL 생성 ─
-
 /**
- * Supabase Storage signed upload URL 생성 (admin/staff 전용).
+ * POST /api/vehicles/upload — 차량 이미지 직접 업로드
  *
- * 클라이언트는 이 URL로 직접 Storage에 PUT 요청하여 업로드한다.
- * 업로드 완료 후 반환된 signedUrl ?? ""을 vehicles.photos 배열에 추가하면 된다.
- *
- * 버킷명: "vehicle-photos"
- * 경로: "vehicles/{timestamp}_{fileName}"
+ * FormData로 file 수신 → service_role로 Storage vehicles 버킷에 업로드
+ * RLS 우회하여 admin/staff만 업로드 가능
  */
 export async function POST(request: NextRequest) {
   try {
@@ -39,57 +20,55 @@ export async function POST(request: NextRequest) {
     const user = await verifyUser(token);
     requireRole(user, ["admin", "staff"]);
 
-    let body: unknown;
+    let formData: FormData;
     try {
-      body = await request.json();
+      formData = await request.formData();
     } catch {
       return NextResponse.json(
-        { error: "요청 데이터 형식이 올바르지 않습니다." },
+        { error: "FormData 형식이 올바르지 않습니다." },
         { status: 400 },
       );
     }
 
-    const parsed = UploadUrlSchema.safeParse(body);
-    if (!parsed.success) {
+    const file = formData.get("file");
+    if (!file || !(file instanceof Blob)) {
       return NextResponse.json(
-        {
-          error:
-            parsed.error.errors[0]?.message ??
-            "입력 데이터가 올바르지 않습니다.",
-        },
+        { error: "이미지 파일(file)이 필요합니다." },
         { status: 400 },
       );
     }
 
-    const { fileName, contentType } = parsed.data;
     const timestamp = Date.now();
-    // 파일명 sanitize: 알파뉴메릭, 점, 하이픈, 언더스코어만 허용
-    const sanitizedName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const storagePath = `vehicles/${timestamp}_${sanitizedName}`;
-    const BUCKET_NAME = "vehicle-photos";
+    const random = Math.random().toString(36).slice(2, 8);
+    const storagePath = `temp/${timestamp}_${random}.webp`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
 
     const serviceClient = createServiceClient();
 
-    const { data, error } = await serviceClient.storage
-      .from(BUCKET_NAME)
-      .createSignedUploadUrl(storagePath);
+    const { error: uploadError } = await serviceClient.storage
+      .from("vehicles")
+      .upload(storagePath, uint8Array, {
+        contentType: "image/webp",
+        upsert: false,
+      });
 
-    if (error) {
+    if (uploadError) {
       return NextResponse.json(
-        { error: "업로드 URL 생성에 실패했습니다." },
+        { error: `업로드 실패: ${uploadError.message}` },
         { status: 500 },
       );
     }
 
-    // 업로드 후 signed URL
+    // signed URL 반환 (1시간)
     const { data: urlData } = await serviceClient.storage
-      .from(BUCKET_NAME)
+      .from("vehicles")
       .createSignedUrl(storagePath, 3600);
 
     return NextResponse.json({
+      url: urlData?.signedUrl ?? "",
       path: storagePath,
-      publicUrl: urlData?.signedUrl ?? "",
-      contentType,
     });
   } catch (err) {
     if (err instanceof AuthError) {

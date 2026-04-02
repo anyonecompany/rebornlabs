@@ -323,7 +323,7 @@ export default function UsersPage() {
     }
     setInviteLoading(true);
     try {
-      const res = await fetch("/api/users/invite", {
+      const res = await apiFetch("/api/users/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -368,7 +368,7 @@ export default function UsersPage() {
     if (!selectedUser) return;
     setRoleLoading(true);
     try {
-      const res = await fetch(`/api/users/${selectedUser.id}/role`, {
+      const res = await apiFetch(`/api/users/${selectedUser.id}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
@@ -440,7 +440,7 @@ export default function UsersPage() {
   // 비활성화 제출
   const handleDeactivate = async () => {
     if (!deactivateTarget) return;
-    const res = await fetch(`/api/users/${deactivateTarget.id}/deactivate`, {
+    const res = await apiFetch(`/api/users/${deactivateTarget.id}/deactivate`, {
       method: "PATCH",
     });
     const data = await res.json();
