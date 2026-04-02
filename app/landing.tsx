@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const PRETENDARD_URL = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkZVZmt2QG4fhnpDQhGIJaQhEtTLtVRLl72hob-oCZyWRnkVRYTuU4I31IZboEV3QW/exec";
+const CONSULTATION_API_URL = "https://rebornlabs-admin.vercel.app/api/consultations/submit";
 
 export default function RebornLabsLanding() {
   const [formData, setFormData] = useState({
@@ -76,12 +76,16 @@ export default function RebornLabsLanding() {
     };
 
     try {
-      await fetch(APPS_SCRIPT_URL, {
+      const res = await fetch(CONSULTATION_API_URL, {
         method: "POST",
-        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, website: "" }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(data?.error ?? "신청 중 오류가 발생했습니다. 다시 시도해주세요.");
+        return;
+      }
       setSubmitted(true);
     } catch {
       alert("신청 중 오류가 발생했습니다. 다시 시도해주세요.");
