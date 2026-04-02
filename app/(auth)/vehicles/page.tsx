@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search, Car } from "lucide-react";
+import { Plus, Search, Car, List, LayoutGrid } from "lucide-react";
 import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -55,9 +55,20 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const { role: userRole } = useUserRole();
 
-  // 검색/필터 상태
+  // 검색/필터/뷰 상태
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
+  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("vehicles-view") as "list" | "grid") ?? "list";
+    }
+    return "list";
+  });
+
+  const toggleView = (mode: "list" | "grid") => {
+    setViewMode(mode);
+    localStorage.setItem("vehicles-view", mode);
+  };
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -175,13 +186,13 @@ export default function VehiclesPage() {
         )}
       </PageHeader>
 
-      {/* 검색 + 필터 */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="relative flex-1">
+      {/* 검색 + 필터 + 뷰 전환 */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 items-center">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             className="pl-9"
-            placeholder="차종, 모델, 차량코드로 검색"
+            placeholder="차종, 모델, 코드 검색"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -190,7 +201,7 @@ export default function VehiclesPage() {
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as VehicleStatus | "all")}
         >
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="상태 필터" />
           </SelectTrigger>
           <SelectContent>
@@ -201,17 +212,84 @@ export default function VehiclesPage() {
             <SelectItem value="sold">판매완료</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex gap-1 ml-auto">
+          <button
+            onClick={() => toggleView("list")}
+            className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => toggleView("grid")}
+            className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filtered as unknown as Record<string, unknown>[]}
-        loading={loading}
-        emptyMessage="등록된 차량이 없습니다."
-        onRowClick={(row) =>
-          router.push(`/vehicles/${(row as unknown as VehicleRow).id}`)
-        }
-      />
+      {viewMode === "list" ? (
+        <DataTable
+          columns={columns}
+          data={filtered as unknown as Record<string, unknown>[]}
+          loading={loading}
+          emptyMessage="등록된 차량이 없습니다."
+          onRowClick={(row) =>
+            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`)
+          }
+        />
+      ) : (
+        /* 썸네일 그리드 뷰 */
+        loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="aspect-video bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-12">등록된 차량이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => router.push(`/vehicles/${v.id}`)}
+                className="text-left rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
+              >
+                {/* 사진 */}
+                <div className="relative aspect-video bg-muted">
+                  {v.photos?.[0] ? (
+                    <Image
+                      src={v.photos[0]}
+                      alt={`${v.make} ${v.model}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <Car className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2">
+                    <StatusBadge type="vehicle" value={v.status} />
+                  </div>
+                </div>
+                {/* 정보 */}
+                <div className="p-3 space-y-1">
+                  <p className="text-xs text-muted-foreground font-mono">{v.vehicle_code}</p>
+                  <p className="text-sm font-medium truncate">{v.make} {v.model}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{v.year}년 · {formatMileage(v.mileage)}</span>
+                    <span className="font-medium text-foreground">{formatKRW(v.selling_price)}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )
+      )}
     </div>
   );
 }
