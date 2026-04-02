@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Upload, X, Loader2, ChevronLeft } from "lucide-react";
+import { Upload, X, Loader2, ChevronLeft, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -143,6 +143,16 @@ export default function VehicleNewPage() {
       const next = [...prev];
       URL.revokeObjectURL(next[index].previewUrl);
       next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const setThumbnail = (index: number) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.unshift(item);
       return next;
     });
   };
@@ -446,7 +456,7 @@ export default function VehicleNewPage() {
                 {images.map((img, idx) => (
                   <div
                     key={idx}
-                    className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted group"
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 bg-muted group ${idx === 0 ? "border-primary" : "border-border"}`}
                   >
                     <Image
                       src={img.previewUrl}
@@ -454,6 +464,21 @@ export default function VehicleNewPage() {
                       fill
                       className="object-cover"
                     />
+                    {/* 대표 사진 표시/설정 */}
+                    {idx === 0 ? (
+                      <span className="absolute top-1.5 left-1.5 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                        대표
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setThumbnail(idx)}
+                        className="absolute top-1.5 left-1.5 rounded bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                        title="대표 사진으로 설정"
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeImage(idx)}

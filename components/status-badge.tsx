@@ -7,29 +7,27 @@ const vehicleStatusMap: Record<
 > = {
   available: {
     label: "출고가능",
-    className:
-      "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-green-600 text-white border-green-600",
   },
   consulting: {
     label: "상담중",
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    className: "bg-orange-600 text-white border-orange-600",
   },
   sold: {
     label: "판매완료",
-    className: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    className: "bg-purple-600 text-white border-purple-600",
   },
   rejected: {
     label: "거부",
-    className: "bg-red-500/10 text-red-400 border-red-500/20",
+    className: "bg-red-600 text-white border-red-600",
   },
   vehicle_waiting: {
     label: "차량대기",
-    className:
-      "bg-violet-300/10 text-violet-300 border-violet-300/20",
+    className: "bg-violet-500 text-white border-violet-500",
   },
   deleted: {
     label: "삭제됨",
-    className: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    className: "bg-zinc-600 text-white border-zinc-600",
   },
 };
 
@@ -39,44 +37,42 @@ const consultationStatusMap: Record<
 > = {
   new: {
     label: "신규",
-    className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    className: "bg-blue-600 text-white border-blue-600",
   },
   consulting: {
     label: "상담중",
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    className: "bg-orange-600 text-white border-orange-600",
   },
   vehicle_waiting: {
     label: "차량대기",
-    className:
-      "bg-violet-300/10 text-violet-300 border-violet-300/20",
+    className: "bg-violet-500 text-white border-violet-500",
   },
   rejected: {
     label: "거부",
-    className: "bg-red-500/10 text-red-400 border-red-500/20",
+    className: "bg-red-600 text-white border-red-600",
   },
   sold: {
     label: "판매완료",
-    className: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    className: "bg-purple-600 text-white border-purple-600",
   },
 };
 
 const roleMap: Record<UserRole, { label: string; className: string }> = {
   admin: {
     label: "경영진",
-    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    className: "bg-amber-600 text-white border-amber-600",
   },
   staff: {
     label: "직원",
-    className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    className: "bg-blue-600 text-white border-blue-600",
   },
   dealer: {
     label: "딜러",
-    className:
-      "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-green-600 text-white border-green-600",
   },
   pending: {
     label: "대기",
-    className: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    className: "bg-zinc-500 text-white border-zinc-500",
   },
 };
 
@@ -85,9 +81,6 @@ type StatusBadgeProps =
   | { type: "consultation"; value: ConsultationStatus }
   | { type: "role"; value: UserRole };
 
-/**
- * status ENUM 값을 색상 Badge로 변환합니다.
- */
 export function StatusBadge({ type, value }: StatusBadgeProps) {
   let config: { label: string; className: string } | undefined;
 
