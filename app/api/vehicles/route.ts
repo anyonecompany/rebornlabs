@@ -43,6 +43,41 @@ function extractToken(request: NextRequest): string {
   return authHeader.replace(/^Bearer\s+/i, "");
 }
 
+/**
+ * photos 배열의 각 경로에 대해 signed URL을 동적 생성.
+ * DB에 signed URL이 저장된 경우(레거시)와 path만 저장된 경우 모두 처리.
+ */
+async function resolvePhotoUrls(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sc: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  items: any[],
+): Promise<typeof items> {
+  for (const item of items) {
+    if (!item.photos || !Array.isArray(item.photos) || item.photos.length === 0) continue;
+    const resolved: string[] = [];
+    for (const photo of item.photos) {
+      // 이미 signed URL이면 그대로 (만료됐을 수 있지만)
+      // Storage path이면 새 signed URL 생성
+      if (typeof photo === "string" && !photo.startsWith("http")) {
+        const { data } = await sc.storage.from("vehicles").createSignedUrl(photo, 3600);
+        resolved.push(data?.signedUrl ?? photo);
+      } else {
+        // 기존 signed URL — path 부분 추출하여 재생성 시도
+        const match = typeof photo === "string" ? photo.match(/\/vehicles\/(.+?)(?:\?|$)/) : null;
+        if (match?.[1]) {
+          const { data } = await sc.storage.from("vehicles").createSignedUrl(decodeURIComponent(match[1]), 3600);
+          resolved.push(data?.signedUrl ?? photo);
+        } else {
+          resolved.push(photo);
+        }
+      }
+    }
+    item.photos = resolved;
+  }
+  return items;
+}
+
 // ─── GET /api/vehicles — 차량 목록 조회 ──────────────────────
 
 /**
@@ -105,6 +140,7 @@ export async function GET(request: NextRequest) {
 
       const hasMore = (data?.length ?? 0) > PAGE_SIZE;
       const items = hasMore ? data!.slice(0, PAGE_SIZE) : (data ?? []);
+      await resolvePhotoUrls(serviceClient, items);
       const lastItem = items[items.length - 1];
       const nextCursor =
         hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
@@ -148,6 +184,7 @@ export async function GET(request: NextRequest) {
 
     const hasMore = (data?.length ?? 0) > PAGE_SIZE;
     const items = hasMore ? data!.slice(0, PAGE_SIZE) : (data ?? []);
+    await resolvePhotoUrls(serviceClient, items);
     const lastItem = items[items.length - 1];
     const nextCursor =
       hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;

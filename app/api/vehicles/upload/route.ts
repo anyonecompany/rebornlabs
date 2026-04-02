@@ -61,13 +61,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // signed URL 반환 (1시간)
-    const { data: urlData } = await serviceClient.storage
-      .from("vehicles")
-      .createSignedUrl(storagePath, 3600);
-
+    // Storage path 반환 (DB에 path 저장, 조회 시 signed URL 동적 생성)
     return NextResponse.json({
-      url: urlData?.signedUrl ?? "",
+      url: storagePath,
       path: storagePath,
     });
   } catch (err) {
