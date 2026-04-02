@@ -115,14 +115,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .select("*")
       .eq("vehicle_id", id);
 
-    // photos: Storage path → public URL (vehicles 버킷은 public)
+    // photos → public URL 통일 (signed URL, path 모두 대응)
     if (vehicle && Array.isArray(vehicle.photos)) {
       vehicle.photos = (vehicle.photos as string[]).map((photo) => {
-        if (typeof photo === "string" && !photo.startsWith("http")) {
-          const { data } = serviceClient.storage.from("vehicles").getPublicUrl(photo);
-          return data.publicUrl;
+        if (typeof photo !== "string" || !photo) return photo;
+        if (photo.includes("/object/public/vehicles/")) return photo;
+        if (photo.startsWith("http")) {
+          const match = photo.match(/\/vehicles\/(.+?)(?:\?|$)/);
+          if (match?.[1]) {
+            const { data } = serviceClient.storage.from("vehicles").getPublicUrl(decodeURIComponent(match[1]));
+            return data.publicUrl;
+          }
+          return photo;
         }
-        return photo;
+        const { data } = serviceClient.storage.from("vehicles").getPublicUrl(photo);
+        return data.publicUrl;
       });
     }
 

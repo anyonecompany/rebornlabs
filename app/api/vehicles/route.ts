@@ -44,20 +44,35 @@ function extractToken(request: NextRequest): string {
 }
 
 /**
- * photos 배열: Storage path → public URL로 변환.
- * vehicles 버킷은 public이므로 만료 없는 URL.
- * 이미 http URL이면 그대로 유지.
+ * photos 배열을 public URL로 통일.
+ * - Storage path (temp/xxx.webp) → getPublicUrl
+ * - signed URL (/storage/v1/object/sign/vehicles/...) → path 추출 → getPublicUrl
+ * - 이미 public URL (/storage/v1/object/public/vehicles/...) → 그대로
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function resolvePhotoUrls(sc: any, items: any[]) {
   for (const item of items) {
     if (!item.photos || !Array.isArray(item.photos) || item.photos.length === 0) continue;
     item.photos = item.photos.map((photo: string) => {
-      if (typeof photo === "string" && !photo.startsWith("http")) {
-        const { data } = sc.storage.from("vehicles").getPublicUrl(photo);
-        return data.publicUrl;
+      if (typeof photo !== "string" || !photo) return photo;
+
+      // 이미 public URL이면 그대로
+      if (photo.includes("/object/public/vehicles/")) return photo;
+
+      // signed URL에서 path 추출
+      if (photo.startsWith("http")) {
+        const match = photo.match(/\/vehicles\/(.+?)(?:\?|$)/);
+        if (match?.[1]) {
+          const path = decodeURIComponent(match[1]);
+          const { data } = sc.storage.from("vehicles").getPublicUrl(path);
+          return data.publicUrl;
+        }
+        return photo;
       }
-      return photo;
+
+      // Storage path → public URL
+      const { data } = sc.storage.from("vehicles").getPublicUrl(photo);
+      return data.publicUrl;
     });
   }
 }
