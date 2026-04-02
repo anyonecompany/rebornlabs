@@ -57,22 +57,29 @@ export function generateContractHTML(params: ContractParams): string {
   const today = new Date();
   const dateStr = `${today.getFullYear()}년 ${String(today.getMonth() + 1).padStart(2, "0")}월 ${String(today.getDate()).padStart(2, "0")}일`;
 
-  let signatureHtml = "";
+  let signatureHtml = '<span class="seal">(인)</span>';
   if (signatureImage) {
     const base64 = typeof Buffer !== "undefined"
       ? Buffer.from(signatureImage).toString("base64")
       : btoa(String.fromCharCode(...signatureImage));
-    signatureHtml = `<div style="margin-top:8px;"><img src="data:image/png;base64,${base64}" style="height:50px;" /></div>`;
+    signatureHtml = `<span class="sig-wrap"><img src="data:image/png;base64,${base64}" class="sig-img" /><span class="seal">(인)</span></span>`;
   }
 
   const articlesHtml = CONTRACT_ARTICLES.map((article) => {
     if (article.title === "제3조 (차량 정보)") {
-      return `<div class="article"><div class="article-title">${esc(article.title)}</div><div class="article-body" style="color:#999;font-style:italic">위 차량 정보 테이블 참조</div></div>`;
+      return `<div class="article"><div class="at">${esc(article.title)}</div><div class="ab" style="color:#888;font-style:italic">위 차량 정보 테이블 참조</div></div>`;
     }
     const body = article.body
       .replace("{sellingPrice}", formatKRW(sellingPrice))
       .replace("{deposit}", formatKRW(deposit));
-    return `<div class="article"><div class="article-title">${esc(article.title)}</div><div class="article-body">${esc(body)}</div></div>`;
+    // 들여쓰기 처리: " 가." " 나." → indent-2, "1." "2." → indent-1
+    const lines = esc(body).split("\n").map((line) => {
+      if (/^ [가-힣]\./.test(line)) return `<div class="indent2">${line.trim()}</div>`;
+      if (/^\d+\./.test(line)) return `<div class="indent1">${line}</div>`;
+      if (/^\[/.test(line)) return `<div class="indent1" style="color:#555">${line}</div>`;
+      return `<div>${line}</div>`;
+    }).join("\n");
+    return `<div class="article"><div class="at">${esc(article.title)}</div><div class="ab">${lines}</div></div>`;
   }).join("\n");
 
   return `<!DOCTYPE html>
@@ -82,60 +89,83 @@ export function generateContractHTML(params: ContractParams): string {
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Noto Sans KR',sans-serif;font-size:10pt;line-height:1.6;color:#111;padding:40px 50px;background:#fff}
-h1{text-align:center;font-size:15pt;font-weight:700;margin-bottom:4px}
-.subtitle{text-align:center;font-size:9pt;color:#666;margin-bottom:20px}
-hr{border:none;border-top:1.5px solid #111;margin:14px 0}
-.vehicle-table{width:100%;border-collapse:collapse;margin:14px 0}
-.vehicle-table td{border:1px solid #ccc;padding:5px 10px;font-size:9pt}
-.vehicle-table .label{background:#f5f5f5;color:#444;width:20%;font-weight:500}
-.vehicle-table .value{width:30%}
-.article{margin-bottom:10px}
-.article-title{font-weight:700;font-size:10pt;margin-bottom:3px}
-.article-body{font-size:9pt;white-space:pre-wrap;line-height:1.7}
-.notice{margin:16px 0;padding:10px 14px;background:#f5f5f5;border:1px solid #ddd;font-size:9pt;font-weight:700}
-.parties{margin-top:20px}
-.party{margin-bottom:16px}
-.party-title{font-weight:700;font-size:10pt;margin-bottom:6px}
-.party-field{font-size:9pt;margin-bottom:3px}
-.party-field .lbl{display:inline-block;width:80px;color:#555}
-.date{text-align:center;font-size:9pt;color:#555;margin-top:20px}
+body{font-family:'Noto Sans KR',sans-serif;font-size:10pt;line-height:1.8;color:#111;background:#fff;padding:30mm 25mm 25mm 25mm}
+h1{text-align:center;font-size:16pt;font-weight:700;letter-spacing:1px;margin-bottom:2px}
+.sub{text-align:center;font-size:10pt;color:#555;margin-bottom:24px}
+.divider{border:none;border-top:2px solid #222;margin:20px 0}
+.divider-thin{border:none;border-top:1px solid #bbb;margin:16px 0}
+
+/* 차량 정보 테이블 */
+.vtbl{width:100%;border-collapse:collapse;margin:16px 0;border:1px solid #333}
+.vtbl td{border:1px solid #333;padding:8px 12px;font-size:9.5pt;vertical-align:middle}
+.vtbl .l{background:#f5f5f5;font-weight:700;width:18%;color:#222}
+.vtbl .v{width:32%;min-height:24px}
+
+/* 조항 */
+.article{margin-bottom:12px;page-break-inside:avoid}
+.at{font-weight:700;font-size:10.5pt;margin-bottom:4px;margin-top:16px;color:#111}
+.ab{font-size:9.5pt;line-height:1.75}
+.indent1{padding-left:20px}
+.indent2{padding-left:40px}
+
+/* 중요 고지 */
+.notice{margin:20px 0;padding:12px 16px;background:#f8f8f8;border:1.5px solid #333;font-size:9.5pt;font-weight:700;text-align:center}
+
+/* 계약 당사자 */
+.parties{margin-top:28px}
+.ptitle{font-weight:700;font-size:12pt;margin-bottom:16px;text-align:center}
+.party{margin-bottom:24px}
+.party-h{font-weight:700;font-size:10.5pt;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+.pf{font-size:9.5pt;margin-bottom:5px;display:flex;align-items:baseline}
+.pf .k{display:inline-block;width:90px;color:#444;font-weight:500;flex-shrink:0}
+.pf .val{flex:1}
+
+/* 서명 */
+.sig-wrap{position:relative;display:inline-block}
+.sig-img{height:48px;position:relative;z-index:2;opacity:0.9}
+.seal{color:#ccc;font-size:9pt;margin-left:4px}
+
+/* 날짜 */
+.date{text-align:center;font-size:10pt;color:#333;margin-top:32px;font-weight:500}
 </style>
 </head>
 <body>
-<h1>REBORN CAR 차량 매매 및 이용 계약서</h1>
-<p class="subtitle">(REBORN LABS Co., Ltd)</p>
-<hr>
 
-<table class="vehicle-table">
-<tr><td class="label">1. 차량 브랜드</td><td class="value">${esc(make)}</td><td class="label">2. 차종</td><td class="value">${esc(model)}</td></tr>
-<tr><td class="label">3. 차량번호</td><td class="value">${esc(plateNumber ?? "")}</td><td class="label">4. 차대번호</td><td class="value">${esc(vin ?? "")}</td></tr>
-<tr><td class="label">5. 연식</td><td class="value">${year}년</td><td class="label">6. 주행거리</td><td class="value">${mileage.toLocaleString()}km</td></tr>
-<tr><td class="label">7. 색상</td><td class="value">${esc(color ?? "")}</td><td class="label">8. 비고</td><td class="value"></td></tr>
+<h1>REBORN CAR 차량 매매 및 이용 계약서</h1>
+<p class="sub">(REBORN LABS Co., Ltd)</p>
+<hr class="divider">
+
+<table class="vtbl">
+<tr><td class="l">1. 차량 브랜드</td><td class="v">${esc(make)}</td><td class="l">2. 차종</td><td class="v">${esc(model)}</td></tr>
+<tr><td class="l">3. 차량번호</td><td class="v">${esc(plateNumber ?? "")}</td><td class="l">4. 차대번호</td><td class="v">${esc(vin ?? "")}</td></tr>
+<tr><td class="l">5. 연식</td><td class="v">${year}년</td><td class="l">6. 주행거리</td><td class="v">${mileage.toLocaleString()}km</td></tr>
+<tr><td class="l">7. 색상</td><td class="v">${esc(color ?? "")}</td><td class="l">8. 비고</td><td class="v"></td></tr>
 </table>
 
 ${articlesHtml}
 
 <div class="notice">${esc(CONTRACT_NOTICE)}</div>
-<hr>
+
+<hr class="divider">
 
 <div class="parties">
+<div class="ptitle">계약 당사자</div>
+
 <div class="party">
-<div class="party-title">1. 구매자</div>
-<div class="party-field"><span class="lbl">성명</span>${esc(customerName)} (인)</div>
-<div class="party-field"><span class="lbl">주민등록번호</span></div>
-<div class="party-field"><span class="lbl">주소</span>${esc(customerAddress ?? "")}</div>
-<div class="party-field"><span class="lbl">전화</span>${esc(customerPhone)}</div>
-${signatureHtml}
+<div class="party-h">1. 구매자</div>
+<div class="pf"><span class="k">성명</span><span class="val">${esc(customerName)} ${signatureHtml}</span></div>
+<div class="pf"><span class="k">주민등록번호</span><span class="val"></span></div>
+<div class="pf"><span class="k">주소</span><span class="val">${esc(customerAddress ?? "")}</span></div>
+<div class="pf"><span class="k">전화</span><span class="val">${esc(customerPhone)}</span></div>
 </div>
 
 <div class="party">
-<div class="party-title">2. 판매자</div>
-<div class="party-field" style="font-weight:700">REBORN LABS Co., Ltd</div>
-<div class="party-field"><span class="lbl">대표</span>심재윤 (직인)</div>
-<div class="party-field"><span class="lbl">사업자번호</span></div>
-<div class="party-field"><span class="lbl">주소</span>서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)</div>
-<div class="party-field"><span class="lbl">전화</span></div>
+<div class="party-h">2. 판매자</div>
+<div class="pf"><span class="val" style="font-weight:700">REBORN LABS Co., Ltd</span></div>
+<div class="pf"><span class="k">대표</span><span class="val">심재윤 <span class="seal">(직인)</span></span></div>
+<div class="pf"><span class="k">사업자번호</span><span class="val"></span></div>
+<div class="pf"><span class="k">주소</span><span class="val">서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)</span></div>
+<div class="pf"><span class="k">전화</span><span class="val"></span></div>
 </div>
 </div>
 
