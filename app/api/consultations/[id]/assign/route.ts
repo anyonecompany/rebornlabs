@@ -99,11 +99,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: "배정이 해제되었습니다." });
     }
 
-    // 딜러 존재 확인 (dealers_name_view)
+    // 딜러 존재 확인 (profiles 직접 조회 — dealers_name_view는 user_role() 의존)
     const { data: dealer, error: dealerError } = await serviceClient
-      .from("dealers_name_view")
+      .from("profiles")
       .select("id, name")
       .eq("id", dealer_id)
+      .eq("role", "dealer")
+      .eq("is_active", true)
       .single();
 
     if (dealerError || !dealer) {
