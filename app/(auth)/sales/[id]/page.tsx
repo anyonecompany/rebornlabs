@@ -452,7 +452,7 @@ export default function SaleDetailPage() {
         }
       }
 
-      const pdfBytes = await generateContractPDF({
+      const blob = await generateContractPDF({
         make: detail.vehicle.make,
         model: detail.vehicle.model,
         year: detail.vehicle.year,
@@ -463,9 +463,6 @@ export default function SaleDetailPage() {
         customerPhone: detail.consultation?.customer_phone ?? "—",
         signatureImage,
       });
-
-      // Blob URL 생성 → 새 탭에서 PDF 열기
-      const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, "_blank");
 

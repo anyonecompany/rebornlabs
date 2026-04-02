@@ -185,7 +185,7 @@ ${articlesHtml}
  */
 export async function generateContractPDF(
   params: ContractParams,
-): Promise<Uint8Array> {
+): Promise<Blob> {
   const html = generateContractHTML(params);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,22 +199,21 @@ export async function generateContractPDF(
   document.body.appendChild(container);
 
   // Google Fonts 로드 대기
-  await new Promise((r) => setTimeout(r, 1000));
+  await new Promise((r) => setTimeout(r, 1500));
 
   try {
-    const pdfBlob: Blob = await html2pdf()
-      .set({
-        margin: 0,
-        filename: "contract.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(container)
-      .outputPdf("blob");
+    const worker = html2pdf().set({
+      margin: [10, 10, 10, 10],
+      filename: "contract.pdf",
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    }).from(container);
 
-    const buffer = await pdfBlob.arrayBuffer();
-    return new Uint8Array(buffer);
+    // toPdf → get jsPDF → output blob
+    const pdf = await worker.toPdf().get("pdf");
+    const blob = pdf.output("blob") as Blob;
+    return blob;
   } finally {
     document.body.removeChild(container);
   }
