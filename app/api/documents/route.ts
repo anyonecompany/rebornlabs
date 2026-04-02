@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     const { data: documents, error: listError } = await query;
     if (listError) {
       return NextResponse.json(
-        { error: "문서 목록을 불러오지 못했습니다." },
+        { error: `문서 목록을 불러오지 못했습니다: ${listError.message}` },
         { status: 500 },
       );
     }
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       return NextResponse.json(
-        { error: "파일 업로드에 실패했습니다." },
+        { error: `파일 업로드에 실패했습니다: ${uploadError.message}` },
         { status: 500 },
       );
     }

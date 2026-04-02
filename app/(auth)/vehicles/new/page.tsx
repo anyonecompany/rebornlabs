@@ -219,7 +219,7 @@ export default function VehicleNewPage() {
 
       <PageHeader title="차량 등록" description="새 차량을 등록합니다." />
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
         {/* 기본 정보 */}
         <Card>
           <CardContent className="pt-6 space-y-4">
@@ -466,23 +466,23 @@ export default function VehicleNewPage() {
                     />
                     {/* 대표 사진 표시/설정 */}
                     {idx === 0 ? (
-                      <span className="absolute top-1.5 left-1.5 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                      <span className="absolute top-1.5 left-1.5 z-10 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
                         대표
                       </span>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setThumbnail(idx)}
-                        className="absolute top-1.5 left-1.5 rounded bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                        onClick={(e) => { e.stopPropagation(); setThumbnail(idx); }}
+                        className="absolute top-1.5 left-1.5 z-10 rounded bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background cursor-pointer"
                         title="대표 사진으로 설정"
                       >
-                        <Star className="h-3.5 w-3.5" />
+                        <Star className="h-4 w-4" />
                       </button>
                     )}
                     <button
                       type="button"
-                      onClick={() => removeImage(idx)}
-                      className="absolute top-1.5 right-1.5 rounded-full bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                      onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                      className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background cursor-pointer"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
