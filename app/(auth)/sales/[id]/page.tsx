@@ -15,7 +15,6 @@ import {
   Clock,
   CheckCircle,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -655,13 +654,9 @@ export default function SaleDetailPage() {
             {signatureUrl ? (
               /* 서명 완료 */
               <div className="space-y-3">
-                <div className="relative aspect-[3/1] rounded-lg overflow-hidden border border-border bg-[#1a1a1a]">
-                  <Image
-                    src={signatureUrl}
-                    alt="전자서명"
-                    fill
-                    className="object-contain p-2"
-                  />
+                <div className="rounded-lg overflow-hidden border border-border bg-muted/30 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={signatureUrl} alt="전자서명" className="h-16 object-contain" />
                 </div>
                 <p className="text-xs text-emerald-400">서명 완료</p>
               </div>
@@ -812,12 +807,12 @@ export default function SaleDetailPage() {
                 {electronicContract.signature_url && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">서명</p>
-                    <div className="relative aspect-[3/1] max-w-xs rounded-lg overflow-hidden border border-border bg-[#1a1a1a]">
-                      <Image
+                    <div className="max-w-xs rounded-lg overflow-hidden border border-border bg-muted/30 p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={electronicContract.signature_url}
                         alt="고객 서명"
-                        fill
-                        className="object-contain p-2"
+                        className="h-16 object-contain"
                       />
                     </div>
                   </div>

@@ -86,7 +86,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: contracts ?? [] });
+    // signature_url, pdf_url → on-demand signed URL 생성
+    const resolved = [];
+    for (const c of contracts ?? []) {
+      const updated = { ...c };
+      if (c.signature_url) {
+        const match = (c.signature_url as string).match(/\/signatures\/(.+?)(?:\?|$)/);
+        if (match?.[1]) {
+          const { data: d } = await serviceClient.storage.from("signatures").createSignedUrl(decodeURIComponent(match[1]), 3600);
+          updated.signature_url = d?.signedUrl ?? c.signature_url;
+        }
+      }
+      if (c.pdf_url) {
+        const match = (c.pdf_url as string).match(/\/contracts\/(.+?)(?:\?|$)/);
+        if (match?.[1]) {
+          const { data: d } = await serviceClient.storage.from("contracts").createSignedUrl(decodeURIComponent(match[1]), 3600);
+          updated.pdf_url = d?.signedUrl ?? c.pdf_url;
+        }
+      }
+      resolved.push(updated);
+    }
+
+    return NextResponse.json({ data: resolved });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
