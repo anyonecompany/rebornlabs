@@ -77,18 +77,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       }
     }
 
-    // 상담 기록 조회 (최신순)
+    // 상담 기록 조회 (오래된 순) + 작성자 이름 병합
     const { data: logs } = await serviceClient
       .from("consultation_logs")
       .select("*")
       .eq("consultation_id", id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
+
+    const logDealerIds = [...new Set((logs ?? []).map((l) => l.dealer_id))];
+    let logDealerMap: Record<string, string> = {};
+    if (logDealerIds.length > 0) {
+      const { data: logDealers } = await serviceClient
+        .from("profiles")
+        .select("id, name")
+        .in("id", logDealerIds);
+      logDealerMap = Object.fromEntries(
+        (logDealers ?? []).map((d) => [d.id, d.name]),
+      );
+    }
+    const logsWithName = (logs ?? []).map((l) => ({
+      ...l,
+      dealer_name: logDealerMap[l.dealer_id] ?? null,
+    }));
 
     return NextResponse.json({
       data: consultation,
       relatedConsultations: relatedConsultations ?? [],
       dealer,
-      logs: logs ?? [],
+      logs: logsWithName,
     });
   } catch (err) {
     if (err instanceof AuthError) {

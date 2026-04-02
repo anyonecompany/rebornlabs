@@ -149,10 +149,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (updateError) {
       // DB 트리거가 전이 규칙을 강제하므로, 트리거 에러도 사용자 친화적으로
-      const errorMsg = updateError.message.includes("유효하지 않은 상태 전이")
-        ? updateError.message
-        : "상태 변경에 실패했습니다.";
-      return NextResponse.json({ error: errorMsg }, { status: 400 });
+      return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
 
     return NextResponse.json({ message: "상태가 변경되었습니다." });
