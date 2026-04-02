@@ -201,33 +201,43 @@ export async function POST(request: NextRequest, context: RouteContext) {
       vehicle_code?: string;
     };
 
-    const { generateContractPDF } = await import("@/src/lib/contract-generator");
-    const pdfBytes = await generateContractPDF({
-      make: vehicleInfo.make ?? "",
-      model: vehicleInfo.model ?? "",
-      year: vehicleInfo.year ?? 0,
-      mileage: vehicleInfo.mileage ?? 0,
-      sellingPrice: contract.selling_price,
-      deposit: contract.deposit,
-      customerName: contract.customer_name,
-      customerPhone: contract.customer_phone,
-      signatureImage: signatureBytes,
-    });
+    // PDF 생성 (실패해도 서명 처리는 계속)
+    let pdfBytes: Uint8Array | null = null;
+    try {
+      const { generateContractPDF } = await import("@/src/lib/contract-generator");
+      pdfBytes = await generateContractPDF({
+        make: vehicleInfo.make ?? "",
+        model: vehicleInfo.model ?? "",
+        year: vehicleInfo.year ?? 0,
+        mileage: vehicleInfo.mileage ?? 0,
+        sellingPrice: contract.selling_price,
+        deposit: contract.deposit,
+        customerName: contract.customer_name,
+        customerPhone: contract.customer_phone,
+        signatureImage: signatureBytes,
+      });
+    } catch {
+      // PDF 생성 실패 — 서명은 완료 처리, PDF는 나중에 재생성 가능
+    }
 
     // Storage contracts 버킷에 PDF 업로드
     const pdfPath = `contracts/${contract.id}/contract.pdf`;
-    const { error: pdfUploadError } = await serviceClient.storage
-      .from("contracts")
-      .upload(pdfPath, pdfBytes, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
+    let pdfUploadError: unknown = null;
+    if (pdfBytes) {
+      const result = await serviceClient.storage
+        .from("contracts")
+        .upload(pdfPath, pdfBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      pdfUploadError = result.error;
+    }
 
     let pdfUrl: string | null = null;
-    if (!pdfUploadError) {
+    if (pdfBytes && !pdfUploadError) {
       const { data: pdfUrlData } = await serviceClient.storage
         .from("contracts")
-        .createSignedUrl(pdfPath, 86400); // 24시간
+        .createSignedUrl(pdfPath, 86400);
       pdfUrl = pdfUrlData?.signedUrl ?? null;
     }
 
@@ -267,9 +277,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     return corsResponse({ message: "서명이 완료되었습니다." });
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "서버 오류가 발생했습니다.";
     return corsResponse(
-      { error: "서버 오류가 발생했습니다." },
+      { error: msg },
       { status: 500 },
     );
   }
