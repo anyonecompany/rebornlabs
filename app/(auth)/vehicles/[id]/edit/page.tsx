@@ -34,6 +34,9 @@ interface FormState {
   deposit: string;
   monthly_payment: string;
   status: VehicleStatus;
+  plate_number: string;
+  vin: string;
+  color: string;
 }
 
 function formatNumber(value: string): string {
@@ -57,6 +60,9 @@ export default function VehicleEditPage() {
     deposit: "",
     monthly_payment: "",
     status: "available",
+    plate_number: "",
+    vin: "",
+    color: "",
   });
 
   const [photos, setPhotos] = useState<string[]>([]);
@@ -91,6 +97,9 @@ export default function VehicleEditPage() {
         deposit: String(v.deposit),
         monthly_payment: String(v.monthly_payment),
         status: v.status,
+        plate_number: v.plate_number ?? "",
+        vin: v.vin ?? "",
+        color: v.color ?? "",
       });
       setPhotos(v.photos ?? []);
     } catch {
@@ -194,6 +203,9 @@ export default function VehicleEditPage() {
         monthly_payment: parseInt(form.monthly_payment.replace(/[^0-9]/g, ""), 10) || 0,
         status: form.status,
         photos,
+        plate_number: form.plate_number.trim() || null,
+        vin: form.vin.trim() || null,
+        color: form.color.trim() || null,
       };
 
       const res = await apiFetch(`/api/vehicles/${id}`, {

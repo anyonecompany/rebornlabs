@@ -36,6 +36,9 @@ interface Vehicle {
   margin: number;
   status: VehicleStatus;
   photos: string[];
+  plate_number: string | null;
+  vin: string | null;
+  color: string | null;
   created_at: string;
 }
 
@@ -290,6 +293,9 @@ export default function VehicleDetailPage() {
                 label="주행거리"
                 value={`${vehicle.mileage.toLocaleString("ko-KR")}km`}
               />
+              {vehicle.plate_number && <InfoItem label="차량번호" value={vehicle.plate_number} />}
+              {vehicle.vin && <InfoItem label="차대번호" value={vehicle.vin} />}
+              {vehicle.color && <InfoItem label="색상" value={vehicle.color} />}
               <InfoItem label="판매가" value={formatKRW(vehicle.selling_price)} />
               <InfoItem label="보증금" value={formatKRW(vehicle.deposit)} />
               <InfoItem label="월납입료" value={formatKRW(vehicle.monthly_payment)} />

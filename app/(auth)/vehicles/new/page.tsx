@@ -23,7 +23,7 @@ import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
-const YEAR_OPTIONS = Array.from({ length: 2027 - 2015 + 1 }, (_, i) => 2027 - i);
+const YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2000 + 1 }, (_, i) => new Date().getFullYear() - i);
 
 interface FormState {
   make: string;
@@ -34,6 +34,9 @@ interface FormState {
   selling_price: string;
   deposit: string;
   monthly_payment: string;
+  plate_number: string;
+  vin: string;
+  color: string;
 }
 
 interface UploadedImage {
@@ -50,6 +53,9 @@ const INITIAL_FORM: FormState = {
   selling_price: "",
   deposit: "",
   monthly_payment: "",
+  plate_number: "",
+  vin: "",
+  color: "",
 };
 
 /** 숫자 문자열을 한국 원화 형식으로 포맷합니다. */
@@ -161,6 +167,9 @@ export default function VehicleNewPage() {
         deposit: parseInt(form.deposit.replace(/[^0-9]/g, ""), 10) || 0,
         monthly_payment: parseInt(form.monthly_payment.replace(/[^0-9]/g, ""), 10) || 0,
         photos: images.map((img) => img.url),
+        plate_number: form.plate_number.trim() || null,
+        vin: form.vin.trim() || null,
+        color: form.color.trim() || null,
       };
 
       const res = await apiFetch("/api/vehicles", {
@@ -277,6 +286,39 @@ export default function VehicleNewPage() {
                     km
                   </span>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="plate_number">차량번호</Label>
+                <Input
+                  id="plate_number"
+                  value={form.plate_number}
+                  onChange={(e) => setForm((p) => ({ ...p, plate_number: e.target.value }))}
+                  placeholder="12가 3456"
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vin">차대번호 (VIN)</Label>
+                <Input
+                  id="vin"
+                  value={form.vin}
+                  onChange={(e) => setForm((p) => ({ ...p, vin: e.target.value }))}
+                  placeholder="WBAPH5C55BA123456"
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="color">색상</Label>
+                <Input
+                  id="color"
+                  value={form.color}
+                  onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))}
+                  placeholder="흰색, 검정 등"
+                  disabled={saving}
+                />
               </div>
             </div>
           </CardContent>

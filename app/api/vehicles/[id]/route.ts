@@ -45,6 +45,9 @@ const UpdateVehicleSchema = z
     status: z
       .enum(["available", "consulting", "vehicle_waiting", "sold"])
       .optional(),
+    plate_number: z.string().nullable().optional(),
+    vin: z.string().nullable().optional(),
+    color: z.string().nullable().optional(),
   })
   .strict();
 

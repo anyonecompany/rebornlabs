@@ -31,6 +31,9 @@ const CreateVehicleSchema = z.object({
     .min(0, "월납입료는 0 이상이어야 합니다.")
     .optional(),
   photos: z.array(z.string().url()).optional().default([]),
+  plate_number: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
 });
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
@@ -207,6 +210,9 @@ export async function POST(request: NextRequest) {
       deposit: parsed.data.deposit ?? 0,
       monthly_payment: parsed.data.monthly_payment ?? 0,
       photos: parsed.data.photos,
+      plate_number: parsed.data.plate_number ?? null,
+      vin: parsed.data.vin ?? null,
+      color: parsed.data.color ?? null,
       status: "available" as const,
       deleted_at: null,
     };
