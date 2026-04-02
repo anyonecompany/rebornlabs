@@ -437,20 +437,49 @@ export default function UsersPage() {
     }
   };
 
-  // 비활성화 제출
+  // 비활성화/활성화 토글
   const handleDeactivate = async () => {
     if (!deactivateTarget) return;
-    const res = await apiFetch(`/api/users/${deactivateTarget.id}/deactivate`, {
+    const willDeactivate = deactivateTarget.is_active;
+    const res = await apiFetch(`/api/users/${deactivateTarget.id}/profile`, {
       method: "PATCH",
+      body: JSON.stringify({ is_active: !willDeactivate }),
     });
     const data = await res.json();
     if (!res.ok) {
-      toast.error(data.error ?? "비활성화에 실패했습니다.");
+      toast.error(data.error ?? "상태 변경에 실패했습니다.");
       return;
     }
-    toast.success("사용자가 비활성화되었습니다.");
+    toast.success(willDeactivate ? "사용자가 비활성화되었습니다." : "사용자가 활성화되었습니다.");
     setDeactivateOpen(false);
     await fetchUsers();
+  };
+
+  // 사용자 삭제
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await apiFetch(`/api/users/${deleteTarget.id}/delete`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "삭제에 실패했습니다.");
+        return;
+      }
+      toast.success("사용자가 삭제되었습니다.");
+      setDeleteOpen(false);
+      await fetchUsers();
+    } catch {
+      toast.error("삭제 중 오류가 발생했습니다.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // 테이블 컬럼
@@ -518,10 +547,17 @@ export default function UsersPage() {
                   setDeactivateTarget(user);
                   setDeactivateOpen(true);
                 }}
-                disabled={!user.is_active}
+              >
+                {user.is_active ? "비활성화" : "활성화"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setDeleteTarget(user);
+                  setDeleteOpen(true);
+                }}
                 className="text-red-400"
               >
-                비활성화
+                삭제
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -720,11 +756,24 @@ export default function UsersPage() {
       <ConfirmDialog
         open={deactivateOpen}
         onOpenChange={setDeactivateOpen}
-        title="사용자 비활성화"
-        description={`이 사용자를 비활성화하시겠습니까? 즉시 로그아웃됩니다.`}
-        confirmLabel="비활성화"
+        title={deactivateTarget?.is_active ? "사용자 비활성화" : "사용자 활성화"}
+        description={deactivateTarget?.is_active
+          ? "이 사용자를 비활성화하시겠습니까? 즉시 로그아웃됩니다."
+          : "이 사용자를 다시 활성화하시겠습니까?"}
+        confirmLabel={deactivateTarget?.is_active ? "비활성화" : "활성화"}
         variant="destructive"
         onConfirm={handleDeactivate}
+      />
+
+      {/* 사용자 삭제 Dialog */}
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="사용자 삭제"
+        description="정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        confirmLabel={deleting ? "삭제 중..." : "삭제"}
+        variant="destructive"
+        onConfirm={handleDelete}
       />
 
       {/* 정보 수정 Dialog */}

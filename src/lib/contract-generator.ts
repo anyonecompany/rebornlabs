@@ -301,9 +301,9 @@ export async function generateContractPDF(
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  // 한글 폰트 로드 (Pretendard OTF)
+  // 한글 폰트 로드 (NotoSansKR TTF — OTF는 pdf-lib topDict 에러 발생)
   const fontUrl =
-    "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/packages/pretendard/dist/public/static/Pretendard-Regular.otf";
+    "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-kr@latest/korean-400-normal.ttf";
 
   let customFont;
   try {

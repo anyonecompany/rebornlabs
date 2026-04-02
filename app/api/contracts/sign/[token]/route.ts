@@ -201,40 +201,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
       vehicle_code?: string;
     };
 
-    // PDF 생성 (실패해도 서명 처리는 계속)
-    let pdfBytes: Uint8Array | null = null;
-    try {
-      const { generateContractPDF } = await import("@/src/lib/contract-generator");
-      pdfBytes = await generateContractPDF({
-        make: vehicleInfo.make ?? "",
-        model: vehicleInfo.model ?? "",
-        year: vehicleInfo.year ?? 0,
-        mileage: vehicleInfo.mileage ?? 0,
-        sellingPrice: contract.selling_price,
-        deposit: contract.deposit,
-        customerName: contract.customer_name,
-        customerPhone: contract.customer_phone,
-        signatureImage: signatureBytes,
-      });
-    } catch {
-      // PDF 생성 실패 — 서명은 완료 처리, PDF는 나중에 재생성 가능
-    }
+    // PDF 생성
+    const { generateContractPDF } = await import("@/src/lib/contract-generator");
+    const pdfBytes = await generateContractPDF({
+      make: vehicleInfo.make ?? "",
+      model: vehicleInfo.model ?? "",
+      year: vehicleInfo.year ?? 0,
+      mileage: vehicleInfo.mileage ?? 0,
+      sellingPrice: contract.selling_price,
+      deposit: contract.deposit,
+      customerName: contract.customer_name,
+      customerPhone: contract.customer_phone,
+      signatureImage: signatureBytes,
+    });
 
     // Storage contracts 버킷에 PDF 업로드
     const pdfPath = `contracts/${contract.id}/contract.pdf`;
-    let pdfUploadError: unknown = null;
-    if (pdfBytes) {
-      const result = await serviceClient.storage
-        .from("contracts")
-        .upload(pdfPath, pdfBytes, {
-          contentType: "application/pdf",
-          upsert: true,
-        });
-      pdfUploadError = result.error;
-    }
+    const { error: pdfUploadError } = await serviceClient.storage
+      .from("contracts")
+      .upload(pdfPath, pdfBytes, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
 
     let pdfUrl: string | null = null;
-    if (pdfBytes && !pdfUploadError) {
+    if (!pdfUploadError) {
       const { data: pdfUrlData } = await serviceClient.storage
         .from("contracts")
         .createSignedUrl(pdfPath, 86400);
