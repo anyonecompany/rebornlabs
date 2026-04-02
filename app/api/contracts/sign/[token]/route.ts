@@ -192,45 +192,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .createSignedUrl(signaturePath, 86400); // 24시간
     const signatureUrl = signatureUrlData?.signedUrl ?? null;
 
-    // PDF 생성
-    const vehicleInfo = contract.vehicle_info as {
-      make?: string;
-      model?: string;
-      year?: number;
-      mileage?: number;
-      vehicle_code?: string;
-    };
-
-    // PDF 생성
-    const { generateContractPDF } = await import("@/src/lib/contract-generator");
-    const pdfBytes = await generateContractPDF({
-      make: vehicleInfo.make ?? "",
-      model: vehicleInfo.model ?? "",
-      year: vehicleInfo.year ?? 0,
-      mileage: vehicleInfo.mileage ?? 0,
-      sellingPrice: contract.selling_price,
-      deposit: contract.deposit,
-      customerName: contract.customer_name,
-      customerPhone: contract.customer_phone,
-      signatureImage: signatureBytes,
-    });
-
-    // Storage contracts 버킷에 PDF 업로드
-    const pdfPath = `contracts/${contract.id}/contract.pdf`;
-    const { error: pdfUploadError } = await serviceClient.storage
-      .from("contracts")
-      .upload(pdfPath, pdfBytes, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    let pdfUrl: string | null = null;
-    if (!pdfUploadError) {
-      const { data: pdfUrlData } = await serviceClient.storage
-        .from("contracts")
-        .createSignedUrl(pdfPath, 86400);
-      pdfUrl = pdfUrlData?.signedUrl ?? null;
-    }
+    // PDF는 클라이언트 사이드에서 생성 (html2pdf.js)
+    // 서버에서는 서명 이미지만 저장하고 status 업데이트
 
     // contracts UPDATE
     const { error: updateError } = await serviceClient
@@ -239,7 +202,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         status: "signed",
         signed_at: new Date().toISOString(),
         signature_url: signatureUrl,
-        pdf_url: pdfUrl,
+        pdf_url: null, // PDF는 관리자가 클라이언트에서 생성
       })
       .eq("id", contract.id);
 
@@ -250,9 +213,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // GAS 웹훅 완료 알림 (fire-and-forget)
+    // GAS 웹훅 — 딜러/경영진 알림 + 고객 완료 이메일 (fire-and-forget)
     const gasWebhookUrl = process.env.GAS_WEBHOOK_URL;
     if (gasWebhookUrl) {
+      // 딜러/경영진 알림
       fetch(gasWebhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -262,9 +226,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
           vehicleInfo: contract.vehicle_info,
           contractId: contract.id,
         }),
-      }).catch(() => {
-        // fire-and-forget
-      });
+      }).catch(() => {});
+
+      // 고객에게 완료 이메일
+      // customer_email 조회
+      const { data: fullContract } = await serviceClient
+        .from("contracts")
+        .select("customer_email")
+        .eq("id", contract.id)
+        .single();
+
+      if (fullContract?.customer_email) {
+        fetch(gasWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "contract_complete_customer",
+            email: fullContract.customer_email,
+            customerName: contract.customer_name,
+            vehicleInfo: contract.vehicle_info,
+          }),
+        }).catch(() => {});
+      }
     }
 
     return corsResponse({ message: "서명이 완료되었습니다." });

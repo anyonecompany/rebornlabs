@@ -44,9 +44,9 @@ export function SignaturePad({ open, onClose, onComplete }: SignaturePadProps) {
       canvas.height = container.clientHeight;
     }
 
-    ctx.fillStyle = "#1a1a1a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#ffffff";
+    // 투명 배경
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#111827";
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -106,7 +106,7 @@ export function SignaturePad({ open, onClose, onComplete }: SignaturePadProps) {
       if (ctx) {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 1, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "#111827";
         ctx.fill();
       }
       setHasDrawn(true);
@@ -149,8 +149,8 @@ export function SignaturePad({ open, onClose, onComplete }: SignaturePadProps) {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    ctx.fillStyle = "#1a1a1a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 투명 배경
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     setHasDrawn(false);
   }, []);
 
