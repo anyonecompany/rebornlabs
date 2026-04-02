@@ -67,12 +67,13 @@ export async function GET(request: NextRequest) {
     const serviceClient = createServiceClient();
     const isDealer = user.role === "dealer";
 
-    // 딜러: vehicles_dealer_view, admin/staff: vehicles 직접
-    // TypeScript overload 때문에 분기 처리
+    // 딜러: vehicles에서 직접 조회 (purchase_price, margin 제외)
+    // vehicles_dealer_view는 user_role() 의존으로 service_role에서 빈 결과 반환
     if (isDealer) {
       let query = serviceClient
-        .from("vehicles_dealer_view")
-        .select("*")
+        .from("vehicles")
+        .select("id, vehicle_code, make, model, year, mileage, selling_price, deposit, monthly_payment, status, photos, plate_number, vin, color, created_at, updated_at")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(PAGE_SIZE + 1);
