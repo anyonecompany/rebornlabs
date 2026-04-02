@@ -115,24 +115,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .select("*")
       .eq("vehicle_id", id);
 
-    // photos signed URL 동적 생성
+    // photos: Storage path → public URL (vehicles 버킷은 public)
     if (vehicle && Array.isArray(vehicle.photos)) {
-      const resolved: string[] = [];
-      for (const photo of vehicle.photos as string[]) {
+      vehicle.photos = (vehicle.photos as string[]).map((photo) => {
         if (typeof photo === "string" && !photo.startsWith("http")) {
-          const { data: urlData } = await serviceClient.storage.from("vehicles").createSignedUrl(photo, 3600);
-          resolved.push(urlData?.signedUrl ?? photo);
-        } else {
-          const match = typeof photo === "string" ? photo.match(/\/vehicles\/(.+?)(?:\?|$)/) : null;
-          if (match?.[1]) {
-            const { data: urlData } = await serviceClient.storage.from("vehicles").createSignedUrl(decodeURIComponent(match[1]), 3600);
-            resolved.push(urlData?.signedUrl ?? photo);
-          } else {
-            resolved.push(photo as string);
-          }
+          const { data } = serviceClient.storage.from("vehicles").getPublicUrl(photo);
+          return data.publicUrl;
         }
-      }
-      vehicle.photos = resolved;
+        return photo;
+      });
     }
 
     return NextResponse.json({

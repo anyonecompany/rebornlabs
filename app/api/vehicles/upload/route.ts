@@ -61,9 +61,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Storage path 반환 (DB에 path 저장, 조회 시 signed URL 동적 생성)
+    // public URL 반환 (vehicles 버킷은 public — 만료 없음)
+    const { data: urlData } = serviceClient.storage
+      .from("vehicles")
+      .getPublicUrl(storagePath);
+
     return NextResponse.json({
-      url: storagePath,
+      url: urlData.publicUrl,
       path: storagePath,
     });
   } catch (err) {
