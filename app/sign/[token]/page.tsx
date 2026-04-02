@@ -439,7 +439,7 @@ export default function SignPage() {
                         </div>
                       );
                     }
-                    const processedLines = renderArticleLines(article.lines);
+                    const processedLines = renderArticleLines(article.body.split("\n"));
                     return (
                       <div key={article.title}>
                         <p className="font-semibold text-gray-900 mb-1">{article.title}</p>
