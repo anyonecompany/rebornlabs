@@ -111,15 +111,15 @@ export default function VehiclesPage() {
     {
       key: "photos",
       header: "",
-      className: "w-14",
+      className: "w-28",
       render: (value: unknown) => {
         const photos = value as string[] | null;
         const src = photos?.[0];
         return src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="rounded object-cover w-12 h-12 shrink-0" />
+          <img src={src} alt="" className="rounded-md object-cover w-24 h-[72px] shrink-0" />
         ) : (
-          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center shrink-0"><Car className="w-5 h-5 text-muted-foreground" /></div>
+          <div className="w-24 h-[72px] rounded-md bg-muted flex items-center justify-center shrink-0"><Car className="w-6 h-6 text-muted-foreground" /></div>
         );
       },
     },

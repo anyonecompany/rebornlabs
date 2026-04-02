@@ -518,9 +518,8 @@ export default function ConsultationDetailPage() {
                   </span>
                 )}
               </div>
-              {/* 상태 직접 변경 (admin/staff만, sold 제외) */}
-              {isPrivileged &&
-                consultation.status !== "sold" &&
+              {/* 상태 변경 (admin/staff + 배정 딜러, sold 제외) */}
+              {consultation.status !== "sold" &&
                 allowedTransitions.length > 0 && (
                   <Select
                     disabled={changingStatus}

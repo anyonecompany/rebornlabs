@@ -216,14 +216,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // 상담 기록 INSERT
-    // status_snapshot이 null이면 현재 상담 상태를 스냅샷으로 사용 (DB NOT NULL 제약 대응)
+    // status_snapshot: 현재 상담 상태를 스냅샷으로 사용
+    // DB 타입이 consultation_status enum일 수 있으므로 명시적 값 사용
+    const snapshot = status_snapshot ?? consultation.status;
+
+    // consultation_status enum에 속하는 값만 허용
+    const validStatuses = ["new", "consulting", "vehicle_waiting", "rejected"];
+    const safeSnapshot = validStatuses.includes(snapshot) ? snapshot : consultation.status;
+
     const { data: log, error: insertError } = await serviceClient
       .from("consultation_logs")
       .insert({
         consultation_id: id,
         dealer_id: user.id,
         content,
-        status_snapshot: status_snapshot ?? consultation.status,
+        status_snapshot: safeSnapshot,
       })
       .select()
       .single();
