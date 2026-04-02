@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     if (isDealer) {
       let query = serviceClient
         .from("vehicles")
-        .select("id, vehicle_code, make, model, year, mileage, selling_price, deposit, monthly_payment, status, photos, created_at, updated_at")
+        .select("id, vehicle_code, make, model, year, mileage, selling_price, deposit, monthly_payment, status, photos, plate_number, vin, color, created_at, updated_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
