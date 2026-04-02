@@ -314,7 +314,6 @@ export default function ConsultationDetailPage() {
     setSubmittingLog(true);
     try {
       const body: Record<string, string> = { content: logContent.trim() };
-      if (logStatus) body.status = logStatus;
 
       const res = await apiFetch(`/api/consultations/${id}/logs`, {
         method: "POST",
@@ -364,6 +363,20 @@ export default function ConsultationDetailPage() {
       setConsultation((prev) =>
         prev ? { ...prev, status: newStatus } : prev,
       );
+
+      // 자동 로그: "상태를 X로 변경"
+      apiFetch(`/api/consultations/${id}/logs`, {
+        method: "POST",
+        body: JSON.stringify({
+          content: `상태를 '${STATUS_LABELS[newStatus]}'(으)로 변경했습니다.`,
+          status: newStatus,
+        }),
+      }).then(async (r) => {
+        if (r.ok) {
+          const d = await r.json();
+          if (d.data) setLogs((prev) => [...prev, d.data]);
+        }
+      }).catch(() => {});
     } catch {
       toast.error("상태 변경 중 오류가 발생했습니다.");
     } finally {
@@ -758,40 +771,22 @@ export default function ConsultationDetailPage() {
                 <p className="text-xs font-medium text-muted-foreground mb-3">
                   새 상담 기록
                 </p>
-                <div className="space-y-3">
+                <div className="flex gap-3">
                   <Textarea
                     placeholder="통화 내용을 입력하세요"
                     value={logContent}
                     onChange={(e) => setLogContent(e.target.value)}
-                    rows={3}
-                    className="resize-none"
+                    rows={2}
+                    className="resize-none flex-1"
                   />
-                  <div className="flex items-center gap-3">
-                    <Select
-                      value={logStatus}
-                      onValueChange={(v) =>
-                        setLogStatus(v as ConsultationStatus)
-                      }
-                    >
-                      <SelectTrigger className="flex-1 sm:w-44 sm:flex-none">
-                        <SelectValue placeholder="상태 변경 (선택)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {logStatusOptions.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {STATUS_LABELS[s]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      onClick={handleSubmitLog}
-                      disabled={submittingLog || !logContent.trim()}
-                    >
-                      {submittingLog ? "등록 중..." : "등록"}
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0 self-end"
+                    onClick={handleSubmitLog}
+                    disabled={submittingLog || !logContent.trim()}
+                  >
+                    {submittingLog ? "등록 중..." : "등록"}
+                  </Button>
                 </div>
               </div>
             )}

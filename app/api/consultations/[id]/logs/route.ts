@@ -230,7 +230,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (insertError) {
       return NextResponse.json(
-        { error: "상담 기록 작성에 실패했습니다." },
+        { error: `상담 기록 작성에 실패했습니다: ${insertError.message}` },
         { status: 500 },
       );
     }
