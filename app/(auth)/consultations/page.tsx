@@ -97,6 +97,15 @@ export default function ConsultationsPage() {
       render: (value: unknown) => (value as string | null) ?? "—",
     },
     {
+      key: "source_ref",
+      header: "유입경로",
+      render: (value: unknown) => {
+        const v = value as string | null;
+        if (!v || v === "direct") return <span className="text-muted-foreground">직접</span>;
+        return <span>{decodeURIComponent(v)}</span>;
+      },
+    },
+    {
       key: "status",
       header: "상태",
       render: (value: unknown) => (
