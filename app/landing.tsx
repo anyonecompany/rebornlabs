@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const PRETENDARD_URL = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
-const CONSULTATION_API_URL = "/api/consultations/submit";
+const CONSULTATION_API_URL = "https://rebornlabs-admin.vercel.app/api/consultations/submit";
 
 export default function RebornLabsLanding() {
   const [formData, setFormData] = useState({
