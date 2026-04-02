@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { AuthError, verifyUser } from "@/lib/auth/verify";
-import { createSSRClient } from "@/lib/supabase/server-ssr";
 import { createServiceClient } from "@/lib/supabase/server";
 
 interface ProfileUpdateRequest {
@@ -79,15 +78,14 @@ export async function PATCH(request: NextRequest) {
   const { name, phone, newPassword } = body;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = (await createSSRClient()) as any;
+    const serviceClient = createServiceClient();
 
     if (name !== undefined || phone !== undefined) {
       const profileUpdate: Record<string, string | null> = {};
       if (name !== undefined) profileUpdate.name = name;
       if (phone !== undefined) profileUpdate.phone = phone;
 
-      const { error: profileError } = await supabase
+      const { error: profileError } = await serviceClient
         .from("profiles")
         .update(profileUpdate)
         .eq("id", currentUser.id);
@@ -101,9 +99,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (newPassword) {
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: passwordError } = await (serviceClient as any).auth.admin.updateUserById(
+        currentUser.id,
+        { password: newPassword },
+      );
 
       if (passwordError) {
         return NextResponse.json(
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      await supabase
+      await serviceClient
         .from("profiles")
         .update({ must_change_password: false })
         .eq("id", currentUser.id);

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Car } from "lucide-react";
+import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -97,6 +98,19 @@ export default function VehiclesPage() {
 
   // 기본 컬럼
   const baseColumns = [
+    {
+      key: "photos",
+      header: "",
+      render: (value: unknown) => {
+        const photos = value as string[] | null;
+        const src = photos?.[0];
+        return src ? (
+          <Image src={src} alt="" width={48} height={48} className="rounded object-cover w-12 h-12" unoptimized />
+        ) : (
+          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center"><Car className="w-5 h-5 text-muted-foreground" /></div>
+        );
+      },
+    },
     { key: "vehicle_code", header: "차량코드" },
     { key: "make", header: "차종" },
     { key: "model", header: "모델" },
