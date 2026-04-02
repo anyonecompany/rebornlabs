@@ -144,7 +144,7 @@ BEGIN
   -- status_snapshot이 NULL이 아닐 때만 부모 상태 갱신
   IF NEW.status_snapshot IS NOT NULL THEN
     UPDATE consultations
-       SET status = NEW.status_snapshot
+       SET status = NEW.status_snapshot::consultation_status
      WHERE id = NEW.consultation_id;
   END IF;
 
