@@ -235,6 +235,7 @@ export default function SignPage() {
   // 제출 상태
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   // 계약서 조회
   useEffect(() => {
@@ -282,12 +283,49 @@ export default function SignPage() {
         return;
       }
       setSubmitted(true);
+
+      // 자동 PDF 생성 + Storage 업로드 (백그라운드)
+      if (contract) {
+        try {
+          const { generateContractPDF } = await import("@/src/lib/contract-generator");
+          let sigImage: Uint8Array | undefined;
+          if (signatureDataUrl) {
+            const b64 = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
+            const bin = atob(b64);
+            sigImage = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) sigImage[i] = bin.charCodeAt(i);
+          }
+          const pdfBlob = await generateContractPDF({
+            make: contract.vehicle_info?.make ?? "",
+            model: contract.vehicle_info?.model ?? "",
+            year: contract.vehicle_info?.year ?? 0,
+            mileage: contract.vehicle_info?.mileage ?? 0,
+            sellingPrice: contract.selling_price,
+            deposit: contract.deposit,
+            customerName: contract.customer_name,
+            customerPhone: contract.customer_phone,
+            signatureImage: sigImage,
+          });
+          setPdfBlob(pdfBlob);
+
+          // Storage 업로드 (공개 API로)
+          const formData = new FormData();
+          formData.append("pdf", pdfBlob, "contract.pdf");
+          formData.append("token", token);
+          await fetch(`/api/contracts/sign/${token}/pdf`, {
+            method: "POST",
+            body: formData,
+          }).catch(() => {});
+        } catch {
+          // PDF 생성 실패해도 서명은 완료
+        }
+      }
     } catch {
       alert("계약 제출 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setSubmitting(false);
     }
-  }, [agreed, signatureDataUrl, token]);
+  }, [agreed, signatureDataUrl, token, contract]);
 
   // 계약서 조항 텍스트 치환 (판매가 / 보증금)
   const renderArticleLines = useCallback(
@@ -357,41 +395,21 @@ export default function SignPage() {
               </div>
               {contract && (
                 <button
-                  onClick={async () => {
-                    try {
-                      const { generateContractPDF } = await import("@/src/lib/contract-generator");
-                      let sigImage: Uint8Array | undefined;
-                      if (signatureDataUrl) {
-                        const base64 = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
-                        const bin = atob(base64);
-                        sigImage = new Uint8Array(bin.length);
-                        for (let i = 0; i < bin.length; i++) sigImage[i] = bin.charCodeAt(i);
-                      }
-                      const blob = await generateContractPDF({
-                        make: contract.vehicle_info?.make ?? "",
-                        model: contract.vehicle_info?.model ?? "",
-                        year: contract.vehicle_info?.year ?? 0,
-                        mileage: contract.vehicle_info?.mileage ?? 0,
-                        sellingPrice: contract.selling_price,
-                        deposit: contract.deposit,
-                        customerName: contract.customer_name,
-                        customerPhone: contract.customer_phone,
-                        signatureImage: sigImage,
-                      });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      const date = new Date().toISOString().slice(0,10).replace(/-/g,"");
-                      a.download = `REBORN_LABS_계약서_${contract.customer_name}_${date}.pdf`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    } catch {
-                      alert("PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
-                    }
+                  onClick={() => {
+                    const blob = pdfBlob;
+                    if (!blob) { alert("PDF가 아직 준비되지 않았습니다."); return; }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    const date = new Date().toISOString().slice(0,10).replace(/-/g,"");
+                    a.download = `REBORN_LABS_계약서_${contract.customer_name}_${date}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
                   }}
-                  className="px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+                  disabled={!pdfBlob}
+                  className="px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
-                  계약서 다운로드
+                  {pdfBlob ? "계약서 다운로드" : "PDF 생성 중..."}
                 </button>
               )}
             </div>
