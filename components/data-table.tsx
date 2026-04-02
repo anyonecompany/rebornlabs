@@ -20,6 +20,7 @@ interface Column {
   key: string;
   header: string;
   render?: RenderFn;
+  className?: string;
 }
 
 interface DataTableProps {
@@ -67,7 +68,7 @@ export function DataTable({
           <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow className="hover:bg-transparent">
               {columns.map((col) => (
-                <TableHead key={col.key} className="text-muted-foreground">
+                <TableHead key={col.key} className={`text-muted-foreground ${col.className ?? ""}`}>
                   {col.header}
                 </TableHead>
               ))}
@@ -86,7 +87,7 @@ export function DataTable({
                   .join(" ")}
               >
                 {columns.map((col) => (
-                  <TableCell key={col.key} className="py-3 px-4">
+                  <TableCell key={col.key} className={`py-3 px-4 ${col.className ?? ""}`}>
                     {col.render
                       ? col.render(row[col.key], row)
                       : String(row[col.key] ?? "—")}

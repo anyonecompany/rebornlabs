@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Search, Car, List, LayoutGrid } from "lucide-react";
-import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -112,13 +111,15 @@ export default function VehiclesPage() {
     {
       key: "photos",
       header: "",
+      className: "w-14",
       render: (value: unknown) => {
         const photos = value as string[] | null;
         const src = photos?.[0];
         return src ? (
-          <Image src={src} alt="" width={48} height={48} className="rounded object-cover w-12 h-12" unoptimized />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="rounded object-cover w-12 h-12 shrink-0" />
         ) : (
-          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center"><Car className="w-5 h-5 text-muted-foreground" /></div>
+          <div className="w-12 h-12 rounded bg-muted flex items-center justify-center shrink-0"><Car className="w-5 h-5 text-muted-foreground" /></div>
         );
       },
     },
@@ -260,12 +261,11 @@ export default function VehiclesPage() {
                 {/* 사진 */}
                 <div className="relative aspect-video bg-muted">
                   {v.photos?.[0] ? (
-                    <Image
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
                       src={v.photos[0]}
                       alt={`${v.make} ${v.model}`}
-                      fill
-                      className="object-cover"
-                      unoptimized
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">

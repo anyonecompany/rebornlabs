@@ -46,7 +46,7 @@ export default async function AuthLayout({
       <main className="flex-1 overflow-auto">
         {profile.must_change_password && <PasswordBanner />}
         <div
-          className="px-6 py-6 md:px-8 md:py-8 max-w-7xl mx-auto w-full"
+          className="px-6 py-6 md:px-8 md:py-8 w-full"
           data-user-role={profile.role}
           data-user-id={userId}
         >
