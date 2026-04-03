@@ -642,45 +642,6 @@ export default function SaleDetailPage() {
           </CardContent>
         </Card>
 
-        {/* ── 전자서명 섹션 ── */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">전자서명</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {signatureUrl ? (
-              /* 서명 완료 */
-              <div className="space-y-3">
-                <div className="rounded-lg overflow-hidden border border-border bg-muted/30 p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={signatureUrl} alt="전자서명" className="h-16 object-contain" />
-                </div>
-                <p className="text-xs text-emerald-400">서명 완료</p>
-              </div>
-            ) : isCancelled ? (
-              /* 취소된 건 — 서명 불가 */
-              <p className="text-sm text-muted-foreground">
-                취소된 판매에는 서명할 수 없습니다.
-              </p>
-            ) : (
-              /* 서명 미완료 */
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  아직 서명이 완료되지 않았습니다.
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => setSignaturePadOpen(true)}
-                  disabled={uploadingSignature}
-                >
-                  <PenLine className="h-4 w-4 mr-1.5" />
-                  {uploadingSignature ? "업로드 중..." : "서명하기"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* ── 전자 계약서 섹션 ── */}
         <Card>
           <CardHeader className="pb-3">
