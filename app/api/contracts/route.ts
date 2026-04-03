@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     // 차량 정보 조회
     const { data: vehicle, error: vehicleError } = await serviceClient
       .from("vehicles")
-      .select("id, vehicle_code, make, model, year, mileage, selling_price, deposit")
+      .select("id, vehicle_code, make, model, year, mileage, selling_price, deposit, plate_number, vin, color")
       .eq("id", sale.vehicle_id)
       .single();
 
@@ -232,9 +232,9 @@ export async function POST(request: NextRequest) {
       year: vehicleInfoOverride?.year ?? vehicle.year,
       mileage: vehicleInfoOverride?.mileage ?? vehicle.mileage,
       vehicle_code: vehicle.vehicle_code,
-      ...(vehicleInfoOverride?.plate_number !== undefined && { plate_number: vehicleInfoOverride.plate_number }),
-      ...(vehicleInfoOverride?.vin !== undefined && { vin: vehicleInfoOverride.vin }),
-      ...(vehicleInfoOverride?.color !== undefined && { color: vehicleInfoOverride.color }),
+      plate_number: vehicleInfoOverride?.plate_number ?? vehicle.plate_number ?? undefined,
+      vin: vehicleInfoOverride?.vin ?? vehicle.vin ?? undefined,
+      color: vehicleInfoOverride?.color ?? vehicle.color ?? undefined,
     };
 
     const { data: contract, error: insertError } = await serviceClient
