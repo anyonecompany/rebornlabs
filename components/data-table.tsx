@@ -68,7 +68,7 @@ export function DataTable({
           <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow className="hover:bg-transparent">
               {columns.map((col) => (
-                <TableHead key={col.key} className={`text-muted-foreground ${col.className ?? ""}`}>
+                <TableHead key={col.key} className={`text-muted-foreground align-middle ${col.className ?? ""}`}>
                   {col.header}
                 </TableHead>
               ))}
@@ -87,7 +87,7 @@ export function DataTable({
                   .join(" ")}
               >
                 {columns.map((col) => (
-                  <TableCell key={col.key} className={`py-3 px-4 ${col.className ?? ""}`}>
+                  <TableCell key={col.key} className={`py-3 px-4 align-middle ${col.className ?? ""}`}>
                     {col.render
                       ? col.render(row[col.key], row)
                       : String(row[col.key] ?? "—")}

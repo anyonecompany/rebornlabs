@@ -46,7 +46,7 @@ export function SignaturePad({ open, onClose, onComplete }: SignaturePadProps) {
 
     // 투명 배경
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#111827";
+    ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -106,7 +106,7 @@ export function SignaturePad({ open, onClose, onComplete }: SignaturePadProps) {
       if (ctx) {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 1, 0, Math.PI * 2);
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = "#ffffff";
         ctx.fill();
       }
       setHasDrawn(true);
