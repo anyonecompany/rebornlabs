@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
 
     const file = formData.get("file");
     if (!file || !(file instanceof Blob)) {
-      return NextResponse.json(
-        { error: "이미지 파일(file)이 필요합니다." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "이미지 파일(file)이 필요합니다." }, { status: 400 });
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "이미지는 5MB 이하여야 합니다." }, { status: 400 });
     }
 
     const timestamp = Date.now();
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       return NextResponse.json(
-        { error: `업로드 실패: ${uploadError.message}` },
+        { error: "파일 업로드에 실패했습니다." },
         { status: 500 },
       );
     }

@@ -296,9 +296,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return corsResponse({ message: "서명이 완료되었습니다." });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "서버 오류가 발생했습니다.";
+    console.error("[contract-sign] 오류:", err);
     return corsResponse(
-      { error: msg },
+      { error: "서버 오류가 발생했습니다." },
       { status: 500 },
     );
   }

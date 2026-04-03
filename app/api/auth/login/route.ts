@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { createSSRClient } from "@/lib/supabase/server-ssr";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -6,29 +7,40 @@ import type { Database } from "@/types/database";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
-interface LoginRequest {
-  email: string;
-  password: string;
-}
+const LoginSchema = z.object({
+  email: z.string().email("올바른 이메일 형식이 아닙니다.").max(254),
+  password: z.string().min(1, "비밀번호를 입력해주세요.").max(128),
+});
 
 export async function POST(request: NextRequest) {
-  let body: LoginRequest;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "요청 데이터 형식이 올바르지 않습니다." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "요청 데이터 형식이 올바르지 않습니다." }, { status: 400 });
   }
 
-  const { email, password } = body;
-  if (!email || !password) {
-    return NextResponse.json(
-      { error: "이메일과 비밀번호를 입력해주세요." },
-      { status: 400 },
-    );
+  const parsed = LoginSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.errors[0]?.message ?? "입력이 올바르지 않습니다." }, { status: 400 });
   }
+
+  const { email, password } = parsed.data;
+
+  // IP rate limiting (15분 내 10회 초과 차단)
+  const serviceClient = createServiceClient();
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
+  const { count: loginAttempts } = await serviceClient
+    .from("rate_limits")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("endpoint", "auth_login")
+    .gte("requested_at", new Date(Date.now() - 15 * 60 * 1000).toISOString());
+
+  if ((loginAttempts ?? 0) >= 10) {
+    return NextResponse.json({ error: "너무 많은 로그인 시도입니다. 15분 후 다시 시도해주세요." }, { status: 429 });
+  }
+  await serviceClient.from("rate_limits").insert({ ip_address: ip, endpoint: "auth_login", requested_at: new Date().toISOString() });
 
   try {
     const supabase = await createSSRClient();
@@ -43,8 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // service_role로 profiles 조회 (RLS bypass — JWT custom claim 미설정 시에도 동작)
-    const serviceClient = createServiceClient();
+    // service_role로 profiles 조회 (RLS bypass)
     const { data: profileData, error: profileError } = await serviceClient
       .from("profiles")
       .select("id, email, name, role, is_active, must_change_password")

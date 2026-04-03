@@ -39,10 +39,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!pdfFile || !(pdfFile instanceof Blob)) {
       return NextResponse.json({ error: "PDF 파일이 필요합니다." }, { status: 400 });
     }
-
-    // Storage 업로드
-    const pdfPath = `contracts/${contract.id}/contract.pdf`;
+    if (pdfFile.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "PDF는 10MB 이하여야 합니다." }, { status: 400 });
+    }
     const buffer = await pdfFile.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    if (!(bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46)) {
+      return NextResponse.json({ error: "올바른 PDF 파일이 아닙니다." }, { status: 400 });
+    }
+
+    const pdfPath = `contracts/${contract.id}/contract.pdf`;
 
     const { error: uploadError } = await serviceClient.storage
       .from("contracts")

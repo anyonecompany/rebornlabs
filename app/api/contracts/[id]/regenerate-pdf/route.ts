@@ -102,6 +102,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const status = err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
       return NextResponse.json({ error: err.message }, { status });
     }
-    return NextResponse.json({ error: err instanceof Error ? err.message : "서버 오류" }, { status: 500 });
+    console.error("[regenerate-pdf] 오류:", err); return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }
 }
