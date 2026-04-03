@@ -203,6 +203,13 @@ export default function SaleDetailPage() {
     customer_phone: "",
     customer_email: "",
     customer_address: "",
+    vehicle_make: "",
+    vehicle_model: "",
+    vehicle_year: "",
+    vehicle_mileage: "",
+    vehicle_plate_number: "",
+    vehicle_vin: "",
+    vehicle_color: "",
   });
   const [creatingContract, setCreatingContract] = useState(false);
 
@@ -254,12 +261,16 @@ export default function SaleDetailPage() {
     fetchElectronicContract();
   }, [fetchElectronicContract]);
 
-  // 전자 계약서 생성 폼 초기값: 상담 정보에서 자동 입력
+  // 전자 계약서 생성 폼 초기값: 상담 정보 + 차량 정보에서 자동 입력
   useEffect(() => {
-    if (detail?.consultation) {
+    if (detail) {
       setContractForm((prev) => ({
         ...prev,
-        customer_name: detail.consultation?.customer_name ?? "",
+        customer_name: detail.consultation?.customer_name ?? prev.customer_name,
+        vehicle_make: detail.vehicle?.make ?? prev.vehicle_make,
+        vehicle_model: detail.vehicle?.model ?? prev.vehicle_model,
+        vehicle_year: detail.vehicle?.year ? String(detail.vehicle.year) : prev.vehicle_year,
+        vehicle_mileage: detail.vehicle?.mileage ? String(detail.vehicle.mileage) : prev.vehicle_mileage,
       }));
     }
   }, [detail]);
@@ -272,6 +283,16 @@ export default function SaleDetailPage() {
     }
     setCreatingContract(true);
     try {
+      // 차량 정보 — 입력값이 있으면 우선 사용, 없으면 undefined (API가 DB에서 조회)
+      const vehicleInfoOverride: Record<string, unknown> = {};
+      if (contractForm.vehicle_make.trim()) vehicleInfoOverride.make = contractForm.vehicle_make.trim();
+      if (contractForm.vehicle_model.trim()) vehicleInfoOverride.model = contractForm.vehicle_model.trim();
+      if (contractForm.vehicle_year.trim()) vehicleInfoOverride.year = Number(contractForm.vehicle_year.trim());
+      if (contractForm.vehicle_mileage.trim()) vehicleInfoOverride.mileage = Number(contractForm.vehicle_mileage.trim());
+      if (contractForm.vehicle_plate_number.trim()) vehicleInfoOverride.plate_number = contractForm.vehicle_plate_number.trim();
+      if (contractForm.vehicle_vin.trim()) vehicleInfoOverride.vin = contractForm.vehicle_vin.trim();
+      if (contractForm.vehicle_color.trim()) vehicleInfoOverride.color = contractForm.vehicle_color.trim();
+
       const res = await apiFetch("/api/contracts", {
         method: "POST",
         body: JSON.stringify({
@@ -280,6 +301,7 @@ export default function SaleDetailPage() {
           customer_phone: contractForm.customer_phone.trim(),
           customer_email: contractForm.customer_email.trim(),
           customer_address: contractForm.customer_address.trim() || undefined,
+          vehicle_info: Object.keys(vehicleInfoOverride).length > 0 ? vehicleInfoOverride : undefined,
         }),
       });
       const data = await res.json();
@@ -660,13 +682,19 @@ export default function SaleDetailPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      // 상담 정보 자동 입력
-                      if (consultation) {
-                        setContractForm((prev) => ({
-                          ...prev,
-                          customer_name: consultation.customer_name,
-                        }));
-                      }
+                      setContractForm({
+                        customer_name: consultation?.customer_name ?? "",
+                        customer_phone: consultation?.customer_phone ?? "",
+                        customer_email: "",
+                        customer_address: "",
+                        vehicle_make: vehicle?.make ?? "",
+                        vehicle_model: vehicle?.model ?? "",
+                        vehicle_year: vehicle?.year ? String(vehicle.year) : "",
+                        vehicle_mileage: vehicle?.mileage ? String(vehicle.mileage) : "",
+                        vehicle_plate_number: "",
+                        vehicle_vin: "",
+                        vehicle_color: "",
+                      });
                       setContractDialogOpen(true);
                     }}
                   >
@@ -871,78 +899,194 @@ export default function SaleDetailPage() {
 
       {/* 전자 계약서 생성 다이얼로그 */}
       <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>전자 계약서 작성</DialogTitle>
             <DialogDescription>
-              고객 정보를 입력하면 전자 계약서가 생성됩니다.
+              차량 정보와 고객 정보를 확인하고 수정하세요.
               이메일로 서명 요청 링크를 발송할 수 있습니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                고객명 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                placeholder="홍길동"
-                value={contractForm.customer_name}
-                onChange={(e) =>
-                  setContractForm((prev) => ({
-                    ...prev,
-                    customer_name: e.target.value,
-                  }))
-                }
-                disabled={creatingContract}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">전화번호</Label>
-              <Input
-                placeholder="010-0000-0000"
-                value={contractForm.customer_phone}
-                onChange={(e) =>
-                  setContractForm((prev) => ({
-                    ...prev,
-                    customer_phone: e.target.value,
-                  }))
-                }
-                disabled={creatingContract}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                이메일 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                type="email"
-                placeholder="example@email.com"
-                value={contractForm.customer_email}
-                onChange={(e) =>
-                  setContractForm((prev) => ({
-                    ...prev,
-                    customer_email: e.target.value,
-                  }))
-                }
-                disabled={creatingContract}
-              />
-              <p className="text-xs text-muted-foreground">
-                서명 요청 이메일 발송에 사용됩니다.
+          <div className="space-y-5 py-2">
+            {/* 차량 정보 섹션 */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                차량 정보
               </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">브랜드</Label>
+                  <Input
+                    placeholder="현대"
+                    value={contractForm.vehicle_make}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_make: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">차종</Label>
+                  <Input
+                    placeholder="아반떼"
+                    value={contractForm.vehicle_model}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_model: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">연식</Label>
+                  <Input
+                    placeholder="2022"
+                    value={contractForm.vehicle_year}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_year: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">주행거리 (km)</Label>
+                  <Input
+                    placeholder="30000"
+                    value={contractForm.vehicle_mileage}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_mileage: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">차량번호</Label>
+                  <Input
+                    placeholder="12가 3456"
+                    value={contractForm.vehicle_plate_number}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_plate_number: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">차대번호</Label>
+                  <Input
+                    placeholder="KMHXX..."
+                    value={contractForm.vehicle_vin}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_vin: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">색상</Label>
+                  <Input
+                    placeholder="흰색"
+                    value={contractForm.vehicle_color}
+                    onChange={(e) =>
+                      setContractForm((prev) => ({
+                        ...prev,
+                        vehicle_color: e.target.value,
+                      }))
+                    }
+                    disabled={creatingContract}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">주소 (선택)</Label>
-              <Input
-                placeholder="서울특별시 ..."
-                value={contractForm.customer_address}
-                onChange={(e) =>
-                  setContractForm((prev) => ({
-                    ...prev,
-                    customer_address: e.target.value,
-                  }))
-                }
-                disabled={creatingContract}
-              />
+
+            {/* 구분선 */}
+            <div className="border-t border-border" />
+
+            {/* 고객 정보 섹션 */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                고객 정보
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  고객명 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="홍길동"
+                  value={contractForm.customer_name}
+                  onChange={(e) =>
+                    setContractForm((prev) => ({
+                      ...prev,
+                      customer_name: e.target.value,
+                    }))
+                  }
+                  disabled={creatingContract}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">전화번호</Label>
+                <Input
+                  placeholder="010-0000-0000"
+                  value={contractForm.customer_phone}
+                  onChange={(e) =>
+                    setContractForm((prev) => ({
+                      ...prev,
+                      customer_phone: e.target.value,
+                    }))
+                  }
+                  disabled={creatingContract}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  이메일 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="example@email.com"
+                  value={contractForm.customer_email}
+                  onChange={(e) =>
+                    setContractForm((prev) => ({
+                      ...prev,
+                      customer_email: e.target.value,
+                    }))
+                  }
+                  disabled={creatingContract}
+                />
+                <p className="text-xs text-muted-foreground">
+                  서명 요청 이메일 발송에 사용됩니다.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">주소 (선택)</Label>
+                <Input
+                  placeholder="서울특별시 ..."
+                  value={contractForm.customer_address}
+                  onChange={(e) =>
+                    setContractForm((prev) => ({
+                      ...prev,
+                      customer_address: e.target.value,
+                    }))
+                  }
+                  disabled={creatingContract}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">

@@ -6,6 +6,16 @@ import { verifyUser, AuthError } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
+const VehicleInfoOverrideSchema = z.object({
+  make: z.string().optional(),
+  model: z.string().optional(),
+  year: z.number().optional(),
+  mileage: z.number().optional(),
+  plate_number: z.string().optional(),
+  vin: z.string().optional(),
+  color: z.string().optional(),
+}).optional();
+
 const CreateContractSchema = z.object({
   sale_id: z.string().uuid("올바른 UUID 형식이 아닙니다."),
   customer_name: z.string().min(1, "고객명은 필수입니다."),
@@ -13,6 +23,7 @@ const CreateContractSchema = z.object({
   customer_email: z.string().email("올바른 이메일 형식이 아닙니다."),
   customer_address: z.string().optional(),
   customer_id_number: z.string().optional(),
+  vehicle_info: VehicleInfoOverrideSchema,
 });
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -165,6 +176,7 @@ export async function POST(request: NextRequest) {
       customer_email,
       customer_address,
       customer_id_number,
+      vehicle_info: vehicleInfoOverride,
     } = parsed.data;
 
     const serviceClient = createServiceClient();
@@ -213,12 +225,16 @@ export async function POST(request: NextRequest) {
     }
 
     const contractToken = crypto.randomUUID();
+    // body에 vehicle_info가 있으면 해당 값 우선 사용, 없으면 DB 조회값 사용
     const vehicleInfo = {
-      make: vehicle.make,
-      model: vehicle.model,
-      year: vehicle.year,
-      mileage: vehicle.mileage,
+      make: vehicleInfoOverride?.make ?? vehicle.make,
+      model: vehicleInfoOverride?.model ?? vehicle.model,
+      year: vehicleInfoOverride?.year ?? vehicle.year,
+      mileage: vehicleInfoOverride?.mileage ?? vehicle.mileage,
       vehicle_code: vehicle.vehicle_code,
+      ...(vehicleInfoOverride?.plate_number !== undefined && { plate_number: vehicleInfoOverride.plate_number }),
+      ...(vehicleInfoOverride?.vin !== undefined && { vin: vehicleInfoOverride.vin }),
+      ...(vehicleInfoOverride?.color !== undefined && { color: vehicleInfoOverride.color }),
     };
 
     const { data: contract, error: insertError } = await serviceClient

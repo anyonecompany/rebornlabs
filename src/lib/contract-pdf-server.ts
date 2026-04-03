@@ -21,6 +21,7 @@ export interface ServerContractParams {
   plateNumber?: string;
   vin?: string;
   color?: string;
+  customerIdNumber?: string; // 예: "880101-1******"
   signatureImage?: Buffer; // PNG buffer
 }
 
@@ -43,7 +44,7 @@ export async function generateContractPDFServer(
   const {
     make, model, year, mileage, sellingPrice, deposit,
     customerName, customerPhone, customerAddress,
-    plateNumber, vin, color, signatureImage,
+    plateNumber, vin, color, customerIdNumber, signatureImage,
   } = params;
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -179,31 +180,50 @@ export async function generateContractPDFServer(
   doc.text("1. 구매자", M, y);
   y += 6;
   doc.setFontSize(8.5);
-  const buyerFields = [
-    ["성명", `${customerName} (인)`],
-    ["주민등록번호", ""],
-    ["주소", customerAddress ?? ""],
-    ["전화", customerPhone],
-  ];
-  for (const [label, value] of buyerFields) {
-    doc.setTextColor(100);
-    doc.text(`- ${label}:`, M + 4, y);
-    doc.setTextColor(0);
-    doc.text(value, M + 30, y);
-    y += 5;
-  }
 
-  // 서명 이미지
+  // 성명 행 — "(인)" 텍스트 좌표를 기록하여 서명 이미지 오버레이에 사용
+  doc.setTextColor(100);
+  doc.text("- 성명:", M + 4, y);
+  doc.setTextColor(0);
+  const nameText = `${customerName} (인)`;
+  doc.text(nameText, M + 30, y);
+
+  // "(인)" 위에 서명 이미지 오버레이
   if (signatureImage) {
-    checkPage(25);
     try {
       const sigB64 = signatureImage.toString("base64");
-      doc.addImage(`data:image/png;base64,${sigB64}`, "PNG", M + 30, y - 2, 40, 15);
-      y += 18;
+      // "(인)" 텍스트의 x 좌표 계산: M + 30 + customerName 텍스트 폭 + 공백
+      const nameOnlyWidth = doc.getTextWidth(customerName);
+      const inX = M + 30 + nameOnlyWidth + 1; // " (인)" 시작 x
+      const sigX = inX - 10; // "(인)" 시작에서 -10mm
+      const sigY = y - 12;   // 성명 텍스트 y에서 -12mm (위로)
+      doc.addImage(`data:image/png;base64,${sigB64}`, "PNG", sigX, sigY, 40, 15);
     } catch {
-      y += 5;
+      // 서명 이미지 오버레이 실패 시 무시
     }
   }
+  y += 5;
+
+  // 주민등록번호 행
+  doc.setTextColor(100);
+  doc.text("- 주민등록번호:", M + 4, y);
+  doc.setTextColor(0);
+  doc.text(customerIdNumber ?? "", M + 30, y);
+  y += 5;
+
+  // 주소 행
+  doc.setTextColor(100);
+  doc.text("- 주소:", M + 4, y);
+  doc.setTextColor(0);
+  doc.text(customerAddress ?? "", M + 30, y);
+  y += 5;
+
+  // 전화 행
+  doc.setTextColor(100);
+  doc.text("- 전화:", M + 4, y);
+  doc.setTextColor(0);
+  doc.text(customerPhone, M + 30, y);
+  y += 5;
 
   y += 6;
 

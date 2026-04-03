@@ -25,6 +25,7 @@ function corsResponse(body: unknown, init?: ResponseInit) {
 
 const SignSubmitSchema = z.object({
   signature: z.string().min(1, "서명 데이터가 없습니다."),
+  idNumber: z.string().optional(), // 앞 6자리 + 마스킹, 예: "880101-1******"
 });
 
 type RouteContext = { params: Promise<{ token: string }> };
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { signature } = parsed.data;
+    const { signature, idNumber } = parsed.data;
 
     const serviceClient = createServiceClient();
 
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         plateNumber: (vehicleInfo.plate_number as string) ?? undefined,
         vin: (vehicleInfo.vin as string) ?? undefined,
         color: (vehicleInfo.color as string) ?? undefined,
+        customerIdNumber: idNumber,
         signatureImage: signatureBytes.length > 0 ? Buffer.from(signatureBytes) : undefined,
       });
 
@@ -237,6 +239,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         signed_at: new Date().toISOString(),
         signature_url: signatureUrl,
         pdf_url: pdfUrl,
+        ...(idNumber !== undefined && { customer_id_number: idNumber }),
       })
       .eq("id", contract.id);
 

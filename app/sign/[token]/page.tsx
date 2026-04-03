@@ -232,6 +232,11 @@ export default function SignPage() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [padOpen, setPadOpen] = useState(false);
 
+  // 주민등록번호 입력 상태
+  const [idFront, setIdFront] = useState("");
+  const [idBack, setIdBack] = useState("");
+  const idBackRef = useRef<HTMLInputElement>(null);
+
   // 제출 상태
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -271,10 +276,19 @@ export default function SignPage() {
     if (!agreed || !signatureDataUrl) return;
     setSubmitting(true);
     try {
+      // 주민등록번호: 앞 6자리만 저장 (뒷자리는 전송 안 함)
+      // 마스킹 형태: "880101-1******"
+      const idNumber = idFront.trim()
+        ? `${idFront.trim()}-${idBack.trim().charAt(0) || "*"}******`
+        : undefined;
+
       const res = await fetch(`/api/contracts/sign/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signature: signatureDataUrl }),
+        body: JSON.stringify({
+          signature: signatureDataUrl,
+          ...(idNumber !== undefined && { idNumber }),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -303,7 +317,9 @@ export default function SignPage() {
     [contract],
   );
 
-  const canSubmit = agreed && !!signatureDataUrl && !submitting;
+  const idFrontValid = idFront.trim().length === 6;
+  const idBackValid = idBack.trim().length === 7;
+  const canSubmit = agreed && !!signatureDataUrl && idFrontValid && idBackValid && !submitting;
 
   // ── 렌더 분기 ──────────────────────────────────────────────────────────
 
@@ -419,6 +435,52 @@ export default function SignPage() {
                   <span className="text-gray-500">전화번호</span>
                   <span className="font-medium text-gray-900">{contract.customer_phone}</span>
                 </div>
+              </div>
+
+              {/* 주민등록번호 입력 */}
+              <div className="rounded-xl border border-gray-200 p-4 space-y-3">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  주민등록번호 <span className="text-red-500">*</span>
+                </h2>
+                <p className="text-xs text-gray-500">
+                  본인 확인을 위해 주민등록번호를 입력해주세요. 뒷자리는 저장되지 않습니다.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={idFront}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setIdFront(val);
+                      if (val.length === 6) {
+                        idBackRef.current?.focus();
+                      }
+                    }}
+                    placeholder="앞 6자리"
+                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                  <span className="text-gray-500 font-medium">-</span>
+                  <input
+                    ref={idBackRef}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={7}
+                    value={idBack}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setIdBack(val);
+                    }}
+                    placeholder="뒷 7자리"
+                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  />
+                </div>
+                {idFront.length === 6 && idBack.length === 7 && (
+                  <p className="text-xs text-gray-500">
+                    입력 완료: {idFront}-{idBack.charAt(0)}******
+                  </p>
+                )}
               </div>
 
               {/* 계약서 전문 — 스크롤 영역 */}
