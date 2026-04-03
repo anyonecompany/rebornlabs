@@ -32,7 +32,7 @@ function formatKRW(v: number): string {
 let _fontBase64: string | null = null;
 function getFontBase64(): string {
   if (!_fontBase64) {
-    const fontPath = join(process.cwd(), "public", "fonts", "NotoSansKR-Regular.ttf");
+    const fontPath = join(process.cwd(), "public", "fonts", "NotoSansKR-Subset.ttf");
     _fontBase64 = readFileSync(fontPath).toString("base64");
   }
   return _fontBase64;
