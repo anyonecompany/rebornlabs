@@ -290,7 +290,7 @@ export default function VehiclesPage() {
                   <p className="text-sm font-medium truncate">{v.make} {v.model}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{v.year}년 · {formatMileage(v.mileage)}</span>
-                    <span className="font-medium text-foreground">{formatKRW(v.selling_price)}</span>
+                    {v.monthly_payment ? <span className="font-medium text-foreground">월 {formatKRW(v.monthly_payment)}</span> : null}
                   </div>
                 </div>
               </button>
