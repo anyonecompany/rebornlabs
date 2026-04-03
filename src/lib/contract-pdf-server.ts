@@ -256,7 +256,7 @@ export async function generateContractPDFServer(
   y += 5;
 
   const sellerFields = [
-    ["사업자번호", ""],
+    ["사업자번호", "817-05-03415"],
     ["주소", "서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)"],
   ];
   for (const [label, value] of sellerFields) {
