@@ -235,11 +235,29 @@ export async function generateContractPDFServer(
   doc.setFontSize(8.5);
   doc.text("REBORN LABS Co., Ltd", M + 4, y);
   y += 5;
+
+  // 대표 + 직인 이미지
+  doc.setTextColor(100);
+  doc.text("- 대표:", M + 4, y);
+  doc.setTextColor(0);
+  doc.text("심재윤", M + 30, y);
+
+  // 직인 이미지 합성 (심재윤 옆)
+  try {
+    const sealPath = join(process.cwd(), "public", "images", "seal.png");
+    const sealData = readFileSync(sealPath);
+    const sealB64 = sealData.toString("base64");
+    const nameWidth = doc.getTextWidth("심재윤");
+    doc.addImage(`data:image/png;base64,${sealB64}`, "PNG", M + 30 + nameWidth + 2, y - 10, 22, 22);
+  } catch {
+    // 직인 이미지 없으면 텍스트 폴백
+    doc.text("(직인)", M + 30 + doc.getTextWidth("심재윤") + 3, y);
+  }
+  y += 5;
+
   const sellerFields = [
-    ["대표", "심재윤 (직인)"],
     ["사업자번호", ""],
     ["주소", "서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)"],
-    ["전화", ""],
   ];
   for (const [label, value] of sellerFields) {
     doc.setTextColor(100);
