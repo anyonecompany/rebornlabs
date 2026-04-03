@@ -245,7 +245,11 @@ export default function SaleDetailPage() {
     setContractLoading(true);
     try {
       const res = await apiFetch(`/api/contracts?sale_id=${id}`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        console.log("[contracts] 조회 실패:", res.status, d?.error);
+        return;
+      }
       const data = await res.json();
       const contracts: ElectronicContract[] = data.data ?? [];
       // 가장 최신 계약서를 사용
