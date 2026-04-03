@@ -188,33 +188,44 @@ export async function generateContractPDF(
 ): Promise<Blob> {
   const html = generateContractHTML(params);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const html2pdf = (await import("html2pdf.js" as any)).default;
+  return new Promise((resolve, reject) => {
+    // iframe으로 CSS 격리 — 페이지 레이아웃에 영향 안 줌
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;z-index:-1";
+    document.body.appendChild(iframe);
 
-  const container = document.createElement("div");
-  container.innerHTML = html;
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.width = "210mm";
-  document.body.appendChild(container);
+    const iframeDoc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      document.body.removeChild(iframe);
+      reject(new Error("iframe 생성 실패"));
+      return;
+    }
 
-  // Google Fonts 로드 대기
-  await new Promise((r) => setTimeout(r, 1500));
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
 
-  try {
-    const worker = html2pdf().set({
-      margin: [10, 10, 10, 10],
-      filename: "contract.pdf",
-      image: { type: "jpeg", quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    }).from(container);
+    // 폰트 로드 + 렌더링 대기 후 PDF 변환
+    setTimeout(async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const html2pdf = (await import("html2pdf.js" as any)).default;
 
-    // toPdf → get jsPDF → output blob
-    const pdf = await worker.toPdf().get("pdf");
-    const blob = pdf.output("blob") as Blob;
-    return blob;
-  } finally {
-    document.body.removeChild(container);
-  }
+        const pdf = await html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename: "contract.pdf",
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        }).from(iframeDoc.body).toPdf().get("pdf");
+
+        const blob = pdf.output("blob") as Blob;
+        document.body.removeChild(iframe);
+        resolve(blob);
+      } catch (err) {
+        document.body.removeChild(iframe);
+        reject(err);
+      }
+    }, 2000);
+  });
 }

@@ -776,8 +776,8 @@ export default function SaleDetailPage() {
                   </div>
                 )}
 
-                {/* PDF 다운로드 */}
-                {electronicContract.pdf_url && (
+                {/* PDF 다운로드 / 재생성 */}
+                {electronicContract.pdf_url ? (
                   <a
                     href={electronicContract.pdf_url}
                     target="_blank"
@@ -789,6 +789,48 @@ export default function SaleDetailPage() {
                       계약서 PDF 다운로드
                     </Button>
                   </a>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { generateContractPDF } = await import("@/src/lib/contract-generator");
+                        const vi = electronicContract.vehicle_info as Record<string, unknown> ?? {};
+                        let sigImg: Uint8Array | undefined;
+                        if (electronicContract.signature_url) {
+                          try {
+                            const r = await fetch(electronicContract.signature_url);
+                            if (r.ok) sigImg = new Uint8Array(await r.arrayBuffer());
+                          } catch { /* 서명 없이 진행 */ }
+                        }
+                        const blob = await generateContractPDF({
+                          make: (vi.make as string) ?? "",
+                          model: (vi.model as string) ?? "",
+                          year: (vi.year as number) ?? 0,
+                          mileage: (vi.mileage as number) ?? 0,
+                          sellingPrice: electronicContract.selling_price,
+                          deposit: electronicContract.deposit,
+                          customerName: electronicContract.customer_name,
+                          customerPhone: electronicContract.customer_phone ?? "",
+                          signatureImage: sigImg,
+                        });
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, "_blank");
+                        // Storage 업로드
+                        const fd = new FormData();
+                        fd.append("pdf", blob, "contract.pdf");
+                        await apiFetch(`/api/contracts/sign/${electronicContract.token}/pdf`, { method: "POST", body: fd }).catch(() => {});
+                        toast.success("PDF가 생성되었습니다.");
+                        await fetchDetail();
+                      } catch {
+                        toast.error("PDF 생성에 실패했습니다.");
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    PDF 재생성
+                  </Button>
                 )}
               </div>
             )}
