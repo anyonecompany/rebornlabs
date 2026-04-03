@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search, Car, List, LayoutGrid } from "lucide-react";
+import { Plus, Search, Car, List, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -64,8 +64,12 @@ export default function VehiclesPage() {
     return "list";
   });
 
+  const [gridPage, setGridPage] = useState(0);
+  const GRID_PAGE_SIZE = 18; // 3열 × 6행
+
   const toggleView = (mode: "list" | "grid") => {
     setViewMode(mode);
+    setGridPage(0);
     localStorage.setItem("vehicles-view", mode);
   };
 
@@ -249,9 +253,13 @@ export default function VehiclesPage() {
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-12">등록된 차량이 없습니다.</p>
-        ) : (
+        ) : (() => {
+          const gridTotalPages = Math.ceil(filtered.length / GRID_PAGE_SIZE);
+          const gridItems = filtered.slice(gridPage * GRID_PAGE_SIZE, (gridPage + 1) * GRID_PAGE_SIZE);
+          return (
+          <div className="space-y-3">
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((v) => (
+            {gridItems.map((v) => (
               <button
                 key={v.id}
                 type="button"
@@ -288,7 +296,23 @@ export default function VehiclesPage() {
               </button>
             ))}
           </div>
-        )
+          {gridTotalPages > 1 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setGridPage(p => Math.max(0, p - 1))} disabled={gridPage === 0}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="px-2">{gridPage + 1} / {gridTotalPages}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setGridPage(p => Math.min(gridTotalPages - 1, p + 1))} disabled={gridPage === gridTotalPages - 1}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+          </div>
+          );
+        })()
       )}
     </div>
   );
