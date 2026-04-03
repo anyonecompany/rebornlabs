@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Upload, X, Loader2 } from "lucide-react";
+import { ChevronLeft, Upload, X, Loader2, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -180,6 +180,16 @@ export default function VehicleEditPage() {
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const setThumbnail = (index: number) => {
+    if (index === 0) return;
+    setPhotos((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.unshift(item);
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -439,18 +449,32 @@ export default function VehicleEditPage() {
                 {photos.map((url, idx) => (
                   <div
                     key={idx}
-                    className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted group"
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 bg-muted group ${idx === 0 ? "border-primary" : "border-border"}`}
                   >
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={url}
                       alt={`차량 사진 ${idx + 1}`}
-                      fill
-                      className="object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
+                    {idx === 0 ? (
+                      <span className="absolute top-1.5 left-1.5 z-10 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                        대표
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setThumbnail(idx); }}
+                        className="absolute top-1.5 left-1.5 z-10 rounded bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background cursor-pointer"
+                        title="대표 사진으로 설정"
+                      >
+                        <Star className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => removePhoto(idx)}
-                      className="absolute top-1.5 right-1.5 rounded-full bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                      onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
+                      className="absolute top-1.5 right-1.5 z-10 rounded-full bg-background/80 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background cursor-pointer"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
