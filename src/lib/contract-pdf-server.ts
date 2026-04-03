@@ -47,7 +47,7 @@ export async function generateContractPDFServer(
     plateNumber, vin, color, customerIdNumber, signatureImage,
   } = params;
 
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const W = 210;
   const M = 20; // margin
   const CW = W - M * 2; // content width
@@ -287,5 +287,7 @@ export async function generateContractPDFServer(
   }
 
   const arrayBuf = doc.output("arraybuffer");
-  return Buffer.from(arrayBuf);
+  const result = Buffer.from(arrayBuf);
+  console.log(`[contract-pdf] 생성 완료: ${(result.length / 1024).toFixed(0)}KB, ${pageCount}페이지`);
+  return result;
 }
