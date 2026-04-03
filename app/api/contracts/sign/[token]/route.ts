@@ -266,7 +266,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           vehicleInfo: contract.vehicle_info,
           contractId: contract.id,
         }),
-      }).catch(() => {});
+      }).then(r => console.log("[contract-sign] GAS 딜러알림:", r.status))
+        .catch(e => console.error("[contract-sign] GAS 딜러알림 실패:", e.message));
 
       // 고객에게 완료 이메일
       // customer_email 조회
@@ -288,7 +289,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
             vehicleInfo: contract.vehicle_info,
             pdfUrl: pdfUrl ?? undefined,
           }),
-        }).catch(() => {});
+        }).then(r => console.log("[contract-sign] GAS 고객이메일:", r.status))
+          .catch(e => console.error("[contract-sign] GAS 고객이메일 실패:", e.message));
       }
     }
 

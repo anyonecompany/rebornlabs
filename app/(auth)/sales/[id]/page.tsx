@@ -823,33 +823,12 @@ export default function SaleDetailPage() {
                     variant="outline"
                     onClick={async () => {
                       try {
-                        const { generateContractPDF } = await import("@/src/lib/contract-generator");
-                        const vi = electronicContract.vehicle_info as Record<string, unknown> ?? {};
-                        let sigImg: Uint8Array | undefined;
-                        if (electronicContract.signature_url) {
-                          try {
-                            const r = await fetch(electronicContract.signature_url);
-                            if (r.ok) sigImg = new Uint8Array(await r.arrayBuffer());
-                          } catch { /* 서명 없이 진행 */ }
-                        }
-                        const blob = await generateContractPDF({
-                          make: (vi.make as string) ?? "",
-                          model: (vi.model as string) ?? "",
-                          year: (vi.year as number) ?? 0,
-                          mileage: (vi.mileage as number) ?? 0,
-                          sellingPrice: electronicContract.selling_price,
-                          deposit: electronicContract.deposit,
-                          customerName: electronicContract.customer_name,
-                          customerPhone: electronicContract.customer_phone ?? "",
-                          signatureImage: sigImg,
-                        });
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, "_blank");
-                        // Storage 업로드
-                        const fd = new FormData();
-                        fd.append("pdf", blob, "contract.pdf");
-                        await apiFetch(`/api/contracts/sign/${electronicContract.token}/pdf`, { method: "POST", body: fd }).catch(() => {});
+                        toast.info("PDF 생성 중...");
+                        const res = await apiFetch(`/api/contracts/${electronicContract.id}/regenerate-pdf`, { method: "POST" });
+                        const d = await res.json();
+                        if (!res.ok) { toast.error(d.error ?? "PDF 생성 실패"); return; }
                         toast.success("PDF가 생성되었습니다.");
+                        if (d.url) window.open(d.url, "_blank");
                         await fetchDetail();
                       } catch {
                         toast.error("PDF 생성에 실패했습니다.");
