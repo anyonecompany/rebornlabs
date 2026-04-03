@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     const cursor = searchParams.get("cursor"); // "created_at__id" 형식
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
-    const PAGE_SIZE = 20;
+    const PAGE_SIZE = 200;
 
     const serviceClient = createServiceClient();
     const isDealer = user.role === "dealer";

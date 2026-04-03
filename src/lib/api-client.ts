@@ -1,29 +1,28 @@
 /**
  * 인증 토큰을 포함한 API 클라이언트.
  * Supabase 세션 토큰을 Authorization 헤더에 자동으로 첨부합니다.
+ * 401 응답 시 세션 갱신 후 1회 재시도합니다.
  */
 
 import { createBrowserClient } from "@/src/lib/supabase/browser";
 
-/**
- * 현재 Supabase 세션의 access_token을 반환합니다.
- * 세션이 없으면 빈 문자열을 반환합니다.
- */
 async function getAccessToken(): Promise<string> {
   try {
     const supabase = createBrowserClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    return session?.access_token ?? "";
+
+    if (session?.access_token) return session.access_token;
+
+    // 세션 없으면 refresh 시도
+    const { data } = await supabase.auth.refreshSession();
+    return data.session?.access_token ?? "";
   } catch {
     return "";
   }
 }
 
-/**
- * Authorization 헤더가 포함된 fetch 래퍼.
- */
 export async function apiFetch(
   url: string,
   options: RequestInit = {},
@@ -35,10 +34,36 @@ export async function apiFetch(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  // Content-Type: FormData일 때는 설정하지 않음 (브라우저가 boundary 자동 추가)
   if (options.body && !(options.body instanceof FormData) && !(headers as Record<string, string>)["Content-Type"]) {
     (headers as Record<string, string>)["Content-Type"] = "application/json";
   }
 
-  return fetch(url, { ...options, headers });
+  const res = await fetch(url, { ...options, headers });
+
+  // 401 → 세션 갱신 후 1회 재시도
+  if (res.status === 401) {
+    try {
+      const supabase = createBrowserClient();
+      const { data } = await supabase.auth.refreshSession();
+      const newToken = data.session?.access_token;
+      if (newToken) {
+        const retryHeaders: HeadersInit = {
+          ...(options.headers ?? {}),
+          Authorization: `Bearer ${newToken}`,
+        };
+        if (options.body && !(options.body instanceof FormData) && !(retryHeaders as Record<string, string>)["Content-Type"]) {
+          (retryHeaders as Record<string, string>)["Content-Type"] = "application/json";
+        }
+        return fetch(url, { ...options, headers: retryHeaders });
+      }
+    } catch {
+      // 갱신 실패 → 원래 401 반환
+    }
+    // 갱신 실패 → /login 리다이렉트
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }
+
+  return res;
 }
