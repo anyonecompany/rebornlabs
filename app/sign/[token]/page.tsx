@@ -333,7 +333,7 @@ export default function SignPage() {
         />
       )}
 
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white text-gray-900" style={{ color: "#111" }}>
         {/* 상단 고정 헤더 */}
         <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -459,7 +459,7 @@ export default function SignPage() {
                       }
                     }}
                     placeholder="앞 6자리"
-                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest focus:outline-none focus:ring-1 focus:ring-gray-900"
+                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
                   />
                   <span className="text-gray-500 font-medium">-</span>
                   <input
@@ -473,7 +473,7 @@ export default function SignPage() {
                       setIdBack(val);
                     }}
                     placeholder="뒷 7자리"
-                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest focus:outline-none focus:ring-1 focus:ring-gray-900"
+                    className="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm text-center tracking-widest text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
                   />
                 </div>
                 {idFront.length === 6 && idBack.length === 7 && (

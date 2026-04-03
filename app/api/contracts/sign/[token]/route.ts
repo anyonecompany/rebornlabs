@@ -227,9 +227,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
           .createSignedUrl(pdfPath, 86400);
         pdfUrl = pdfUrlData?.signedUrl ?? null;
       }
-    } catch {
-      // PDF 생성 실패해도 서명은 완료 처리
+    } catch (pdfErr) {
+      console.error("[contract-sign] PDF 생성 실패:", pdfErr instanceof Error ? pdfErr.message : pdfErr);
     }
+
+    console.log("[contract-sign] PDF URL:", pdfUrl ? "생성됨" : "null (실패)");
 
     // contracts UPDATE
     const { error: updateError } = await serviceClient
@@ -252,6 +254,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // GAS 웹훅 — 딜러/경영진 알림 + 고객 완료 이메일 (fire-and-forget)
     const gasWebhookUrl = process.env.GAS_WEBHOOK_URL;
+    console.log("[contract-sign] GAS_WEBHOOK_URL:", gasWebhookUrl ? "설정됨" : "미설정");
     if (gasWebhookUrl) {
       // 딜러/경영진 알림
       fetch(gasWebhookUrl, {
@@ -274,6 +277,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .single();
 
       if (fullContract?.customer_email) {
+        console.log("[contract-sign] 고객 이메일 발송:", fullContract.customer_email, "pdfUrl:", pdfUrl ? "있음" : "없음");
         fetch(gasWebhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
