@@ -62,7 +62,7 @@ function InlineSignaturePad({ onClose, onComplete }: SignaturePadProps) {
       canvas.height = container.clientHeight;
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#111827";
+    ctx.strokeStyle = "#000000";
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -105,7 +105,7 @@ function InlineSignaturePad({ onClose, onComplete }: SignaturePadProps) {
       if (ctx) {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 1, 0, Math.PI * 2);
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = "#000000";
         ctx.fill();
       }
       setHasDrawn(true);
