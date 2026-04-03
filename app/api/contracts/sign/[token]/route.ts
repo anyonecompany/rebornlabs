@@ -192,8 +192,42 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .createSignedUrl(signaturePath, 86400); // 24시간
     const signatureUrl = signatureUrlData?.signedUrl ?? null;
 
-    // PDF는 클라이언트 사이드에서 생성 (html2pdf.js)
-    // 서버에서는 서명 이미지만 저장하고 status 업데이트
+    // 서버 사이드 PDF 생성 (jsPDF)
+    const vehicleInfo = contract.vehicle_info as Record<string, unknown> ?? {};
+    let pdfUrl: string | null = null;
+
+    try {
+      const { generateContractPDFServer } = await import("@/src/lib/contract-pdf-server");
+      const pdfBuffer = await generateContractPDFServer({
+        make: (vehicleInfo.make as string) ?? "",
+        model: (vehicleInfo.model as string) ?? "",
+        year: (vehicleInfo.year as number) ?? 0,
+        mileage: (vehicleInfo.mileage as number) ?? 0,
+        sellingPrice: contract.selling_price,
+        deposit: contract.deposit,
+        customerName: contract.customer_name,
+        customerPhone: contract.customer_phone,
+        plateNumber: (vehicleInfo.plate_number as string) ?? undefined,
+        vin: (vehicleInfo.vin as string) ?? undefined,
+        color: (vehicleInfo.color as string) ?? undefined,
+        signatureImage: signatureBytes.length > 0 ? Buffer.from(signatureBytes) : undefined,
+      });
+
+      // Storage 업로드
+      const pdfPath = `contracts/${contract.id}/contract.pdf`;
+      const { error: pdfUpErr } = await serviceClient.storage
+        .from("contracts")
+        .upload(pdfPath, pdfBuffer, { contentType: "application/pdf", upsert: true });
+
+      if (!pdfUpErr) {
+        const { data: pdfUrlData } = await serviceClient.storage
+          .from("contracts")
+          .createSignedUrl(pdfPath, 86400);
+        pdfUrl = pdfUrlData?.signedUrl ?? null;
+      }
+    } catch {
+      // PDF 생성 실패해도 서명은 완료 처리
+    }
 
     // contracts UPDATE
     const { error: updateError } = await serviceClient
@@ -202,7 +236,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         status: "signed",
         signed_at: new Date().toISOString(),
         signature_url: signatureUrl,
-        pdf_url: null, // PDF는 관리자가 클라이언트에서 생성
+        pdf_url: pdfUrl,
       })
       .eq("id", contract.id);
 
@@ -245,6 +279,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             email: fullContract.customer_email,
             customerName: contract.customer_name,
             vehicleInfo: contract.vehicle_info,
+            pdfUrl: pdfUrl ?? undefined,
           }),
         }).catch(() => {});
       }

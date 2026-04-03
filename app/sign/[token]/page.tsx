@@ -235,7 +235,6 @@ export default function SignPage() {
   // 제출 상태
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   // 계약서 조회
   useEffect(() => {
@@ -283,39 +282,7 @@ export default function SignPage() {
         return;
       }
       setSubmitted(true);
-
-      // 백그라운드 PDF 생성 (실패해도 서명 완료 유지, 비차단)
-      if (contract) {
-        setTimeout(async () => {
-          try {
-            const { generateContractPDF } = await import("@/src/lib/contract-generator");
-            let sigImage: Uint8Array | undefined;
-            if (signatureDataUrl) {
-              const b64 = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
-              const bin = atob(b64);
-              sigImage = new Uint8Array(bin.length);
-              for (let i = 0; i < bin.length; i++) sigImage[i] = bin.charCodeAt(i);
-            }
-            const blob = await generateContractPDF({
-              make: contract.vehicle_info?.make ?? "",
-              model: contract.vehicle_info?.model ?? "",
-              year: contract.vehicle_info?.year ?? 0,
-              mileage: contract.vehicle_info?.mileage ?? 0,
-              sellingPrice: contract.selling_price,
-              deposit: contract.deposit,
-              customerName: contract.customer_name,
-              customerPhone: contract.customer_phone,
-              signatureImage: sigImage,
-            });
-            setPdfBlob(blob);
-            const fd = new FormData();
-            fd.append("pdf", blob, "contract.pdf");
-            fetch(`/api/contracts/sign/${token}/pdf`, { method: "POST", body: fd }).catch(() => {});
-          } catch {
-            // PDF 실패 — 서명은 이미 완료
-          }
-        }, 100);
-      }
+      // PDF는 서버 사이드에서 자동 생성됨 (sign API 내부)
     } catch {
       alert("계약 제출 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
@@ -381,31 +348,15 @@ export default function SignPage() {
           {!loading && !error && submitted && (
             <div className="flex flex-col items-center justify-center py-20 space-y-6">
               <CheckCircle className="h-16 w-16 text-green-500" />
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-3">
                 <p className="text-xl font-semibold text-gray-900">
                   {contract?.status === "signed"
                     ? "이미 서명 완료된 계약서입니다."
                     : "계약이 완료되었습니다."}
                 </p>
                 <p className="text-base text-gray-600">감사합니다.</p>
-                <p className="text-sm text-gray-400 mt-4">완료된 계약서는 고객님의 메일로 발송됩니다.</p>
               </div>
-              {pdfBlob && contract && (
-                <button
-                  onClick={() => {
-                    const url = URL.createObjectURL(pdfBlob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    const date = new Date().toISOString().slice(0,10).replace(/-/g,"");
-                    a.download = `REBORN_LABS_계약서_${contract.customer_name}_${date}.pdf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
-                >
-                  계약서 다운로드
-                </button>
-              )}
+              <p className="text-sm text-gray-400">완료된 계약서는 고객님의 메일로 발송됩니다.</p>
             </div>
           )}
 
