@@ -149,7 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { data: contract, error: contractError } = await serviceClient
       .from("contracts")
       .select(
-        "id, status, customer_name, customer_phone, vehicle_info, selling_price, deposit",
+        "id, status, customer_name, customer_phone, customer_address, vehicle_info, selling_price, deposit",
       )
       .eq("token", token)
       .single();
@@ -208,6 +208,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         deposit: contract.deposit,
         customerName: contract.customer_name,
         customerPhone: contract.customer_phone,
+        customerAddress: (contract as Record<string, unknown>).customer_address as string ?? undefined,
         plateNumber: (vehicleInfo.plate_number as string) ?? undefined,
         vin: (vehicleInfo.vin as string) ?? undefined,
         color: (vehicleInfo.color as string) ?? undefined,

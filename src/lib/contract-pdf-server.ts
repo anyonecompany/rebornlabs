@@ -156,18 +156,16 @@ export async function generateContractPDFServer(
     y += 3;
   }
 
-  // ─── 중요 고지 (조항 바로 뒤) ───
-  checkPage(16);
-  y += 4;
+  // ─── 계약 당사자 (새 페이지) ───
+  doc.addPage();
+  y = 25;
+
+  // 중요 고지 — "계약 당사자" 제목 바로 위
   doc.setFontSize(8.5);
   doc.setFillColor(245, 245, 245);
   doc.rect(M, y - 3, CW, 10, "FD");
   doc.text(CONTRACT_NOTICE, W / 2, y + 2, { align: "center" });
   y += 16;
-
-  // ─── 계약 당사자 (새 페이지) ───
-  doc.addPage();
-  y = 25;
 
   doc.setLineWidth(0.5);
   doc.line(M, y, W - M, y);
