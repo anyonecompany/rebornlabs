@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const { email, password } = parsed.data;
 
-  // IP rate limiting (15분 내 10회 초과 차단)
+  // IP rate limiting (15분 내 30회 초과 차단 — 실패 시에만 카운트)
   const serviceClient = createServiceClient();
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "0.0.0.0";
   const { count: loginAttempts } = await serviceClient
@@ -37,10 +37,9 @@ export async function POST(request: NextRequest) {
     .eq("endpoint", "auth_login")
     .gte("requested_at", new Date(Date.now() - 15 * 60 * 1000).toISOString());
 
-  if ((loginAttempts ?? 0) >= 10) {
-    return NextResponse.json({ error: "너무 많은 로그인 시도입니다. 15분 후 다시 시도해주세요." }, { status: 429 });
+  if ((loginAttempts ?? 0) >= 30) {
+    return NextResponse.json({ error: "너무 많은 로그�� 시도입니다. 15분 후 다시 시도해주세요." }, { status: 429 });
   }
-  await serviceClient.from("rate_limits").insert({ ip_address: ip, endpoint: "auth_login", requested_at: new Date().toISOString() });
 
   try {
     const supabase = await createSSRClient();
@@ -49,11 +48,20 @@ export async function POST(request: NextRequest) {
       await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError || !authData.user) {
+      // 실패 시에만 rate limit 카운트
+      await serviceClient.from("rate_limits").insert({ ip_address: ip, endpoint: "auth_login", requested_at: new Date().toISOString() });
       return NextResponse.json(
         { error: "이메일 또는 비밀번호가 올바르지 않습니다." },
         { status: 401 },
       );
     }
+
+    // 로그인 성공 → 해당 IP의 실패 카운터 초기화
+    await serviceClient
+      .from("rate_limits")
+      .delete()
+      .eq("ip_address", ip)
+      .eq("endpoint", "auth_login");
 
     // service_role로 profiles 조회 (RLS bypass)
     const { data: profileData, error: profileError } = await serviceClient
