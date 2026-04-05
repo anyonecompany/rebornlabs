@@ -149,7 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { data: contract, error: contractError } = await serviceClient
       .from("contracts")
       .select(
-        "id, status, customer_name, customer_phone, customer_address, vehicle_info, selling_price, deposit",
+        "id, status, customer_name, customer_phone, customer_address, vehicle_info, selling_price, deposit, created_by",
       )
       .eq("token", token)
       .single();
@@ -233,6 +233,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     console.log("[contract-sign] PDF URL:", pdfUrl ? "생성됨" : "null (실패)");
+
+    // 문서함 자동 연동 — 서명 완료 PDF를 documents 테이블에 INSERT
+    if (pdfUrl) {
+      const model = (vehicleInfo.model as string) ?? "";
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const docTitle = `[계약서] ${contract.customer_name} - ${model} (${dateStr})`;
+      const createdBy = (contract as Record<string, unknown>).created_by as string;
+
+      await serviceClient
+        .from("documents")
+        .insert({
+          uploaded_by: createdBy,
+          category: "contract" as const,
+          file_name: docTitle,
+          file_url: pdfUrl,
+        })
+        .then(({ error: docErr }) => {
+          if (docErr) console.error("[contract-sign] 문서함 연동 실패:", docErr.message);
+          else console.log("[contract-sign] 문서함 연동 완료:", docTitle);
+        });
+    }
 
     // contracts UPDATE
     const { error: updateError } = await serviceClient

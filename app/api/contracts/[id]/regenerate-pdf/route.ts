@@ -24,7 +24,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // 계약서 조회
     const { data: contract, error } = await serviceClient
       .from("contracts")
-      .select("id, status, customer_name, customer_phone, customer_address, customer_id_number, vehicle_info, selling_price, deposit, signature_url")
+      .select("id, status, customer_name, customer_phone, customer_address, customer_id_number, vehicle_info, selling_price, deposit, signature_url, created_by")
       .eq("id", id)
       .single();
 
@@ -95,6 +95,42 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .from("contracts")
       .update({ pdf_url: pdfUrl })
       .eq("id", contract.id);
+
+    // 문서함 자동 연동 — 재생성 PDF를 documents 테이블에 upsert
+    if (pdfUrl) {
+      const vi2 = (contract.vehicle_info ?? {}) as Record<string, unknown>;
+      const model = (vi2.model as string) ?? "";
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const docTitle = `[계약서] ${contract.customer_name} - ${model} (${dateStr})`;
+
+      // 기존 문서가 있으면 URL만 업데이트, 없으면 새로 생성
+      const { data: existingDoc } = await serviceClient
+        .from("documents")
+        .select("id")
+        .eq("category", "contract")
+        .like("file_name", `[계약서] ${contract.customer_name} - ${model}%`)
+        .limit(1)
+        .single();
+
+      if (existingDoc) {
+        await serviceClient
+          .from("documents")
+          .update({ file_url: pdfUrl, file_name: docTitle })
+          .eq("id", existingDoc.id);
+        console.log("[regenerate-pdf] 문서함 업데이트:", docTitle);
+      } else {
+        await serviceClient
+          .from("documents")
+          .insert({
+            uploaded_by: contract.created_by,
+            category: "contract" as const,
+            file_name: docTitle,
+            file_url: pdfUrl,
+          });
+        console.log("[regenerate-pdf] 문서함 신규 등록:", docTitle);
+      }
+    }
 
     return NextResponse.json({ url: pdfUrl });
   } catch (err) {

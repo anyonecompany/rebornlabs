@@ -558,7 +558,7 @@ export default function ConsultationDetailPage() {
               />
               <InfoItem
                 label="유입경로"
-                value={consultation.source_ref ?? "—"}
+                value={consultation.source_ref ? decodeURIComponent(consultation.source_ref) : "—"}
               />
               <InfoItem
                 label="접수일"
