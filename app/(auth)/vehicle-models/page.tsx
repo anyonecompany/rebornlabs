@@ -45,7 +45,7 @@ const PAGE_SIZE = 20;
 
 export default function VehicleModelsPage() {
   const router = useRouter();
-  const { role } = useUserRole();
+  const { role, isReady } = useUserRole();
 
   const [items, setItems] = useState<VehicleModelItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +66,13 @@ export default function VehicleModelsPage() {
   );
 
   useEffect(() => {
-    if (role && !isAllowed) {
+    // role 확정 전에는 판단 보류 (레이스 컨디션 방지)
+    if (!isReady) return;
+    if (!isAllowed) {
       toast.error("접근 권한이 없습니다.");
       router.replace("/dashboard");
     }
-  }, [role, isAllowed, router]);
+  }, [isReady, isAllowed, router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -98,8 +100,8 @@ export default function VehicleModelsPage() {
   }, [status, search, page]);
 
   useEffect(() => {
-    if (isAllowed) fetchData();
-  }, [fetchData, isAllowed]);
+    if (isReady && isAllowed) fetchData();
+  }, [fetchData, isReady, isAllowed]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -75,7 +75,7 @@ export default function VehicleNewPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { role: userRole } = useUserRole();
+  const { role: userRole, isReady } = useUserRole();
 
   const margin =
     form.selling_price && form.purchase_price
@@ -203,6 +203,8 @@ export default function VehicleNewPage() {
     }
   };
 
+  // role 확정 전에는 빈 렌더 (깜빡임 방지). dealer 확정 시에도 null.
+  if (!isReady) return null;
   if (userRole === "dealer") return null;
 
   return (
