@@ -93,7 +93,32 @@ export async function GET(request: NextRequest) {
     const nextCursor =
       hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
 
-    return NextResponse.json({ data: items, nextCursor });
+    // 배정 딜러 이름 병합 (profiles 별도 조회 → id → name 매핑)
+    const dealerIds = [
+      ...new Set(
+        items
+          .map((c) => c.assigned_dealer_id)
+          .filter((v): v is string => v !== null),
+      ),
+    ];
+    let dealerMap: Record<string, string> = {};
+    if (dealerIds.length > 0) {
+      const { data: dealers } = await serviceClient
+        .from("profiles")
+        .select("id, name")
+        .in("id", dealerIds);
+      dealerMap = Object.fromEntries(
+        (dealers ?? []).map((d) => [d.id, d.name]),
+      );
+    }
+    const itemsWithDealer = items.map((c) => ({
+      ...c,
+      assigned_dealer_name: c.assigned_dealer_id
+        ? (dealerMap[c.assigned_dealer_id] ?? null)
+        : null,
+    }));
+
+    return NextResponse.json({ data: itemsWithDealer, nextCursor });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
