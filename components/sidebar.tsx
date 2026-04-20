@@ -15,6 +15,7 @@ import {
   Shield,
   LogOut,
   Menu,
+  FileText,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +42,7 @@ const ADMIN_MENU: NavItem[] = [
   { label: "차량 관리", href: "/vehicles", icon: Car },
   { label: "상담 관리", href: "/consultations", icon: MessageSquare },
   { label: "판매 관리", href: "/sales", icon: CreditCard },
+  { label: "견적서 관리", href: "/quotes", icon: FileText },
   { label: "정산", href: "/settlements", icon: Calculator },
   { label: "지출결의", href: "/expenses", icon: Receipt },
   { label: "문서함", href: "/documents", icon: FolderOpen },
@@ -57,6 +59,7 @@ const DEALER_MENU: NavItem[] = [
   { label: "차량 목록", href: "/vehicles", icon: Car },
   { label: "내 상담", href: "/consultations", icon: MessageSquare },
   { label: "내 판매", href: "/sales", icon: CreditCard },
+  { label: "내 견적서", href: "/quotes", icon: FileText },
 ];
 
 const ROLE_LABELS: Record<UserRole, string> = {
