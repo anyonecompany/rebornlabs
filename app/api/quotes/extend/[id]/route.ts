@@ -19,7 +19,7 @@ function extractToken(request: NextRequest): string {
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-// ─── POST /api/quotes/[id]/extend — 만료 연장 ────────────────
+// ─── POST /api/quotes/extend/[id] — 만료 연장 ────────────────
 //
 // Body: { addDays: number | null }
 //   - addDays > 0: max(expires_at, now()) + addDays

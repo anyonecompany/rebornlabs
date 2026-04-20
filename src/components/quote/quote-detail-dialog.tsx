@@ -72,7 +72,7 @@ export function QuoteDetailDialog({ quote, open, onOpenChange, onUpdated }: Prop
           };
     setExtending(true);
     try {
-      const res = await apiFetch(`/api/quotes/${quote.id}/extend`, {
+      const res = await apiFetch(`/api/quotes/extend/${quote.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ addDays: opt.addDays }),
