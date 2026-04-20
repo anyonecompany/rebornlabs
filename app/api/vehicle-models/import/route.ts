@@ -28,15 +28,15 @@ interface ParseResult {
 /**
  * 엑셀 bytes → ParsedRow[].
  *
- * 파일 포맷:
- *   - 첫 번째 시트 사용
- *   - 1~8행: 안내/빈 행
- *   - 9행: 헤더 (차종/모델/등급/차량가격/추가된가격/월납입료/최대보증금)
- *   - 10행~: 데이터
+ * 파일 포맷 (고객용+페이지.xlsx, 2026-04-21 node 파싱 교차 검증):
+ *   - 첫 번째 시트 사용 (Sheet1)
+ *   - row 0~5: 안내 문구 (띄엄띄엄)
+ *   - row 6:   헤더 ["차종", "모델", "등급", "차량가격", null, "월 납입료", "최대보증금"]
+ *   - row 7~:  데이터
  *
  * 컬럼 인덱스 (0-based):
- *   C(2)=brand, D(3)=model, E(4)=trim,
- *   F(5)=car_price, G(6)=추가된가격(무시), H(7)=월납입료(무시), I(8)=max_deposit
+ *   0=brand, 1=model, 2=trim,
+ *   3=car_price, 4=추가가격(무시), 5=월납입료(무시), 6=max_deposit
  *
  * brand/model 컬럼은 merge cell → 직전 값 forward-fill.
  */
@@ -58,12 +58,12 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
   let currentModel = "";
   let order = 10;
 
-  const DATA_START_IDX = 9; // 1-indexed 10행 = 0-indexed 9
-  const COL_BRAND = 2;
-  const COL_MODEL = 3;
-  const COL_TRIM = 4;
-  const COL_CAR_PRICE = 5;
-  const COL_MAX_DEPOSIT = 8;
+  const DATA_START_IDX = 7; // 0-indexed row 7 (row 6은 헤더)
+  const COL_BRAND = 0;
+  const COL_MODEL = 1;
+  const COL_TRIM = 2;
+  const COL_CAR_PRICE = 3;
+  const COL_MAX_DEPOSIT = 6;
 
   for (let i = DATA_START_IDX; i < data.length; i++) {
     const row = data[i] ?? [];
