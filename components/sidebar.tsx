@@ -17,6 +17,7 @@ import {
   Menu,
   FileText,
   Network,
+  GalleryVerticalEnd,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +42,7 @@ interface NavItem {
 const ADMIN_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
   { label: "차량 관리", href: "/vehicles", icon: Car },
+  { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd },
   { label: "상담 관리", href: "/consultations", icon: MessageSquare },
   { label: "판매 관리", href: "/sales", icon: CreditCard },
   { label: "견적서 관리", href: "/quotes", icon: FileText },
