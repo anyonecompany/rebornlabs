@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { PriceCard } from "./price-card";
 
@@ -30,7 +30,6 @@ interface Props {
 type Step = "brand" | "model" | "trim";
 
 export function CarsSelector({ brands }: Props) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const initialBrand = searchParams.get("brand") ?? "";
@@ -60,17 +59,22 @@ export function CarsSelector({ brands }: Props) {
       ? "model"
       : "brand";
 
-  // URL 쿼리와 상태 동기화
+  // URL 쿼리와 상태 동기화.
+  // Next.js 16에서 router.replace는 서버 컴포넌트 re-fetch를 유발해
+  // 클라이언트 state가 초기화되는 루프가 발생. 브라우저 history API로
+  // 직접 URL만 갱신하여 Next.js 라우터를 우회한다. 공유 URL 기능은 유지.
   const syncUrl = useCallback(
     (brand: string, model: string, trim: string) => {
+      if (typeof window === "undefined") return;
       const params = new URLSearchParams();
       if (brand) params.set("brand", brand);
       if (model) params.set("model", model);
       if (trim) params.set("trim", trim);
       const qs = params.toString();
-      router.replace(qs ? `/cars?${qs}` : "/cars", { scroll: false });
+      const newUrl = qs ? `/cars?${qs}` : "/cars";
+      window.history.replaceState(null, "", newUrl);
     },
-    [router],
+    [],
   );
 
   useEffect(() => {
