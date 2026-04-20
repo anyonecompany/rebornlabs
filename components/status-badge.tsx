@@ -62,6 +62,14 @@ const roleMap: Record<UserRole, { label: string; className: string }> = {
     label: "경영진",
     className: "bg-amber-600 text-white border-amber-600",
   },
+  director: {
+    label: "본부장",
+    className: "bg-rose-600 text-white border-rose-600",
+  },
+  team_leader: {
+    label: "팀장",
+    className: "bg-indigo-600 text-white border-indigo-600",
+  },
   staff: {
     label: "직원",
     className: "bg-blue-600 text-white border-blue-600",

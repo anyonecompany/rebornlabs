@@ -1,7 +1,13 @@
 /** Supabase Database 타입 정의 — Phase 3 수동 정의 (supabase gen types 대체) */
 // @supabase/supabase-js v2.100+ 호환: __InternalSupabase + Relationships 필드 필수
 
-export type UserRole = "admin" | "staff" | "dealer" | "pending";
+export type UserRole =
+  | "admin"
+  | "director"
+  | "team_leader"
+  | "staff"
+  | "dealer"
+  | "pending";
 
 export type VehicleStatus =
   | "available"
@@ -257,6 +263,23 @@ export interface Database {
           "id" | "created_at"
         >;
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
+        Relationships: [];
+      };
+      team_assignments: {
+        Row: {
+          id: string;
+          user_id: string;
+          leader_id: string;
+          leader_type: "team_leader" | "director";
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["team_assignments"]["Row"],
+          "id" | "created_at"
+        > & { id?: string; created_at?: string };
+        Update: Partial<
+          Database["public"]["Tables"]["team_assignments"]["Insert"]
+        >;
         Relationships: [];
       };
       quotes: {

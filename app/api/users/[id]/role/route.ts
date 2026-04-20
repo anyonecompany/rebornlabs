@@ -4,7 +4,7 @@ import { AuthError, requireRole, verifyUser } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 
 interface RoleUpdateRequest {
-  role: "admin" | "staff" | "dealer";
+  role: "admin" | "director" | "team_leader" | "staff" | "dealer";
 }
 
 function extractToken(request: NextRequest): string | null {
@@ -49,7 +49,7 @@ export async function PATCH(
   }
 
   const { role } = body;
-  if (!["admin", "staff", "dealer"].includes(role)) {
+  if (!["admin", "director", "team_leader", "staff", "dealer"].includes(role)) {
     return NextResponse.json(
       { error: "유효하지 않은 역할입니다." },
       { status: 400 },

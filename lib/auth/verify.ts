@@ -1,7 +1,14 @@
 import { createServiceClient } from "@/lib/supabase/server";
 
 /** 시스템에서 사용하는 역할 타입 */
-export type UserRole = "admin" | "staff" | "dealer" | "pending" | "none";
+export type UserRole =
+  | "admin"
+  | "director"
+  | "team_leader"
+  | "staff"
+  | "dealer"
+  | "pending"
+  | "none";
 
 /** 인증 검증 결과 */
 export interface VerifiedUser {

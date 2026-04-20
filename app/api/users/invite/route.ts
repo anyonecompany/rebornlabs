@@ -8,7 +8,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 interface InviteRequest {
   email: string;
   name: string;
-  role: "admin" | "staff" | "dealer";
+  role: "admin" | "director" | "team_leader" | "staff" | "dealer";
   phone?: string;
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  if (!["admin", "staff", "dealer"].includes(role)) {
+  if (!["admin", "director", "team_leader", "staff", "dealer"].includes(role)) {
     return NextResponse.json(
       { error: "유효하지 않은 역할입니다." },
       { status: 400 },
@@ -126,7 +126,13 @@ export async function POST(request: NextRequest) {
   // GAS로 초대 이메일 발송 (fire-and-forget)
   const gasUrl = process.env.GAS_WEBHOOK_URL;
   if (gasUrl) {
-    const ROLE_LABELS: Record<string, string> = { admin: "경영진", staff: "직원", dealer: "딜러" };
+    const ROLE_LABELS: Record<string, string> = {
+      admin: "경영진",
+      director: "본부장",
+      team_leader: "팀장",
+      staff: "직원",
+      dealer: "딜러",
+    };
     fetch(gasUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

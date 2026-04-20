@@ -45,7 +45,7 @@ interface UserRow {
   created_at: string;
 }
 
-type InviteRole = "staff" | "dealer";
+type InviteRole = "director" | "team_leader" | "staff" | "dealer";
 
 interface MarketingCompanyRow {
   id: string;
@@ -638,6 +638,8 @@ export default function UsersPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="director">본부장</SelectItem>
+                    <SelectItem value="team_leader">팀장</SelectItem>
                     <SelectItem value="staff">직원</SelectItem>
                     <SelectItem value="dealer">딜러</SelectItem>
                   </SelectContent>
@@ -731,6 +733,8 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">경영진</SelectItem>
+                  <SelectItem value="director">본부장</SelectItem>
+                  <SelectItem value="team_leader">팀장</SelectItem>
                   <SelectItem value="staff">직원</SelectItem>
                   <SelectItem value="dealer">딜러</SelectItem>
                 </SelectContent>
@@ -807,6 +811,8 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">경영진</SelectItem>
+                  <SelectItem value="director">본부장</SelectItem>
+                  <SelectItem value="team_leader">팀장</SelectItem>
                   <SelectItem value="staff">직원</SelectItem>
                   <SelectItem value="dealer">딜러</SelectItem>
                 </SelectContent>

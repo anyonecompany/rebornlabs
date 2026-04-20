@@ -31,7 +31,16 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (rolesParam) {
-      const roles = rolesParam.split(",").map((r) => r.trim()) as ("admin" | "staff" | "dealer" | "pending")[];
+      const roles = rolesParam
+        .split(",")
+        .map((r) => r.trim()) as (
+        | "admin"
+        | "director"
+        | "team_leader"
+        | "staff"
+        | "dealer"
+        | "pending"
+      )[];
       query = query.in("role", roles);
     }
 
