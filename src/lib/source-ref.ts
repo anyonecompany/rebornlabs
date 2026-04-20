@@ -7,32 +7,12 @@
  */
 
 const SOURCE_REF_LABELS: Record<string, string> = {
-  // 직접 유입
+  // 시스템 고정값만 매핑
   direct: "직접",
   spreadsheet_import: "기존 데이터",
 
-  // 인스타그램 계열
-  ig: "인스타그램",
-  instagram: "인스타그램",
-  insta: "인스타그램",
-
-  // 틱톡 계열
-  tk: "틱톡",
-  tiktok: "틱톡",
-
-  // 당근마켓 계열
-  dg: "당근",
-  daangn: "당근",
-  karrot: "당근",
-
-  // 기타 흔한 UTM
-  fb: "페이스북",
-  facebook: "페이스북",
-  yt: "유튜브",
-  youtube: "유튜브",
-  naver: "네이버",
-  google: "구글",
-  kakao: "카카오",
+  // 마케팅업체 약어(ig, tk, dg 등)의 의미는 고객/운영팀 확인 후 추가.
+  // 확인 전에는 임의 매핑하지 말고 원본 값을 그대로 표시한다.
 };
 
 /**
