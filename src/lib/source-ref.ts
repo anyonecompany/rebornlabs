@@ -4,16 +4,50 @@
  * 랜딩페이지의 ?ref= 또는 ?utm_source= 파라미터가 DB에 소문자/영문 축약으로
  * 저장되어 어드민 화면에서 직원이 혼동하지 않도록 표시 단계에서만 한글로 변환.
  * DB 저장값은 그대로 유지 (통계/필터링 일관성 유지).
+ *
+ * 매핑 추가 규칙:
+ * - 시스템 고정값(direct, spreadsheet_import 등)은 기본 포함
+ * - 업체/채널 축약값은 **고객/운영팀 확인 후 확정값만** 추가
+ * - 확정 이력은 docs/incident-ig-source.md에 기록
  */
 
-const SOURCE_REF_LABELS: Record<string, string> = {
-  // 시스템 고정값만 매핑
+export const SOURCE_REF_LABELS: Record<string, string> = {
+  // 시스템 고정값
   direct: "직접",
   spreadsheet_import: "기존 데이터",
 
-  // 마케팅업체 약어(ig, tk, dg 등)의 의미는 고객/운영팀 확인 후 추가.
-  // 확인 전에는 임의 매핑하지 말고 원본 값을 그대로 표시한다.
+  // 출처 확정 (2026-04-20): 리본랩스 공식 인스타그램 바이오 링크
+  // URL: ...?utm_source=ig&utm_medium=social&utm_content=link_in_bio
+  ig: "인스타그램",
+  instagram: "인스타그램",
+  insta: "인스타그램",
 };
+
+/**
+ * source_ref → marketing_companies.name 별칭 매핑.
+ *
+ * 상담 접수 API가 ref 값으로 마케팅업체를 자동 매칭할 때 사용.
+ * 예: source_ref='ig' → 실제 등록된 업체명 '인스타그램'
+ *
+ * 매핑에 없는 값은 원본 그대로 사용하여 기존 업체명 매칭 동작 유지.
+ */
+export const SOURCE_REF_TO_COMPANY: Record<string, string> = {
+  // 인스타그램 (2026-04-20 확정)
+  ig: "인스타그램",
+  instagram: "인스타그램",
+  insta: "인스타그램",
+};
+
+/**
+ * source_ref 값을 실제 marketing_companies.name 조회용 키로 변환합니다.
+ *
+ * - 별칭 매핑에 있으면 한글 업체명 반환
+ * - 없으면 원본(trim 유지) 반환 → 기존 업체명 직접 매칭 경로
+ */
+export function resolveCompanyName(sourceRef: string): string {
+  const lower = sourceRef.trim().toLowerCase();
+  return SOURCE_REF_TO_COMPANY[lower] ?? sourceRef;
+}
 
 /**
  * 유입경로 값을 화면 표시용 라벨로 변환합니다.

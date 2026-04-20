@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { resolveCompanyName } from "@/src/lib/source-ref";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -116,12 +117,15 @@ export async function POST(request: NextRequest) {
   }
 
   // 5-1. ref → 마케팅업체 자동 매칭
+  // source_ref 별칭(예: 'ig' → '인스타그램')을 resolveCompanyName으로 변환 후 조회.
+  // 별칭 매핑에 없으면 원본 값으로 기존 업체명 직접 매칭.
   if (ref && consultationId) {
     const decoded = decodeURIComponent(ref);
+    const companyName = resolveCompanyName(decoded);
     const { data: mc } = await serviceClient
       .from("marketing_companies")
       .select("name")
-      .eq("name", decoded)
+      .eq("name", companyName)
       .eq("is_active", true)
       .single();
 
