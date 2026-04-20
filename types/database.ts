@@ -259,6 +259,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
         Relationships: [];
       };
+      quotes: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          dealer_id: string | null;
+          token: string;
+          quote_number: string;
+          expires_at: string | null;
+          view_count: number;
+          first_viewed_at: string | null;
+          last_viewed_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["quotes"]["Row"],
+          "id" | "view_count" | "first_viewed_at" | "last_viewed_at" | "created_at"
+        > & {
+          view_count?: number;
+          first_viewed_at?: string | null;
+          last_viewed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["quotes"]["Insert"]> & {
+          view_count?: number;
+          first_viewed_at?: string | null;
+          last_viewed_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       vehicles_dealer_view: {
@@ -311,6 +339,10 @@ export interface Database {
           p_role: string;
         };
         Returns: unknown;
+      };
+      generate_quote_number: {
+        Args: Record<string, never>;
+        Returns: string;
       };
     };
   };

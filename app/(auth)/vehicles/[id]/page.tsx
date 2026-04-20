@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   Pencil,
   Trash2,
+  FileText,
   ChevronLeft as ArrowLeft,
   ChevronRight as ArrowRight,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { GenerateQuoteDialog } from "@/src/components/quote/generate-quote-dialog";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
 interface Vehicle {
@@ -92,6 +94,7 @@ export default function VehicleDetailPage() {
   const { role: userRole, userId } = useUserRole();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [checklistUpdating, setChecklistUpdating] = useState<
     Record<string, boolean>
@@ -239,6 +242,18 @@ export default function VehicleDetailPage() {
 
       <PageHeader title={`${vehicle.make} ${vehicle.model}`}>
         <div className="flex items-center gap-2">
+          {(userRole === "admin" ||
+            userRole === "staff" ||
+            userRole === "dealer") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setQuoteOpen(true)}
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              견적서 만들기
+            </Button>
+          )}
           {vehicle.status === "available" && (
             <Button
               size="sm"
@@ -510,6 +525,13 @@ export default function VehicleDetailPage() {
         confirmLabel="삭제"
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      <GenerateQuoteDialog
+        open={quoteOpen}
+        onOpenChange={setQuoteOpen}
+        vehicleId={vehicle.id}
+        vehicleLabel={`${vehicle.make} ${vehicle.model} · ${vehicle.vehicle_code}`}
       />
     </div>
   );
