@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { formatPhone } from "@/src/lib/format-phone";
+import { formatSourceRef } from "@/src/lib/source-ref";
 import type { ConsultationStatus, UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -558,7 +559,7 @@ export default function ConsultationDetailPage() {
               />
               <InfoItem
                 label="유입경로"
-                value={consultation.source_ref ? decodeURIComponent(consultation.source_ref) : "—"}
+                value={formatSourceRef(consultation.source_ref)}
               />
               <InfoItem
                 label="접수일"

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
 import { formatPhone } from "@/src/lib/format-phone";
+import { formatSourceRef, isDirectSource } from "@/src/lib/source-ref";
 import type { ConsultationStatus } from "@/types/database";
 
 interface ConsultationRow {
@@ -101,8 +102,9 @@ export default function ConsultationsPage() {
       header: "유입경로",
       render: (value: unknown) => {
         const v = value as string | null;
-        if (!v || v === "direct") return <span className="text-muted-foreground">직접</span>;
-        return <span>{decodeURIComponent(v)}</span>;
+        if (isDirectSource(v))
+          return <span className="text-muted-foreground">직접</span>;
+        return <span>{formatSourceRef(v)}</span>;
       },
     },
     {
