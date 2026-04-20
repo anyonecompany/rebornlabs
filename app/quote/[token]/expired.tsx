@@ -6,12 +6,6 @@ type Props = {
     message: string;
     quote: { quoteNumber: string; expiresAt: string | null };
     dealer: { name: string; phone: string | null } | null;
-    company: {
-      name: string;
-      businessNumber: string | null;
-      address: string | null;
-      phone: string | null;
-    };
   };
 };
 
@@ -25,7 +19,7 @@ function formatDate(iso: string | null): string {
 }
 
 export function ExpiredView({ data }: Props) {
-  const { quote, dealer, company } = data;
+  const { quote, dealer } = data;
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
@@ -75,16 +69,7 @@ export function ExpiredView({ data }: Props) {
         )}
       </section>
 
-      <footer className="border-t border-[#c8bfa8]/10 py-6">
-        <div className="max-w-3xl mx-auto px-5 text-[11px] text-[#c8bfa8]/50 space-y-1">
-          <p className="text-[#c8bfa8] font-semibold tracking-widest">
-            {company.name.toUpperCase()}
-          </p>
-          {company.businessNumber && <p>사업자등록번호 {company.businessNumber}</p>}
-          {company.address && <p>{company.address}</p>}
-          {company.phone && <p>대표 {company.phone}</p>}
-        </div>
-      </footer>
+      <div className="h-6" />
     </main>
   );
 }

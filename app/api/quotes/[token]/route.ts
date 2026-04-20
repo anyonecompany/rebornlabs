@@ -89,14 +89,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       | { id: string; name: string; phone: string | null }
       | null;
 
-    // 회사 정보 (env)
-    const company = {
-      name: "리본랩스",
-      businessNumber: process.env.REBORNLABS_BUSINESS_NUMBER ?? null,
-      address: process.env.REBORNLABS_ADDRESS ?? null,
-      phone: process.env.REBORNLABS_PHONE ?? null,
-    };
-
     // 2. 만료 체크
     const now = Date.now();
     const isExpired =
@@ -114,7 +106,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           dealer: dealer
             ? { name: dealer.name, phone: dealer.phone }
             : null,
-          company,
         },
         { status: 410 },
       );
@@ -159,7 +150,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       dealer: dealer
         ? { name: dealer.name, phone: dealer.phone }
         : null,
-      company,
     });
   } catch {
     return corsJson({ error: "서버 오류가 발생했습니다." }, { status: 500 });

@@ -28,12 +28,6 @@ type Props = {
       status: string;
     };
     dealer: { name: string; phone: string | null } | null;
-    company: {
-      name: string;
-      businessNumber: string | null;
-      address: string | null;
-      phone: string | null;
-    };
   };
 };
 
@@ -59,7 +53,7 @@ function daysUntil(iso: string | null): number | null {
 }
 
 export function QuoteView({ data }: Props) {
-  const { quote, vehicle, dealer, company } = data;
+  const { quote, vehicle, dealer } = data;
   const [imageIdx, setImageIdx] = useState(0);
   const images = vehicle.images.length > 0 ? vehicle.images : [];
   const daysLeft = daysUntil(quote.expiresAt);
@@ -270,17 +264,8 @@ export function QuoteView({ data }: Props) {
         </div>
       </section>
 
-      {/* 푸터 */}
-      <footer className="mt-10 border-t border-[#c8bfa8]/10 py-6">
-        <div className="max-w-3xl mx-auto px-5 text-[11px] text-[#c8bfa8]/50 space-y-1">
-          <p className="text-[#c8bfa8] font-semibold tracking-widest">
-            {company.name.toUpperCase()}
-          </p>
-          {company.businessNumber && <p>사업자등록번호 {company.businessNumber}</p>}
-          {company.address && <p>{company.address}</p>}
-          {company.phone && <p>대표 {company.phone}</p>}
-        </div>
-      </footer>
+      {/* 하단 여백 */}
+      <div className="h-10" />
     </main>
   );
 }

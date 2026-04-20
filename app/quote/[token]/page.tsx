@@ -27,12 +27,6 @@ type QuoteApiResponse = {
     status: string;
   };
   dealer: { name: string; phone: string | null } | null;
-  company: {
-    name: string;
-    businessNumber: string | null;
-    address: string | null;
-    phone: string | null;
-  };
 };
 
 type ExpiredResponse = {
@@ -40,7 +34,6 @@ type ExpiredResponse = {
   message: string;
   quote: { quoteNumber: string; expiresAt: string | null };
   dealer: { name: string; phone: string | null } | null;
-  company: QuoteApiResponse["company"];
 };
 
 async function fetchQuote(
