@@ -265,6 +265,38 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
         Relationships: [];
       };
+      vehicle_models: {
+        Row: {
+          id: string;
+          brand: string;
+          model: string;
+          trim: string;
+          car_price: number;
+          max_deposit: number;
+          display_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["vehicle_models"]["Row"],
+          | "id"
+          | "created_at"
+          | "updated_at"
+          | "display_order"
+          | "is_active"
+        > & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          display_order?: number;
+          is_active?: boolean;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["vehicle_models"]["Insert"]
+        >;
+        Relationships: [];
+      };
       team_assignments: {
         Row: {
           id: string;

@@ -1,7 +1,63 @@
-# 차량 리스트 기능 — 작업 컨텍스트 (보류 중, 2026-04-20 야간)
+# 차량 리스트 기능 — 작업 컨텍스트 (착수, 2026-04-21)
 
-> 상태: **착수 대기**. 대표님 세부 프롬프트 누락으로 실제 구현은 내일 오전 확정 후 진행.
-> 밤사이 작업: 엑셀 구조 분석 + 설계 후보 정리만 수행.
+> 상태: **정식 착수**. 2026-04-21 아침 대표님 7건 확정 후 시작.
+> 이전(2026-04-20 야간) 보류 사유는 하단 "이력" 섹션에 보존.
+
+## 2026-04-21 확정 사항
+
+| # | 항목 | 확정값 |
+|---|------|--------|
+| 1 | 공개 페이지 URL | `/cars` |
+| 2 | 기존 `vehicles` 테이블과 관계 | 완전 독립. 신규 `vehicle_models` 테이블 |
+| 3 | 엑셀 G열 "예상가격" | DB 저장 안 함. `car_price × 1.35`로 공식 재계산 (엑셀 80건 오차 0 검증 완료) |
+| 4 | 상담 연계 파라미터 | ID + 브랜드/모델/등급 요약 문자열 둘 다 전달 |
+| 5 | 판매완료 정책 | `is_active=false` 소프트 비활성화 |
+| 6 | 일괄 가격 변경 | 이번 스코프 제외. 엑셀 재업로드로 upsert |
+| 7 | 가격 공식 | `car_price × 1.35` = 추가된 가격, `/ 60` = 월 납입료 |
+
+## 구조
+
+**독립 엔티티**:
+- `vehicle_models`: 카탈로그 (브랜드/모델/등급별 가격 표)
+- `vehicles`: 실매물 단위 차량 (기존, 건드리지 않음)
+
+**URL 구조**:
+- 공개: `/cars` (비로그인)
+- 어드민: `/vehicle-models` (admin/staff)
+- 상담 연계: `/consultation/new?vehicle_model_id={uuid}&brand=...&model=...&trim=...`
+
+## 기술 결정
+
+### DB 트리거 함수 재사용
+기존 `002_triggers.sql`의 `update_updated_at()` 함수 재사용 (스펙의 `update_updated_at_column` 이름과 다르지만 기존 파일 그대로 따름).
+
+### RLS 정책
+- `vm_admin_staff_all` FOR ALL (admin/staff + is_active 프로필)
+- `vm_public_select` FOR SELECT TO anon/authenticated (`is_active = true`)
+
+공개 페이지는 anon 역할로 접근 가능해야 하므로 익명 SELECT 정책 필수.
+
+### 엑셀 import 방식
+- 라이브러리: `xlsx` (0.18.5 설치 완료)
+- 서버 파싱: `multipart/form-data` → `request.formData()` → `arrayBuffer` → `XLSX.read`
+- 헤더 행: 9 (1-indexed). 데이터는 row 10부터
+- forward-fill: brand(C열)/model(D열)은 merge cell이라 직전 값 상속
+- upsert: `ON CONFLICT (brand, model, trim)` 
+- `display_order`: 엑셀 순서대로 10/20/30... 증가
+
+### 가격 공식 유틸
+`src/lib/vehicle-price.ts` — `calculateExtraPrice`, `calculateMonthlyPayment`, `formatKRW`.
+60개월 고정, `Math.round`로 정수 변환.
+
+### 공개 API 캐싱
+Route Segment Config `revalidate = 300` (5분) + Cache-Control 헤더.
+
+### 미들웨어
+`proxy.ts`의 `PUBLIC_PATHS`에 `/cars` 추가. `/api`는 이미 공개 경로라 `/api/vehicle-models/public`도 자동 skip.
+
+## 이력
+
+### 2026-04-20 야간 — 보류 사유 (참조용)
 
 ## 1. 밤사이 지시사항 검토
 
