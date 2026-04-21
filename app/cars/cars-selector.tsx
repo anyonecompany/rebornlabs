@@ -109,16 +109,20 @@ export function CarsSelector({ brands }: Props) {
     writeUrl(selectedBrand, selectedModel, "");
   };
 
+  // 공개 페이지이므로 어드민 내부 경로(/consultation/new) 대신 외부 랜딩
+  // 상담 폼으로 연결. 차량 정보는 쿼리 파라미터로 전달.
+  const LANDING_URL =
+    process.env.NEXT_PUBLIC_LANDING_URL ?? "https://rebornlabs.vercel.app";
+
   const buildConsultationUrl = () => {
-    if (!currentBrand || !currentModel || !currentTrim)
-      return "/consultation/new";
+    if (!currentBrand || !currentModel || !currentTrim) return LANDING_URL;
     const params = new URLSearchParams({
       vehicle_model_id: currentTrim.id,
       brand: currentBrand.name,
       model: currentModel.name,
       trim: currentTrim.trim,
     });
-    return `/consultation/new?${params.toString()}`;
+    return `${LANDING_URL}?${params.toString()}`;
   };
 
   // 명시적 분기로 렌더. step 변수는 indicator 에만 사용.
@@ -241,6 +245,8 @@ export function CarsSelector({ brands }: Props) {
 
             <a
               href={buildConsultationUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#c8bfa8] text-[#0a0a0a] font-semibold py-3.5 hover:bg-[#b8a875] transition-colors"
             >
               상담 신청하기

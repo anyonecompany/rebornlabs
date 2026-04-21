@@ -183,32 +183,34 @@ export function QuoteView({ data }: Props) {
         </p>
       </section>
 
-      {/* 가격 정보 카드 */}
+      {/* 가격 정보 카드 — 고객 의사결정 숫자(월 납입료·보증금) 최상위 강조 */}
       <section className="max-w-3xl mx-auto px-5 pt-6">
         <div className="rounded-2xl bg-gradient-to-br from-[#16140e] to-[#0d0b07] border border-[#c8bfa8]/20 p-6 sm:p-8">
-          <p className="text-[10px] tracking-[0.25em] text-[#b8a875] uppercase">
-            Selling Price
+          {/* 월 납입료 — Level 1 (display) */}
+          <p className="text-[10px] tracking-[0.3em] text-[#b8a875] uppercase">
+            월 납입료
           </p>
-          <p className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-white">
-            {formatKRW(vehicle.sellingPrice)}
+          <p className="mt-1 text-4xl sm:text-5xl font-bold tracking-tight text-white">
+            {formatKRW(vehicle.monthlyPayment)}
           </p>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 border-t border-[#c8bfa8]/15 pt-5">
-            <div>
-              <p className="text-[10px] tracking-wider text-[#c8bfa8]/60 uppercase">
-                보증금
-              </p>
-              <p className="mt-1 text-base sm:text-lg font-semibold text-[#c8bfa8]">
-                {formatKRW(vehicle.deposit)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] tracking-wider text-[#c8bfa8]/60 uppercase">
-                월 납입료
-              </p>
-              <p className="mt-1 text-base sm:text-lg font-semibold text-[#c8bfa8]">
-                {formatKRW(vehicle.monthlyPayment)}
-              </p>
+          {/* 보증금 — Level 2 */}
+          <div className="mt-6 border-t border-[#c8bfa8]/15 pt-5">
+            <p className="text-[10px] tracking-[0.25em] text-[#b8a875] uppercase">
+              보증금
+            </p>
+            <p className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+              {formatKRW(vehicle.deposit)}
+            </p>
+          </div>
+
+          {/* 차량 판매가 — Level 4 (caption/muted), 신뢰성 시그널로 유지 */}
+          <div className="mt-5 pt-3 border-t border-[#c8bfa8]/10">
+            <div className="flex items-center justify-between text-xs text-[#c8bfa8]/50">
+              <span>차량 판매가</span>
+              <span className="font-medium text-[#c8bfa8]/70">
+                {formatKRW(vehicle.sellingPrice)}
+              </span>
             </div>
           </div>
         </div>
