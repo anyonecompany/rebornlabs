@@ -43,6 +43,11 @@ export function PriceCard({ brand, model, trim, carPrice, maxDeposit }: Props) {
 
         <Row label="최대 보증금" value={formatKRW(maxDeposit)} />
       </div>
+
+      <div className="mt-6 border-t border-[#c8bfa8]/10 pt-4 space-y-1.5 text-[11.5px] leading-relaxed text-[#c8bfa8]/60">
+        <p>※ 표시된 가격은 예상가격이며, 신용점수에 따라 월 납입료가 조정될 수 있습니다.</p>
+        <p>※ 무보증 진행 가능 (보증금이 낮아질수록 차량 연식·주행거리가 상향됩니다).</p>
+      </div>
     </div>
   );
 }
