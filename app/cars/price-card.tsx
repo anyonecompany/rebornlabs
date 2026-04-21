@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  calculateExtraPrice,
   calculateMonthlyPayment,
   formatKRW,
-  INSTALLMENT_MONTHS,
 } from "@/src/lib/vehicle-price";
 
 interface Props {
@@ -16,7 +14,6 @@ interface Props {
 }
 
 export function PriceCard({ brand, model, trim, carPrice, maxDeposit }: Props) {
-  const extraPrice = calculateExtraPrice(carPrice);
   const monthly = calculateMonthlyPayment(carPrice);
 
   return (
@@ -29,12 +26,9 @@ export function PriceCard({ brand, model, trim, carPrice, maxDeposit }: Props) {
       </h2>
 
       <div className="mt-6 border-t border-[#c8bfa8]/15 pt-5 space-y-4">
-        <Row label="차량 가격" value={formatKRW(carPrice)} />
-        <Row label="추가된 가격" value={formatKRW(extraPrice)} />
-
         <div className="rounded-xl bg-[#c8bfa8]/10 border border-[#c8bfa8]/25 p-4">
           <p className="text-[10px] tracking-[0.25em] text-[#b8a875] uppercase">
-            월 납입료 · {INSTALLMENT_MONTHS}개월
+            월 납입료
           </p>
           <p className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-white">
             {formatKRW(monthly)}
