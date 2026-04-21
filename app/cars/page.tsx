@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { CarsSelector, type BrandNode } from "./cars-selector";
@@ -55,7 +56,18 @@ export default async function CarsPage() {
             </p>
           </div>
         ) : (
-          <CarsSelector brands={brands} />
+          // useSearchParams는 Suspense boundary 내에서만 사용 가능.
+          // 누락 시 Next.js가 전체 페이지 CSR로 바일아웃 → 하이드레이션 이후
+          // 클라이언트 state가 유지되지 않는 현상 발생.
+          <Suspense
+            fallback={
+              <div className="py-10 text-center text-sm text-[#c8bfa8]/70">
+                불러오는 중...
+              </div>
+            }
+          >
+            <CarsSelector brands={brands} />
+          </Suspense>
         )}
       </section>
 
