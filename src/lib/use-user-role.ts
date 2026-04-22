@@ -12,6 +12,50 @@ interface UseUserRoleResult {
   isReady: boolean;
 }
 
+// ────────────────────────────────────────────────────────────
+// Role Helper 함수 — 페이지/컴포넌트에서 반복되는 조건문 정리용
+// role === null 일 때는 모두 false 반환 (isReady 체크 전에도 안전)
+// ────────────────────────────────────────────────────────────
+
+export function isAdmin(role: UserRole | null | undefined): boolean {
+  return role === "admin";
+}
+
+export function isStaff(role: UserRole | null | undefined): boolean {
+  return role === "staff";
+}
+
+/** 본부장(director) / 팀장(team_leader) 중간 관리직 */
+export function isManagerRole(role: UserRole | null | undefined): boolean {
+  return role === "director" || role === "team_leader";
+}
+
+export function isDealer(role: UserRole | null | undefined): boolean {
+  return role === "dealer";
+}
+
+/** 조직 데이터(상담·판매·계약·견적·차량) 접근 가능 — 관리자·스태프·관리직 */
+export function canAccessOrgData(role: UserRole | null | undefined): boolean {
+  return isAdmin(role) || isStaff(role) || isManagerRole(role);
+}
+
+/** 지출결의·문서함 접근 가능 — 관리자·스태프 한정 */
+export function canAccessExpenses(role: UserRole | null | undefined): boolean {
+  return isAdmin(role) || isStaff(role);
+}
+
+/** 사용자 관리·조직 관리·감사 로그 — 관리자 전용 */
+export function canAccessUsers(role: UserRole | null | undefined): boolean {
+  return isAdmin(role);
+}
+
+/** 차량 모델 관리 — 관리자·스태프 한정 (관리직은 제외) */
+export function canAccessVehicleModels(
+  role: UserRole | null | undefined,
+): boolean {
+  return isAdmin(role) || isStaff(role);
+}
+
 /**
  * 레이아웃에서 서버 사이드로 주입한 `data-user-role` / `data-user-id` 속성을
  * 읽어 반환합니다.

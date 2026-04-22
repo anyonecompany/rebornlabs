@@ -1,7 +1,19 @@
 import { createServiceClient } from "@/lib/supabase/server";
 
-/** 시스템에서 사용하는 역할 타입 */
-export type UserRole = "admin" | "staff" | "dealer" | "pending" | "none";
+/**
+ * 시스템에서 사용하는 역할 타입 (서버/API 레이어).
+ *
+ * types/database.ts 의 UserRole 과 동일한 실제 역할 + 서버 전용 "none" 추가.
+ * director/team_leader 는 20260420_org_structure.sql 에서 ENUM 에 추가됨.
+ */
+export type UserRole =
+  | "admin"
+  | "director"
+  | "team_leader"
+  | "staff"
+  | "dealer"
+  | "pending"
+  | "none";
 
 /** 인증 검증 결과 */
 export interface VerifiedUser {

@@ -58,6 +58,16 @@ const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
   (item) => item.href !== "/users" && item.href !== "/audit-logs",
 );
 
+// director / team_leader — 조직 데이터 + 정산 조회. 경영 전용 기능(지출/문서/사용자/조직/감사/차량모델) 제외.
+const MANAGER_MENU: NavItem[] = [
+  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
+  { label: "차량 관리", href: "/vehicles", icon: Car },
+  { label: "상담 관리", href: "/consultations", icon: MessageSquare },
+  { label: "판매 관리", href: "/sales", icon: CreditCard },
+  { label: "견적서 관리", href: "/quotes", icon: FileText },
+  { label: "정산", href: "/settlements", icon: Calculator },
+];
+
 const DEALER_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
   { label: "차량 목록", href: "/vehicles", icon: Car },
@@ -78,6 +88,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 function getMenuItems(role: UserRole): NavItem[] {
   if (role === "admin") return ADMIN_MENU;
   if (role === "staff") return STAFF_MENU;
+  if (role === "director" || role === "team_leader") return MANAGER_MENU;
   return DEALER_MENU;
 }
 

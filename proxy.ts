@@ -5,6 +5,16 @@ import type { UserRole } from "@/types/database";
 
 const DEALER_BLOCKED = ["/settlements", "/expenses", "/documents", "/users", "/audit-logs"];
 const STAFF_BLOCKED = ["/users", "/audit-logs"];
+// director / team_leader — 관리직. 조직 데이터(상담·판매·계약·견적·차량·정산)는 접근 허용.
+// 경영 전용 기능(/expenses, /documents, /users, /team-structure, /audit-logs, /vehicle-models) 차단.
+const MANAGER_BLOCKED = [
+  "/expenses",
+  "/documents",
+  "/users",
+  "/team-structure",
+  "/audit-logs",
+  "/vehicle-models",
+];
 
 function isBlocked(pathname: string, blockedPaths: string[]): boolean {
   return blockedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -122,6 +132,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (role === "staff" && isBlocked(pathname, STAFF_BLOCKED)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (
+    (role === "director" || role === "team_leader") &&
+    isBlocked(pathname, MANAGER_BLOCKED)
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
