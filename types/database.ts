@@ -91,6 +91,13 @@ export interface Database {
           marketing_company: string | null;
           status: ConsultationStatus;
           is_duplicate: boolean;
+          // 20260420_org_structure.sql — 조직 Phase 1
+          available_deposit: number | null;
+          desired_monthly_payment: number | null;
+          // 20260422_apply_utm.sql — SNS 랜딩 UTM 확장
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          utm_content: string | null;
           created_at: string;
           updated_at: string;
         };

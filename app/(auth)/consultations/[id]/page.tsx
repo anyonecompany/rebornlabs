@@ -184,6 +184,12 @@ export default function ConsultationDetailPage() {
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [submittingSale, setSubmittingSale] = useState(false);
 
+  // 예산 편집 모달 상태 — admin/staff 가 상담 유입 후 보증금/월납입료 보정용
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetDeposit, setBudgetDeposit] = useState("");
+  const [budgetMonthly, setBudgetMonthly] = useState("");
+  const [savingBudget, setSavingBudget] = useState(false);
+
   const logBottomRef = useRef<HTMLDivElement>(null);
 
   // 상담 데이터 로드
@@ -445,6 +451,70 @@ export default function ConsultationDetailPage() {
 
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
+  // 예산 편집 모달 열기 — 현재 값을 폼에 프리필
+  const openBudgetModal = useCallback(() => {
+    setBudgetDeposit(
+      consultation?.available_deposit != null
+        ? String(consultation.available_deposit)
+        : "",
+    );
+    setBudgetMonthly(
+      consultation?.desired_monthly_payment != null
+        ? String(consultation.desired_monthly_payment)
+        : "",
+    );
+    setBudgetModalOpen(true);
+  }, [consultation]);
+
+  // 예산 저장
+  const handleBudgetSave = useCallback(async () => {
+    const deposit = budgetDeposit.trim();
+    const monthly = budgetMonthly.trim();
+
+    const payload = {
+      available_deposit: deposit === "" ? null : Number(deposit),
+      desired_monthly_payment: monthly === "" ? null : Number(monthly),
+    };
+
+    if (
+      (payload.available_deposit !== null &&
+        !Number.isFinite(payload.available_deposit)) ||
+      (payload.desired_monthly_payment !== null &&
+        !Number.isFinite(payload.desired_monthly_payment))
+    ) {
+      toast.error("숫자만 입력해 주세요.");
+      return;
+    }
+
+    setSavingBudget(true);
+    try {
+      const res = await apiFetch(`/api/consultations/${id}/budget`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "예산 정보 저장에 실패했습니다.");
+        return;
+      }
+      toast.success("예산 정보가 저장되었습니다.");
+      setConsultation((prev) =>
+        prev
+          ? {
+              ...prev,
+              available_deposit: payload.available_deposit,
+              desired_monthly_payment: payload.desired_monthly_payment,
+            }
+          : prev,
+      );
+      setBudgetModalOpen(false);
+    } catch {
+      toast.error("예산 정보 저장 중 오류가 발생했습니다.");
+    } finally {
+      setSavingBudget(false);
+    }
+  }, [id, budgetDeposit, budgetMonthly]);
+
   if (loading) {
     return (
       <div>
@@ -581,16 +651,30 @@ export default function ConsultationDetailPage() {
               </div>
             )}
 
-            {/* 예산 정보 — 값 있을 때만 노출 */}
-            {(consultation.available_deposit !== null ||
-              consultation.desired_monthly_payment !== null) && (
+            {/* 예산 정보 — 값 있을 때 노출. admin/staff 는 값 없어도 편집용으로 노출 */}
+            {(consultation.available_deposit != null ||
+              consultation.desired_monthly_payment != null ||
+              isPrivileged) && (
               <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">예산 정보</p>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-xs text-muted-foreground">예산 정보</p>
+                  {isPrivileged && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={openBudgetModal}
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      편집
+                    </Button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <InfoItem
                     label="보증금 가능"
                     value={
-                      consultation.available_deposit !== null
+                      consultation.available_deposit != null
                         ? `${consultation.available_deposit.toLocaleString()}만원`
                         : "—"
                     }
@@ -598,7 +682,7 @@ export default function ConsultationDetailPage() {
                   <InfoItem
                     label="희망 월 납입료"
                     value={
-                      consultation.desired_monthly_payment !== null
+                      consultation.desired_monthly_payment != null
                         ? `${consultation.desired_monthly_payment.toLocaleString()}만원`
                         : "—"
                     }
@@ -929,6 +1013,82 @@ export default function ConsultationDetailPage() {
               disabled={submittingSale || !selectedVehicleId}
             >
               {submittingSale ? "등록 중..." : "판매 등록"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 예산 편집 모달 (admin/staff 전용) ── */}
+      <Dialog open={budgetModalOpen} onOpenChange={setBudgetModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>예산 정보 편집</DialogTitle>
+            <DialogDescription>
+              고객 상담 후 확인된 보증금·희망 월 납입료를 기록합니다.
+              빈값으로 저장하면 값이 제거됩니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-deposit" className="text-xs">
+                보증금 가능 금액
+              </Label>
+              <div className="relative">
+                <Input
+                  id="budget-deposit"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="예: 500"
+                  value={budgetDeposit}
+                  onChange={(e) =>
+                    setBudgetDeposit(
+                      e.target.value.replace(/[^0-9]/g, "").slice(0, 6),
+                    )
+                  }
+                  className="pr-12"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  만원
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-monthly" className="text-xs">
+                희망 월 납입료
+              </Label>
+              <div className="relative">
+                <Input
+                  id="budget-monthly"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="예: 60"
+                  value={budgetMonthly}
+                  onChange={(e) =>
+                    setBudgetMonthly(
+                      e.target.value.replace(/[^0-9]/g, "").slice(0, 6),
+                    )
+                  }
+                  className="pr-12"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  만원
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBudgetModalOpen(false)}
+              disabled={savingBudget}
+            >
+              취소
+            </Button>
+            <Button onClick={handleBudgetSave} disabled={savingBudget}>
+              {savingBudget ? "저장 중..." : "저장"}
             </Button>
           </DialogFooter>
         </DialogContent>
