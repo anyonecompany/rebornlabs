@@ -55,7 +55,10 @@ const ADMIN_MENU: NavItem[] = [
 ];
 
 const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
-  (item) => item.href !== "/users" && item.href !== "/audit-logs",
+  (item) =>
+    item.href !== "/users" &&
+    item.href !== "/team-structure" &&
+    item.href !== "/audit-logs",
 );
 
 // director / team_leader — 조직 데이터 + 정산 조회. 경영 전용 기능(지출/문서/사용자/조직/감사/차량모델) 제외.
