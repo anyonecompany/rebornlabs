@@ -56,6 +56,8 @@ export default function ConsultationsPage() {
   const [duplicateFilter, setDuplicateFilter] = useState<
     "all" | "true" | "false"
   >("all");
+  type SourceCategory = "all" | "direct" | "instagram" | "other";
+  const [sourceFilter, setSourceFilter] = useState<SourceCategory>("all");
 
   const fetchConsultations = useCallback(async () => {
     setLoading(true);
@@ -65,6 +67,7 @@ export default function ConsultationsPage() {
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (duplicateFilter !== "all")
         params.set("is_duplicate", duplicateFilter);
+      if (sourceFilter !== "all") params.set("source_category", sourceFilter);
 
       const res = await apiFetch(`/api/consultations?${params.toString()}`);
       if (!res.ok) {
@@ -79,7 +82,7 @@ export default function ConsultationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, duplicateFilter]);
+  }, [search, statusFilter, duplicateFilter, sourceFilter]);
 
   useEffect(() => {
     fetchConsultations();
@@ -182,6 +185,20 @@ export default function ConsultationsPage() {
             <SelectItem value="all">전체</SelectItem>
             <SelectItem value="true">중복만</SelectItem>
             <SelectItem value="false">비중복</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={sourceFilter}
+          onValueChange={(v) => setSourceFilter(v as SourceCategory)}
+        >
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="유입 채널" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 유입</SelectItem>
+            <SelectItem value="direct">직접 유입</SelectItem>
+            <SelectItem value="instagram">인스타그램</SelectItem>
+            <SelectItem value="other">기타 유입</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -12,6 +12,13 @@ const SubmitSchema = z.object({
   vehicle: z.string().optional(),
   message: z.string().max(1000, "메시지는 1000자 이하여야 합니다.").optional(),
   ref: z.string().optional(),
+  // 보증금/월납입료 (만원 단위). /apply 폼에서 선택 입력.
+  available_deposit: z.number().int().nonnegative().max(999_999).optional(),
+  desired_monthly_payment: z.number().int().nonnegative().max(999_999).optional(),
+  // UTM 추가 필드. utm_source는 `ref` 로 이미 받음. (20260422_apply_utm.sql)
+  utm_medium: z.string().max(100).optional(),
+  utm_campaign: z.string().max(100).optional(),
+  utm_content: z.string().max(200).optional(),
   website: z.string().optional(), // honeypot 필드
 });
 
@@ -57,7 +64,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, phone, vehicle, message, ref, website } = parsed.data;
+  const {
+    name,
+    phone,
+    vehicle,
+    message,
+    ref,
+    available_deposit,
+    desired_monthly_payment,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    website,
+  } = parsed.data;
 
   // 1. honeypot
   if (website && website.trim() !== "") {
@@ -114,6 +133,25 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     return corsJson({ error: "상담 접수 중 오류가 발생했습니다." }, { status: 500 });
+  }
+
+  // 5-a. 보증금/월납입료 + UTM 추가 필드 — RPC가 받지 않으므로 UPDATE로 별도 저장
+  if (consultationId) {
+    const patch: Record<string, string | number> = {};
+    if (available_deposit !== undefined) patch.available_deposit = available_deposit;
+    if (desired_monthly_payment !== undefined) {
+      patch.desired_monthly_payment = desired_monthly_payment;
+    }
+    if (utm_medium) patch.utm_medium = utm_medium;
+    if (utm_campaign) patch.utm_campaign = utm_campaign;
+    if (utm_content) patch.utm_content = utm_content;
+
+    if (Object.keys(patch).length > 0) {
+      await serviceClient
+        .from("consultations")
+        .update(patch)
+        .eq("id", consultationId);
+    }
   }
 
   // 5-1. ref → 마케팅업체 자동 매칭

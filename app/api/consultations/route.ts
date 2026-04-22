@@ -33,7 +33,12 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
     const isDuplicate = searchParams.get("is_duplicate");
+    // 유입 채널 필터: direct | instagram | other | "" (전체)
+    // 값 매핑은 src/lib/source-ref.ts 의 SOURCE_REF_LABELS 와 일관되게 유지.
+    const sourceCategory = searchParams.get("source_category") ?? "";
     const PAGE_SIZE = 20;
+
+    const INSTAGRAM_ALIASES = ["ig", "instagram", "insta"];
 
     const serviceClient = createServiceClient();
 
@@ -66,6 +71,24 @@ export async function GET(request: NextRequest) {
       query = query.eq("is_duplicate", true);
     } else if (isDuplicate === "false") {
       query = query.eq("is_duplicate", false);
+    }
+
+    // 유입 채널 필터
+    //   direct    : source_ref IS NULL OR lower = 'direct'
+    //   instagram : source_ref ∈ {ig, instagram, insta}
+    //   other     : 나머지 (NULL/direct/인스타 별칭 제외)
+    if (sourceCategory === "direct") {
+      query = query.or("source_ref.is.null,source_ref.ilike.direct");
+    } else if (sourceCategory === "instagram") {
+      const aliases = INSTAGRAM_ALIASES.map((a) => `source_ref.ilike.${a}`).join(",");
+      query = query.or(aliases);
+    } else if (sourceCategory === "other") {
+      query = query
+        .not("source_ref", "is", null)
+        .not("source_ref", "ilike", "direct");
+      for (const alias of INSTAGRAM_ALIASES) {
+        query = query.not("source_ref", "ilike", alias);
+      }
     }
 
     // 커서 기반 페이지네이션

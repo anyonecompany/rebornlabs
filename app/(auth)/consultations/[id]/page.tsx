@@ -63,6 +63,11 @@ interface Consultation {
   interested_vehicle: string | null;
   message: string | null;
   source_ref: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  available_deposit: number | null;
+  desired_monthly_payment: number | null;
   assigned_dealer_id: string | null;
   marketing_company: string | null;
   status: ConsultationStatus;
@@ -573,6 +578,57 @@ export default function ConsultationDetailPage() {
                 <p className="text-sm whitespace-pre-wrap">
                   {consultation.message}
                 </p>
+              </div>
+            )}
+
+            {/* 예산 정보 — 값 있을 때만 노출 */}
+            {(consultation.available_deposit !== null ||
+              consultation.desired_monthly_payment !== null) && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">예산 정보</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <InfoItem
+                    label="보증금 가능"
+                    value={
+                      consultation.available_deposit !== null
+                        ? `${consultation.available_deposit.toLocaleString()}만원`
+                        : "—"
+                    }
+                  />
+                  <InfoItem
+                    label="희망 월 납입료"
+                    value={
+                      consultation.desired_monthly_payment !== null
+                        ? `${consultation.desired_monthly_payment.toLocaleString()}만원`
+                        : "—"
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* UTM 상세 — 값 있을 때만 노출 */}
+            {(consultation.utm_medium ||
+              consultation.utm_campaign ||
+              consultation.utm_content) && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">
+                  광고 추적 파라미터
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                  <InfoItem
+                    label="utm_medium"
+                    value={consultation.utm_medium ?? "—"}
+                  />
+                  <InfoItem
+                    label="utm_campaign"
+                    value={consultation.utm_campaign ?? "—"}
+                  />
+                  <InfoItem
+                    label="utm_content"
+                    value={consultation.utm_content ?? "—"}
+                  />
+                </div>
               </div>
             )}
           </CardContent>
