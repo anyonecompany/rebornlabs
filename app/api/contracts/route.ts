@@ -24,6 +24,7 @@ const CreateContractSchema = z.object({
   customer_address: z.string().optional(),
   customer_id_number: z.string().optional(),
   vehicle_info: VehicleInfoOverrideSchema,
+  contract_type: z.enum(["accident", "safe"]).optional(),
 });
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -177,6 +178,7 @@ export async function POST(request: NextRequest) {
       customer_address,
       customer_id_number,
       vehicle_info: vehicleInfoOverride,
+      contract_type,
     } = parsed.data;
 
     const serviceClient = createServiceClient();
@@ -255,6 +257,7 @@ export async function POST(request: NextRequest) {
         signed_at: null,
         pdf_url: null,
         created_by: user.id,
+        contract_type: contract_type ?? "accident",
       })
       .select()
       .single();

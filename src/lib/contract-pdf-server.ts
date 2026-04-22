@@ -6,7 +6,11 @@
 import { jsPDF } from "jspdf";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { CONTRACT_ARTICLES, CONTRACT_NOTICE } from "./contract-articles";
+import {
+  CONTRACT_NOTICE,
+  getContractArticles,
+  type ContractType,
+} from "./contract-articles";
 
 export interface ServerContractParams {
   make: string;
@@ -23,6 +27,8 @@ export interface ServerContractParams {
   color?: string;
   customerIdNumber?: string; // 예: "880101-1******"
   signatureImage?: Buffer; // PNG buffer
+  /** 계약서 유형. 미지정 시 'accident'(기본, 기존 계약서와 동일). */
+  contractType?: ContractType;
 }
 
 function formatKRW(v: number): string {
@@ -123,7 +129,8 @@ export async function generateContractPDFServer(
   y += 6;
 
   // ─── 22개 조항 ───
-  for (const article of CONTRACT_ARTICLES) {
+  const articles = getContractArticles(params.contractType);
+  for (const article of articles) {
     checkPage(15);
 
     // 제목

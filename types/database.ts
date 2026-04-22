@@ -257,11 +257,12 @@ export interface Database {
           pdf_url: string | null;
           created_at: string;
           created_by: string;
+          contract_type: "accident" | "safe";
         };
         Insert: Omit<
           Database["public"]["Tables"]["contracts"]["Row"],
-          "id" | "created_at"
-        >;
+          "id" | "created_at" | "contract_type"
+        > & { contract_type?: "accident" | "safe" };
         Update: Partial<Database["public"]["Tables"]["contracts"]["Insert"]>;
         Relationships: [];
       };

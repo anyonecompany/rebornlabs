@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { CheckCircle, Car, PenLine, RotateCcw, Check, Smartphone } from "lucide-react";
-import { CONTRACT_ARTICLES } from "@/src/lib/contract-articles";
+import {
+  getContractArticles,
+  type ContractType,
+} from "@/src/lib/contract-articles";
 
 // ---------------------------------------------------------------------------
 // 타입 정의
@@ -26,6 +29,7 @@ interface ContractPublicData {
   selling_price: number;
   deposit: number;
   signed_at: string | null;
+  contract_type?: ContractType;
 }
 
 // ---------------------------------------------------------------------------
@@ -492,7 +496,7 @@ export default function SignPage() {
                   <p className="text-xs text-gray-400 mt-0.5">아래 내용을 끝까지 읽어주세요.</p>
                 </div>
                 <div className="max-h-96 overflow-y-auto px-4 py-4 space-y-4 text-xs text-gray-700 leading-relaxed">
-                  {CONTRACT_ARTICLES.map((article) => {
+                  {getContractArticles(contract?.contract_type).map((article) => {
                     // 제3조는 차량 정보 카드가 대신하므로 간략 표시
                     if (article.title === "제3조 (차량 정보)") {
                       return (

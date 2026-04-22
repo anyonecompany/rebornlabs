@@ -54,7 +54,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const { data: contract, error } = await serviceClient
       .from("contracts")
       .select(
-        "id, status, customer_name, customer_phone, customer_email, vehicle_info, selling_price, deposit, signed_at",
+        "id, status, customer_name, customer_phone, customer_email, vehicle_info, selling_price, deposit, signed_at, contract_type",
       )
       .eq("token", token)
       .single();
@@ -79,6 +79,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           selling_price: contract.selling_price,
           deposit: contract.deposit,
           status: contract.status,
+          contract_type: contract.contract_type ?? "accident",
         },
       });
     }
@@ -92,6 +93,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         selling_price: contract.selling_price,
         deposit: contract.deposit,
         status: contract.status,
+        contract_type: contract.contract_type ?? "accident",
       },
     });
   } catch {

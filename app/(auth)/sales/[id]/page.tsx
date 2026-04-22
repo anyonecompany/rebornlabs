@@ -210,6 +210,7 @@ export default function SaleDetailPage() {
     vehicle_plate_number: "",
     vehicle_vin: "",
     vehicle_color: "",
+    contract_type: "accident" as "accident" | "safe",
   });
   const [creatingContract, setCreatingContract] = useState(false);
 
@@ -306,6 +307,7 @@ export default function SaleDetailPage() {
           customer_email: contractForm.customer_email.trim(),
           customer_address: contractForm.customer_address.trim() || undefined,
           vehicle_info: Object.keys(vehicleInfoOverride).length > 0 ? vehicleInfoOverride : undefined,
+          contract_type: contractForm.contract_type,
         }),
       });
       const data = await res.json();
@@ -698,6 +700,7 @@ export default function SaleDetailPage() {
                         vehicle_plate_number: "",
                         vehicle_vin: "",
                         vehicle_color: "",
+                        contract_type: "accident",
                       });
                       setContractDialogOpen(true);
                     }}
@@ -996,6 +999,50 @@ export default function SaleDetailPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* 구분선 */}
+            <div className="border-t border-border" />
+
+            {/* 계약서 유형 — 사고/무사고 분기 */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                계약서 유형
+              </p>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { value: "accident" as const, label: "사고 차량" },
+                    { value: "safe" as const, label: "무사고 차량" },
+                  ]
+                ).map((opt) => {
+                  const active = contractForm.contract_type === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setContractForm((prev) => ({
+                          ...prev,
+                          contract_type: opt.value,
+                        }))
+                      }
+                      disabled={creatingContract}
+                      className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                ※ 무사고 차량 선택 시 6조·7조가 무사고용 텍스트로 출력됩니다. 기본값은 "사고 차량".
+              </p>
             </div>
 
             {/* 구분선 */}

@@ -4,7 +4,11 @@
  * 서버 사이드에서는 generateContractHTML()만 호출 가능.
  */
 
-import { CONTRACT_ARTICLES, CONTRACT_NOTICE } from "./contract-articles";
+import {
+  CONTRACT_NOTICE,
+  getContractArticles,
+  type ContractType,
+} from "./contract-articles";
 
 // ---------------------------------------------------------------------------
 // 타입 정의
@@ -25,6 +29,8 @@ export interface ContractParams {
   vin?: string;
   color?: string;
   signatureImage?: Uint8Array;
+  /** 계약서 유형. 미지정 시 'accident'(기본, 기존 계약서와 동일). */
+  contractType?: ContractType;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +58,7 @@ export function generateContractHTML(params: ContractParams): string {
     make, model, year, mileage, sellingPrice, deposit,
     customerName, customerPhone, customerAddress,
     plateNumber, vin, color, signatureImage,
+    contractType,
   } = params;
 
   const today = new Date();
@@ -65,7 +72,8 @@ export function generateContractHTML(params: ContractParams): string {
     signatureHtml = `<span class="sig-wrap"><img src="data:image/png;base64,${base64}" class="sig-img" /><span class="seal">(인)</span></span>`;
   }
 
-  const articlesHtml = CONTRACT_ARTICLES.map((article) => {
+  const articles = getContractArticles(contractType);
+  const articlesHtml = articles.map((article) => {
     if (article.title === "제3조 (차량 정보)") {
       return `<div class="article"><div class="at">${esc(article.title)}</div><div class="ab" style="color:#888;font-style:italic">위 차량 정보 테이블 참조</div></div>`;
     }

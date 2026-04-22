@@ -24,7 +24,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // 계약서 조회
     const { data: contract, error } = await serviceClient
       .from("contracts")
-      .select("id, status, customer_name, customer_phone, customer_address, customer_id_number, vehicle_info, selling_price, deposit, signature_url, created_by")
+      .select("id, status, customer_name, customer_phone, customer_address, customer_id_number, vehicle_info, selling_price, deposit, signature_url, created_by, contract_type")
       .eq("id", id)
       .single();
 
@@ -73,6 +73,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       color: (vi.color as string) ?? undefined,
       customerIdNumber: contract.customer_id_number ?? undefined,
       signatureImage,
+      contractType: contract.contract_type ?? "accident",
     });
 
     // Storage 업로드
