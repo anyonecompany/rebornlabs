@@ -10,7 +10,7 @@ function isBlocked(pathname: string, blockedPaths: string[]): boolean {
   return blockedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-const PUBLIC_PATHS = ["/login", "/unauthorized", "/api", "/_next", "/favicon.ico", "/sign", "/quote", "/cars"];
+const PUBLIC_PATHS = ["/login", "/unauthorized", "/api", "/_next", "/favicon.ico", "/sign", "/quote", "/cars", "/apply", "/privacy"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
