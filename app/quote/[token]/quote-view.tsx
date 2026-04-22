@@ -231,8 +231,12 @@ export function QuoteView({ data }: Props) {
                 : "-"
             }
           />
-          <InfoRow label="색상" value={vehicle.color ?? "-"} />
-          <InfoRow label="차대번호(VIN)" value={vehicle.vin ?? "-"} mono />
+          {vehicle.color && (
+            <InfoRow label="색상" value={vehicle.color} />
+          )}
+          {vehicle.vin && vehicle.vin !== "-" && (
+            <InfoRow label="차대번호(VIN)" value={vehicle.vin} mono />
+          )}
         </dl>
       </section>
 

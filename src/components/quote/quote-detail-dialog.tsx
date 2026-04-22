@@ -104,7 +104,8 @@ export function QuoteDetailDialog({ quote, open, onOpenChange, onUpdated }: Prop
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-2">
+          {/* pr-8: DialogContent의 absolute 위치 X 버튼(top-2 right-2)과의 겹침 방지 */}
+          <div className="flex items-center gap-3 pr-8">
             <DialogTitle className="font-mono tracking-wider">
               {quote.quoteNumber}
             </DialogTitle>
