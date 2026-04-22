@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-// TODO: 실제 법인명/사업자번호/주소 확정 시 아래 상수 갱신
-const COMPANY_NAME = "리본랩스"; // 법인화 이후 "리본랩스 주식회사" 로 변경
-const COMPANY_REG_NO = "[확인 필요]";
+// 법인화 이후 COMPANY_NAME 을 "리본랩스 주식회사" 로 갱신
+const COMPANY_NAME = "리본랩스";
+const COMPANY_REG_NO = "817-05-03415";
 const COMPANY_ADDRESS =
   "서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)";
 const COMPANY_REPRESENTATIVE = "심재윤";
-const PRIVACY_OFFICER_EMAIL = "[확인 필요]";
+const PRIVACY_OFFICER_EMAIL = "sungjun3216@gmail.com";
 const UPDATED_AT = "2026-04-22";
 
 export default function PrivacyPage() {
