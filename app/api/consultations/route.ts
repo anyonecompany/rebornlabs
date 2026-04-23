@@ -49,9 +49,35 @@ export async function GET(request: NextRequest) {
       .order("id", { ascending: false })
       .limit(PAGE_SIZE + 1);
 
-    // dealer: 본인 배정 상담만
+    // 역할별 조회 범위 필터
+    //   dealer                  : 본인 배정 상담만
+    //   director / team_leader  : 산하 딜러(get_subordinate_ids) 배정 상담만
+    //   admin / staff           : 필터 없음 (전체 조회)
+    //
+    // RPC 실패 또는 산하 0명인 경우 UUID zero로 폴백 → 0건 매칭 (fail-closed).
+    // service_role 키로 RLS를 우회하고 있으므로 앱 레이어에서 명시 필터가 유일한 권한 경계다.
     if (user.role === "dealer") {
       query = query.eq("assigned_dealer_id", user.id);
+    } else if (user.role === "director" || user.role === "team_leader") {
+      const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+      type SubResult = { get_subordinate_ids: string } | string;
+      const { data: subData, error: subError } = await serviceClient.rpc(
+        "get_subordinate_ids" as never,
+        { p_user_id: user.id } as never,
+      );
+      let subordinateIds: string[] = [];
+      if (!subError && subData) {
+        const rows = subData as unknown as SubResult[];
+        subordinateIds = rows.map((r) =>
+          typeof r === "string"
+            ? r
+            : (r as { get_subordinate_ids: string }).get_subordinate_ids,
+        );
+      }
+      query = query.in(
+        "assigned_dealer_id",
+        subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID],
+      );
     }
 
     // 검색 필터
