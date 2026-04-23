@@ -198,7 +198,7 @@ export default function ApplyForm() {
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
         <Field label="보증금" hint="만원 단위, 선택">
           <div className="relative">
             <input
