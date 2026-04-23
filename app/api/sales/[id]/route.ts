@@ -62,24 +62,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 차량, 딜러, 상담 병렬 조회
-    const [vehicleResult, dealerResult, consultationResult] = await Promise.all(
-      [
-        serviceClient.from("vehicles").select("*").eq("id", sale.vehicle_id).single(),
-        serviceClient
-          .from("profiles")
-          .select("id, email, name, phone, role")
-          .eq("id", sale.dealer_id)
-          .single(),
-        sale.consultation_id
-          ? serviceClient
-              .from("consultations")
-              .select("*")
-              .eq("id", sale.consultation_id)
-              .single()
-          : Promise.resolve({ data: null, error: null }),
-      ],
-    );
+    // 차량, 딜러, 상담, 출고확인자 병렬 조회
+    const [
+      vehicleResult,
+      dealerResult,
+      consultationResult,
+      deliveryConfirmedByResult,
+    ] = await Promise.all([
+      serviceClient.from("vehicles").select("*").eq("id", sale.vehicle_id).single(),
+      serviceClient
+        .from("profiles")
+        .select("id, email, name, phone, role")
+        .eq("id", sale.dealer_id)
+        .single(),
+      sale.consultation_id
+        ? serviceClient
+            .from("consultations")
+            .select("*")
+            .eq("id", sale.consultation_id)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
+      sale.delivery_confirmed_by
+        ? serviceClient
+            .from("profiles")
+            .select("id, name")
+            .eq("id", sale.delivery_confirmed_by)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
 
     // Storage 서명 + 계약서 목록 병렬 조회
     const [signaturesResult, contractsResult] = await Promise.all([
@@ -118,6 +128,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       vehicle: vehicleResult.data ?? null,
       dealer: dealerResult.data ?? null,
       consultation: consultationResult.data ?? null,
+      deliveryConfirmedBy: deliveryConfirmedByResult.data ?? null,
       signatureUrl,
       contractFiles,
     });

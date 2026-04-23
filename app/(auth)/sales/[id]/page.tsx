@@ -14,6 +14,7 @@ import {
   Link2,
   Clock,
   CheckCircle,
+  PackageCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
@@ -52,7 +53,14 @@ interface Sale {
   dealer_fee: number;
   marketing_fee: number;
   cancelled_at: string | null;
+  delivery_confirmed_at: string | null;
+  delivery_confirmed_by: string | null;
   created_at: string;
+}
+
+interface DeliveryConfirmedBy {
+  id: string;
+  name: string;
 }
 
 interface VehicleInfo {
@@ -118,6 +126,7 @@ interface SaleDetail {
   vehicle: VehicleInfo | null;
   dealer: DealerInfo | null;
   consultation: ConsultationInfo | null;
+  deliveryConfirmedBy: DeliveryConfirmedBy | null;
   signatureUrl: string | null;
   contractFiles: ContractFile[];
 }
@@ -190,6 +199,10 @@ export default function SaleDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+
+  // 출고 확인 다이얼로그 상태
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
+  const [confirmingDelivery, setConfirmingDelivery] = useState(false);
 
   // 전자 계약서 상태
   const [electronicContract, setElectronicContract] = useState<ElectronicContract | null>(null);
@@ -425,6 +438,28 @@ export default function SaleDetailPage() {
     [id, fetchDetail],
   );
 
+  // 출고 확인 핸들러 — 수당 자동 배분 트리거
+  const handleConfirmDelivery = useCallback(async () => {
+    setConfirmingDelivery(true);
+    try {
+      const res = await apiFetch(`/api/sales/${id}/confirm-delivery`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "출고 확인에 실패했습니다.");
+        return;
+      }
+      toast.success("출고 확인 완료. 수당이 배분되었습니다.");
+      setConfirmDeliveryOpen(false);
+      await fetchDetail();
+    } catch {
+      toast.error("출고 확인 처리 중 오류가 발생했습니다.");
+    } finally {
+      setConfirmingDelivery(false);
+    }
+  }, [id, fetchDetail]);
+
   // 판매 취소 핸들러
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
@@ -542,11 +577,26 @@ export default function SaleDetailPage() {
 
   if (!detail) return null;
 
-  const { data: sale, vehicle, dealer, consultation, signatureUrl, contractFiles } =
-    detail;
+  const {
+    data: sale,
+    vehicle,
+    dealer,
+    consultation,
+    deliveryConfirmedBy,
+    signatureUrl,
+    contractFiles,
+  } = detail;
 
   const isCancelled = !!sale.cancelled_at;
+  const isDeliveryConfirmed = !!sale.delivery_confirmed_at;
   const hasActorDiff = sale.actor_id !== sale.dealer_id;
+  // 출고 확인 권한: 인증된 유효 역할 전원 (admin/staff/director/team_leader/dealer)
+  const canConfirmDelivery =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader" ||
+    userRole === "dealer";
 
   return (
     <div>
@@ -669,6 +719,58 @@ export default function SaleDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* ── 출고 확인 섹션 — 수당 자동 배분 트리거 ── */}
+        {!isCancelled && (
+          <Card
+            className={
+              isDeliveryConfirmed
+                ? "border-emerald-500/20"
+                : "border-primary/30"
+            }
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <PackageCheck className="h-4 w-4" />
+                출고 확인
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isDeliveryConfirmed ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span className="text-emerald-400 font-medium">
+                    출고 확인 완료
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-foreground">
+                    {deliveryConfirmedBy?.name ?? "—"}
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {formatDate(sale.delivery_confirmed_at!)}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    확인 시 수당이 자동 배분됩니다. 취소할 수 없습니다.
+                  </p>
+                  {canConfirmDelivery && (
+                    <Button
+                      size="sm"
+                      onClick={() => setConfirmDeliveryOpen(true)}
+                      disabled={confirmingDelivery}
+                    >
+                      <PackageCheck className="h-4 w-4 mr-1.5" />
+                      출고 확인
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── 전자 계약서 섹션 ── */}
         <Card>
@@ -1136,6 +1238,37 @@ export default function SaleDetailPage() {
               }
             >
               {creatingContract ? "생성 중..." : "계약서 생성"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 출고 확인 다이얼로그 */}
+      <Dialog
+        open={confirmDeliveryOpen}
+        onOpenChange={setConfirmDeliveryOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>출고 확인하시겠습니까?</DialogTitle>
+            <DialogDescription>
+              확인 시 담당자·상위자에게 수당이 자동 배분되며, 되돌릴 수
+              없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDeliveryOpen(false)}
+              disabled={confirmingDelivery}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleConfirmDelivery}
+              disabled={confirmingDelivery}
+            >
+              {confirmingDelivery ? "처리 중..." : "출고 확인"}
             </Button>
           </DialogFooter>
         </DialogContent>

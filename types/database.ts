@@ -139,6 +139,8 @@ export interface Database {
           dealer_fee: number;
           marketing_fee: number;
           cancelled_at: string | null;
+          delivery_confirmed_at: string | null;
+          delivery_confirmed_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -147,6 +149,35 @@ export interface Database {
           "id" | "created_at" | "updated_at"
         >;
         Update: Partial<Database["public"]["Tables"]["sales"]["Insert"]>;
+        Relationships: [];
+      };
+      commissions: {
+        Row: {
+          id: string;
+          sale_id: string;
+          recipient_id: string;
+          recipient_role: "dealer" | "team_leader" | "director";
+          amount: number;
+          commission_type:
+            | "direct_sale"
+            | "team_leader_override"
+            | "director_override";
+          case_type:
+            | "1_db_dealer"
+            | "2_db_team_leader"
+            | "3_db_director"
+            | "4_personal_dealer"
+            | "5_personal_team_leader"
+            | "6_personal_director";
+          confirmed_at: string;
+        };
+        Insert: Omit<
+          Database["public"]["Tables"]["commissions"]["Row"],
+          "id" | "confirmed_at"
+        > & { id?: string; confirmed_at?: string };
+        Update: Partial<
+          Database["public"]["Tables"]["commissions"]["Insert"]
+        >;
         Relationships: [];
       };
       delivery_checklists: {
