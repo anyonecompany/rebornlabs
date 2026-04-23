@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiFetch } from "@/src/lib/api-client";
+import { useUserRole } from "@/src/lib/use-user-role";
+import CommissionsTab from "@/src/components/settlements/commissions-tab";
 
 // ---------------------------------------------------------------------------
 // 유틸
@@ -365,11 +367,18 @@ function MarketingSettlementTab() {
 // ---------------------------------------------------------------------------
 
 export default function SettlementsPage() {
+  const { role: userRole } = useUserRole();
   const [summary, setSummary] = useState<SettlementSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
-  // 이번 달 요약 로드
+  const isPrivileged = userRole === "admin" || userRole === "staff";
+
+  // admin/staff 전용: 판매액 기반 월 요약(sales 테이블)
   useEffect(() => {
+    if (!isPrivileged) {
+      setSummaryLoading(false);
+      return;
+    }
     const month = new Date().toISOString().slice(0, 7); // YYYY-MM
     apiFetch(`/api/settlements/summary?month=${month}`)
       .then(async (res) => {
@@ -379,32 +388,58 @@ export default function SettlementsPage() {
       })
       .catch(() => null)
       .finally(() => setSummaryLoading(false));
-  }, []);
+  }, [isPrivileged]);
+
+  if (!userRole) {
+    return (
+      <div>
+        <PageHeader
+          title="정산 관리"
+          description="수당 배분 및 정산 현황을 확인합니다."
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
         title="정산 관리"
-        description="딜러 수당 및 마케팅 수수료 정산 현황을 확인합니다."
+        description="수당 배분 및 정산 현황을 확인합니다."
       />
 
-      {/* 월별 요약 카드 */}
-      <SummaryCards summary={summary} loading={summaryLoading} />
+      {/* admin/staff: 전체 판매 요약 카드 (sales 기반) */}
+      {isPrivileged && (
+        <SummaryCards summary={summary} loading={summaryLoading} />
+      )}
 
-      {/* 탭 */}
-      <Tabs defaultValue="dealers">
+      {/* 탭: 수당 배분(전원) + 딜러/마케팅(admin/staff) */}
+      <Tabs defaultValue="commissions">
         <TabsList className="mb-4">
-          <TabsTrigger value="dealers">딜러 정산</TabsTrigger>
-          <TabsTrigger value="marketing">마케팅업체 정산</TabsTrigger>
+          <TabsTrigger value="commissions">수당 배분</TabsTrigger>
+          {isPrivileged && (
+            <TabsTrigger value="dealers">딜러 정산</TabsTrigger>
+          )}
+          {isPrivileged && (
+            <TabsTrigger value="marketing">마케팅업체 정산</TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="dealers">
-          <DealerSettlementTab />
+        <TabsContent value="commissions">
+          <CommissionsTab userRole={userRole} />
         </TabsContent>
 
-        <TabsContent value="marketing">
-          <MarketingSettlementTab />
-        </TabsContent>
+        {isPrivileged && (
+          <TabsContent value="dealers">
+            <DealerSettlementTab />
+          </TabsContent>
+        )}
+
+        {isPrivileged && (
+          <TabsContent value="marketing">
+            <MarketingSettlementTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
