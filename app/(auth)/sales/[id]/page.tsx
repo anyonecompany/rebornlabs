@@ -209,6 +209,10 @@ export default function SaleDetailPage() {
   const [contractLoading, setContractLoading] = useState(false);
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [sendingContract, setSendingContract] = useState(false);
+  // signed URL 은 JWT exp 로 만료되므로 DB 값을 그대로 쓰지 않고
+  // 페이지 진입 시점과 다운로드 클릭 시점에 매번 새로 발급받는다.
+  const [freshSignatureUrl, setFreshSignatureUrl] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // 전자 계약서 생성 폼
   const [contractForm, setContractForm] = useState({
@@ -278,6 +282,56 @@ export default function SaleDetailPage() {
   useEffect(() => {
     fetchElectronicContract();
   }, [fetchElectronicContract]);
+
+  // 서명 이미지 fresh signed URL — signed 계약서만
+  useEffect(() => {
+    if (
+      !electronicContract ||
+      electronicContract.status !== "signed" ||
+      !electronicContract.signature_url
+    ) {
+      setFreshSignatureUrl(null);
+      return;
+    }
+    const contractId = electronicContract.id;
+    apiFetch(`/api/contracts/${contractId}/signature-url`)
+      .then(async (res) => {
+        if (!res.ok) {
+          setFreshSignatureUrl(null);
+          return;
+        }
+        const d = await res.json();
+        setFreshSignatureUrl(d.url ?? null);
+      })
+      .catch(() => setFreshSignatureUrl(null));
+  }, [
+    electronicContract,
+  ]);
+
+  // PDF 다운로드 — 클릭 시점에 fresh signed URL 발급
+  const handleDownloadPdf = useCallback(async () => {
+    if (!electronicContract) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await apiFetch(
+        `/api/contracts/${electronicContract.id}/pdf-url`,
+      );
+      const d = await res.json();
+      if (!res.ok) {
+        toast.error(d.error ?? "다운로드 링크 생성에 실패했습니다.");
+        return;
+      }
+      if (!d.url) {
+        toast.error("다운로드 URL을 받을 수 없습니다.");
+        return;
+      }
+      window.open(d.url as string, "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("다운로드 중 오류가 발생했습니다.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }, [electronicContract]);
 
   // 전자 계약서 생성 폼 초기값: 상담 정보 + 차량 정보에서 자동 입력
   useEffect(() => {
@@ -898,34 +952,38 @@ export default function SaleDetailPage() {
                   )}
                 </div>
 
-                {/* 서명 이미지 미리보기 */}
+                {/* 서명 이미지 미리보기 — fresh signed URL 만 사용 (DB 저장본은 만료 위험) */}
                 {electronicContract.signature_url && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">서명</p>
                     <div className="max-w-xs rounded-lg overflow-hidden border border-border bg-muted/30 p-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={electronicContract.signature_url}
-                        alt="고객 서명"
-                        className="h-16 object-contain"
-                      />
+                      {freshSignatureUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={freshSignatureUrl}
+                          alt="고객 서명"
+                          className="h-16 object-contain"
+                        />
+                      ) : (
+                        <div className="h-16 flex items-center justify-center text-xs text-muted-foreground">
+                          서명 이미지 불러오는 중...
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* PDF 다운로드 / 재생성 */}
+                {/* PDF 다운로드 / 재생성 — 클릭 시점 fresh signed URL 발급 */}
                 {electronicContract.pdf_url ? (
-                  <a
-                    href={electronicContract.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download="계약서.pdf"
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDownloadPdf}
+                    disabled={downloadingPdf}
                   >
-                    <Button size="sm" variant="outline">
-                      <Download className="h-4 w-4 mr-1.5" />
-                      계약서 PDF 다운로드
-                    </Button>
-                  </a>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    {downloadingPdf ? "준비 중..." : "계약서 PDF 다운로드"}
+                  </Button>
                 ) : (
                   <Button
                     size="sm"
