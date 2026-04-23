@@ -45,11 +45,14 @@ export async function DELETE(
       );
     }
 
-    // 스토리지 경로 추출: URL에서 버킷 이후 경로 파싱
+    // 스토리지 경로 추출: URL에서 버킷 이후 경로 파싱.
+    // 쓰기 경로(documents/route.ts:207)는 sign URL을 저장하므로 sign/public 둘 다 매칭.
     const storagePathMatch = existing.file_url.match(
-      /\/storage\/v1\/object\/public\/documents\/(.+)$/,
+      /\/object\/(?:sign|public)\/documents\/([^?]+)/,
     );
-    const storagePath = storagePathMatch?.[1] ?? null;
+    const storagePath = storagePathMatch?.[1]
+      ? decodeURIComponent(storagePathMatch[1])
+      : null;
 
     // 테이블에서 삭제
     const { error: deleteError } = await serviceClient
