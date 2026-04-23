@@ -326,6 +326,25 @@ export default function DocumentsPage() {
     }
   };
 
+  // 다운로드 — file_url 은 만료 가능한 signed URL 이므로 클릭 시점에 새로 발급.
+  const handleDownload = useCallback(async (docId: string) => {
+    try {
+      const res = await apiFetch(`/api/documents/${docId}/file-url`);
+      const d = await res.json();
+      if (!res.ok) {
+        toast.error(d.error ?? "다운로드 링크 생성에 실패했습니다.");
+        return;
+      }
+      if (!d.url) {
+        toast.error("다운로드 URL을 받을 수 없습니다.");
+        return;
+      }
+      window.open(d.url as string, "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("다운로드 중 오류가 발생했습니다.");
+    }
+  }, []);
+
   const isAdmin = userRole === "admin";
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
@@ -359,19 +378,21 @@ export default function DocumentsPage() {
       render: (v: unknown) => formatDate(v as string),
     },
     {
-      key: "file_url",
+      key: "id",
       header: "다운로드",
-      render: (v: unknown) => (
-        <a
-          href={v as string}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
+      render: (_v: unknown, row: Record<string, unknown>) => (
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload(row.id as string);
+          }}
+          aria-label="다운로드"
         >
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <Download className="h-3.5 w-3.5" />
-          </Button>
-        </a>
+          <Download className="h-3.5 w-3.5" />
+        </Button>
       ),
     },
     ...(isAdmin
