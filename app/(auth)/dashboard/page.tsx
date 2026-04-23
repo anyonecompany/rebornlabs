@@ -379,9 +379,11 @@ export default function DashboardPage() {
           const recentRes = await apiFetch("/api/dashboard/recent");
           if (recentRes.ok) {
             const d = await recentRes.json();
+            // API 계약: { recentConsultations, recentSales }.
+            // 과거 키(consultations/sales) 폴백 유지 — 다른 소비자 회귀 방지용.
             setRecent({
-              consultations: d.consultations ?? [],
-              sales: d.sales ?? [],
+              consultations: d.recentConsultations ?? d.consultations ?? [],
+              sales: d.recentSales ?? d.sales ?? [],
             });
           }
         } else {
