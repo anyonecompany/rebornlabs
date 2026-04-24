@@ -41,22 +41,24 @@ interface NavItem {
   icon: React.ElementType;
   /** true 면 새 탭으로 열고 외부 링크 아이콘 표시. (예: 고객 시점 공개 페이지) */
   external?: boolean;
+  /** 메뉴 그룹 — 같은 group 끼리 모이고 첫 항목 위에 헤더 라벨 표시. */
+  group?: string;
 }
 
 const ADMIN_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
-  { label: "차량 관리", href: "/vehicles", icon: Car },
-  { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
-  { label: "상담 관리", href: "/consultations", icon: MessageSquare },
-  { label: "판매 관리", href: "/sales", icon: CreditCard },
-  { label: "견적서 관리", href: "/quotes", icon: FileText },
-  { label: "정산", href: "/settlements", icon: Calculator },
-  { label: "지출결의", href: "/expenses", icon: Receipt },
-  { label: "문서함", href: "/documents", icon: FolderOpen },
-  { label: "사용자 관리", href: "/users", icon: Users },
-  { label: "조직 관리", href: "/team-structure", icon: Network },
-  { label: "감사 로그", href: "/audit-logs", icon: Shield },
+  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
+  { label: "차량 관리", href: "/vehicles", icon: Car, group: "운영" },
+  { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd, group: "운영" },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
+  { label: "상담 관리", href: "/consultations", icon: MessageSquare, group: "영업" },
+  { label: "판매 관리", href: "/sales", icon: CreditCard, group: "영업" },
+  { label: "견적서 관리", href: "/quotes", icon: FileText, group: "영업" },
+  { label: "정산", href: "/settlements", icon: Calculator, group: "재무" },
+  { label: "지출결의", href: "/expenses", icon: Receipt, group: "재무" },
+  { label: "문서함", href: "/documents", icon: FolderOpen, group: "재무" },
+  { label: "사용자 관리", href: "/users", icon: Users, group: "관리" },
+  { label: "조직 관리", href: "/team-structure", icon: Network, group: "관리" },
+  { label: "감사 로그", href: "/audit-logs", icon: Shield, group: "관리" },
 ];
 
 const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
@@ -68,22 +70,22 @@ const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
 
 // director / team_leader — 조직 데이터 + 정산 조회. 경영 전용 기능(지출/문서/사용자/조직/감사/차량모델) 제외.
 const MANAGER_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
-  { label: "차량 관리", href: "/vehicles", icon: Car },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
-  { label: "상담 관리", href: "/consultations", icon: MessageSquare },
-  { label: "판매 관리", href: "/sales", icon: CreditCard },
-  { label: "견적서 관리", href: "/quotes", icon: FileText },
-  { label: "정산", href: "/settlements", icon: Calculator },
+  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
+  { label: "차량 관리", href: "/vehicles", icon: Car, group: "운영" },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
+  { label: "상담 관리", href: "/consultations", icon: MessageSquare, group: "영업" },
+  { label: "판매 관리", href: "/sales", icon: CreditCard, group: "영업" },
+  { label: "견적서 관리", href: "/quotes", icon: FileText, group: "영업" },
+  { label: "정산", href: "/settlements", icon: Calculator, group: "재무" },
 ];
 
 const DEALER_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
-  { label: "차량 목록", href: "/vehicles", icon: Car },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
-  { label: "내 상담", href: "/consultations", icon: MessageSquare },
-  { label: "내 판매", href: "/sales", icon: CreditCard },
-  { label: "내 견적서", href: "/quotes", icon: FileText },
+  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
+  { label: "차량 목록", href: "/vehicles", icon: Car, group: "운영" },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
+  { label: "내 상담", href: "/consultations", icon: MessageSquare, group: "영업" },
+  { label: "내 판매", href: "/sales", icon: CreditCard, group: "영업" },
+  { label: "내 견적서", href: "/quotes", icon: FileText, group: "영업" },
 ];
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -112,50 +114,76 @@ interface NavListProps {
   onNavigate?: () => void;
 }
 
-function NavList({ items, currentPath, onNavigate }: NavListProps) {
+function renderNavItem(
+  item: NavItem,
+  currentPath: string,
+  onNavigate?: () => void,
+) {
+  const Icon = item.icon;
+
+  // 외부/새 탭 링크
+  if (item.external) {
+    return (
+      <a
+        key={item.href}
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onNavigate}
+        className="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent"
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        <span className="flex-1">{item.label}</span>
+        <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
+      </a>
+    );
+  }
+
+  const isActive =
+    currentPath === item.href || currentPath.startsWith(item.href + "/");
   return (
-    <nav className="flex-1 px-2 py-2 space-y-0.5">
-      {items.map((item) => {
-        const Icon = item.icon;
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={onNavigate}
+      className={[
+        "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+        isActive
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-primary"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent",
+      ].join(" ")}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {item.label}
+    </Link>
+  );
+}
 
-        // 외부/새 탭 링크 — 고객 시점 공개 페이지 등.
-        // 어드민 라우트와 시각적으로 구분되도록 우측에 ExternalLink 아이콘 표시.
-        if (item.external) {
-          return (
-            <a
-              key={item.href}
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onNavigate}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent"
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
-            </a>
-          );
-        }
+function NavList({ items, currentPath, onNavigate }: NavListProps) {
+  // group 별로 묶어 헤더 + 항목 렌더. group 미지정 항목은 그룹 헤더 없이 평평하게.
+  const groups: { name: string | null; items: NavItem[] }[] = [];
+  for (const item of items) {
+    const groupName = item.group ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.name === groupName) {
+      last.items.push(item);
+    } else {
+      groups.push({ name: groupName, items: [item] });
+    }
+  }
 
-        const isActive =
-          currentPath === item.href || currentPath.startsWith(item.href + "/");
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={[
-              "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-              isActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[3px] border-primary"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent",
-            ].join(" ")}
-          >
-            <Icon className="w-4 h-4 shrink-0" />
-            {item.label}
-          </Link>
-        );
-      })}
+  return (
+    <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto">
+      {groups.map((g, idx) => (
+        <div key={g.name ?? `__${idx}`} className="space-y-0.5">
+          {g.name && (
+            <p className="px-3 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+              {g.name}
+            </p>
+          )}
+          {g.items.map((item) => renderNavItem(item, currentPath, onNavigate))}
+        </div>
+      ))}
     </nav>
   );
 }
