@@ -173,7 +173,10 @@ export default function VehiclesPage() {
 
   return (
     <div>
-      <PageHeader title="차량 관리">
+      <PageHeader
+        title="차량 관리"
+        description="재고 차량 등록·상태 관리. 그리드/리스트 뷰로 전환 가능합니다."
+      >
         {isPrivileged && (
           <Button onClick={() => router.push("/vehicles/new")}>
             <Plus className="h-4 w-4 mr-2" />

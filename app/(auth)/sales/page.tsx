@@ -195,7 +195,10 @@ export default function SalesPage() {
 
   return (
     <div>
-      <PageHeader title="판매 관리">
+      <PageHeader
+        title="판매 관리"
+        description="판매 등록·취소·계약서 발급 현황을 관리합니다."
+      >
         <Button onClick={() => router.push("/sales/new")}>
           <Plus className="h-4 w-4 mr-2" />
           직접 판매 등록

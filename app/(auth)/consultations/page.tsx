@@ -131,7 +131,10 @@ export default function ConsultationsPage() {
 
   return (
     <div>
-      <PageHeader title="상담 관리" />
+      <PageHeader
+        title="상담 관리"
+        description="접수된 상담을 조회·검색하고 딜러에게 배정합니다."
+      />
 
       {/* 검색 + 필터 */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">

@@ -412,7 +412,10 @@ export default function DocumentsPage() {
 
   return (
     <div>
-      <PageHeader title="공통 문서함">
+      <PageHeader
+        title="공통 문서함"
+        description="회사 공용 문서·계약서를 카테고리별로 보관·다운로드합니다."
+      >
         {isPrivileged && (
           <Button onClick={() => setUploadOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />

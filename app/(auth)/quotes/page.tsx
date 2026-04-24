@@ -122,7 +122,10 @@ export default function QuotesPage() {
 
   return (
     <div>
-      <PageHeader title={title} />
+      <PageHeader
+        title={title}
+        description="발급된 견적서를 조회하고 고객에게 전달할 공유 링크를 관리합니다."
+      />
 
       {/* 탭 + 검색 */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">

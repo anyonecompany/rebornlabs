@@ -718,7 +718,10 @@ export default function UsersPage() {
 
   return (
     <div>
-      <PageHeader title="사용자 관리">
+      <PageHeader
+        title="사용자 관리"
+        description="팀원 초대·역할·활성 상태를 관리하고, 마케팅 업체별 공유 링크를 발급합니다."
+      >
         <Button onClick={() => setInviteOpen(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
           사용자 초대

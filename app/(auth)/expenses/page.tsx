@@ -626,7 +626,10 @@ export default function ExpensesPage() {
 
   return (
     <div>
-      <PageHeader title="지출결의">
+      <PageHeader
+        title="지출결의"
+        description="직원·딜러의 업무 비용을 영수증 첨부와 함께 등록·관리합니다."
+      >
         {isPrivileged && (
           <Button onClick={() => setRegisterOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
