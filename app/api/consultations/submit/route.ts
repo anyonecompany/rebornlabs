@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { resolveCompanyName } from "@/src/lib/source-ref";
+import { isRefCode, resolveCompanyName } from "@/src/lib/source-ref";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
@@ -156,22 +156,39 @@ export async function POST(request: NextRequest) {
   }
 
   // 5-1. ref → 마케팅업체 자동 매칭
-  // source_ref 별칭(예: 'ig' → '인스타그램')을 resolveCompanyName으로 변환 후 조회.
-  // 별칭 매핑에 없으면 원본 값으로 기존 업체명 직접 매칭.
+  // 우선순위:
+  //   1) ref 가 6자 영숫자(/^[a-f0-9]{6}$/)면 marketing_companies.ref_code 로 조회 (신규 표준)
+  //   2) 그 외에는 별칭(SOURCE_REF_TO_COMPANY: ig→인스타그램 등) 또는 원본명으로 marketing_companies.name 직접 매칭 (기존 한글 ref 호환)
+  // 어느 경로든 실패하면 marketing_company 미기록 (consultations.source_ref 원본은 이미 저장됨).
   if (ref && consultationId) {
     const decoded = decodeURIComponent(ref);
-    const companyName = resolveCompanyName(decoded);
-    const { data: mc } = await serviceClient
-      .from("marketing_companies")
-      .select("name")
-      .eq("name", companyName)
-      .eq("is_active", true)
-      .single();
+    let matchedName: string | null = null;
 
-    if (mc) {
+    if (isRefCode(decoded)) {
+      const { data: mc } = await serviceClient
+        .from("marketing_companies")
+        .select("name")
+        .eq("ref_code", decoded.toLowerCase())
+        .eq("is_active", true)
+        .maybeSingle();
+      matchedName = mc?.name ?? null;
+    }
+
+    if (!matchedName) {
+      const companyName = resolveCompanyName(decoded);
+      const { data: mc } = await serviceClient
+        .from("marketing_companies")
+        .select("name")
+        .eq("name", companyName)
+        .eq("is_active", true)
+        .maybeSingle();
+      matchedName = mc?.name ?? null;
+    }
+
+    if (matchedName) {
       await serviceClient
         .from("consultations")
-        .update({ marketing_company: mc.name })
+        .update({ marketing_company: matchedName })
         .eq("id", consultationId);
     }
   }

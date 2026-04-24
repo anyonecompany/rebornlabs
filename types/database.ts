@@ -267,12 +267,13 @@ export interface Database {
           id: string;
           name: string;
           is_active: boolean;
+          ref_code: string;
           created_at: string;
         };
         Insert: Omit<
           Database["public"]["Tables"]["marketing_companies"]["Row"],
-          "id" | "created_at"
-        >;
+          "id" | "created_at" | "ref_code"
+        > & { ref_code?: string };
         Update: Partial<Database["public"]["Tables"]["marketing_companies"]["Insert"]>;
         Relationships: [];
       };

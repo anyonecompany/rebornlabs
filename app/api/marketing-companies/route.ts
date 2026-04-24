@@ -1,6 +1,17 @@
+import crypto from "crypto";
+
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+
+/**
+ * 6자 영숫자 랜덤 ref_code 생성.
+ * crypto.randomBytes(3) = 3바이트 = hex 6자 (소문자) → /^[a-f0-9]{6}$/.
+ * 36^6 ≈ 22억 조합. SNS 노출 후에도 다른 코드 추측 불가능 수준.
+ */
+function generateRefCode(): string {
+  return crypto.randomBytes(3).toString("hex");
+}
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -26,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     let query = serviceClient
       .from("marketing_companies")
-      .select("id, name, is_active, created_at")
+      .select("id, name, is_active, ref_code, created_at")
       .order("name", { ascending: true });
 
     if (isActiveParam === "true") {
@@ -95,20 +106,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await serviceClient
-      .from("marketing_companies")
-      .insert({ name, is_active: true })
-      .select("id, name, is_active, created_at")
-      .single();
+    // 6자 ref_code 자동 생성. UNIQUE 충돌 시 1회 재시도.
+    let refCode = generateRefCode();
+    let inserted: {
+      id: string;
+      name: string;
+      is_active: boolean;
+      ref_code: string;
+      created_at: string;
+    } | null = null;
+    let lastErr: { message: string } | null = null;
 
-    if (error || !data) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await serviceClient
+        .from("marketing_companies")
+        .insert({ name, is_active: true, ref_code: refCode })
+        .select("id, name, is_active, ref_code, created_at")
+        .single();
+
+      if (data) {
+        inserted = data;
+        break;
+      }
+      lastErr = error;
+      // PostgreSQL UNIQUE 위반 코드: 23505. ref_code 충돌이면 새로 뽑아 재시도.
+      if (error && (error as { code?: string }).code === "23505") {
+        refCode = generateRefCode();
+        continue;
+      }
+      break;
+    }
+
+    if (!inserted) {
       return NextResponse.json(
-        { error: "업체 등록에 실패했습니다." },
+        {
+          error: "업체 등록에 실패했습니다.",
+          detail: lastErr?.message ?? undefined,
+        },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ data }, { status: 201 });
+    return NextResponse.json({ data: inserted }, { status: 201 });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

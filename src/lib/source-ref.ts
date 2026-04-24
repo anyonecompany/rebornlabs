@@ -50,6 +50,17 @@ export function resolveCompanyName(sourceRef: string): string {
 }
 
 /**
+ * 신규 발급 ref_code 형식 (6자 영숫자) 여부 판정.
+ * /api/marketing-companies POST 의 generateRefCode() 와 동일 규약.
+ *
+ * - 매칭: a8k2f7, 0d4e9c 등
+ * - 비매칭: "인스타그램"(한글), "ig"/"instagram"(별칭), "direct"(시스템값) 등 → 기존 폴백 사용
+ */
+export function isRefCode(value: string): boolean {
+  return /^[a-f0-9]{6}$/.test(value.trim().toLowerCase());
+}
+
+/**
  * 유입경로 값을 화면 표시용 라벨로 변환합니다.
  *
  * - null/undefined/빈 문자열 → "직접"

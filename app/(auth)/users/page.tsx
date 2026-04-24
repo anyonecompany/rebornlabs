@@ -60,6 +60,7 @@ interface MarketingCompanyRow {
   id: string;
   name: string;
   is_active: boolean;
+  ref_code: string;
   created_at: string;
 }
 
@@ -117,9 +118,10 @@ function MarketingCompaniesSection() {
     }
   }, []);
 
+  // ref_code(6자) 를 사용 — 외부에 한글 업체명 노출 차단.
   const buildUrl = useCallback(
-    (kind: LinkKind, companyName: string): string => {
-      const ref = encodeURIComponent(companyName);
+    (kind: LinkKind, refCode: string): string => {
+      const ref = encodeURIComponent(refCode);
       if (kind === "landing") return `${LANDING_URL}?ref=${ref}`;
       if (kind === "cars") return `${origin}/cars?ref=${ref}`;
       return `${origin}/apply?ref=${ref}`;
@@ -131,7 +133,7 @@ function MarketingCompaniesSection() {
     async (kind: LinkKind, company: MarketingCompanyRow) => {
       const meta = LINK_KINDS.find((k) => k.key === kind);
       if (!meta) return;
-      const url = buildUrl(kind, company.name);
+      const url = buildUrl(kind, company.ref_code);
       try {
         await navigator.clipboard.writeText(url);
         setCopiedKey(`${company.id}:${kind}`);
@@ -146,7 +148,7 @@ function MarketingCompaniesSection() {
 
   const handleOpen = useCallback(
     (kind: LinkKind, company: MarketingCompanyRow) => {
-      const url = buildUrl(kind, company.name);
+      const url = buildUrl(kind, company.ref_code);
       if (url) window.open(url, "_blank", "noopener,noreferrer");
     },
     [buildUrl],
@@ -230,8 +232,9 @@ function MarketingCompaniesSection() {
           <div>
             <CardTitle className="text-base">마케팅 업체 · 공유 링크</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              SNS·광고용 업체를 등록하고 업체별 공유 URL 을 생성합니다. 고객이 이
-              링크로 상담 신청하면 어느 업체에서 왔는지 자동으로 기록됩니다.
+              SNS·광고용 업체를 등록하고 업체별 공유 URL 을 생성합니다. URL 에는
+              업체명 대신 6자 랜덤 코드만 노출되고, 매핑은 어드민에서만 보입니다.
+              고객이 이 링크로 상담 신청하면 어느 업체에서 왔는지 자동 기록됩니다.
             </p>
           </div>
           {!loading && companies.length > 0 && (
@@ -308,8 +311,11 @@ function MarketingCompaniesSection() {
                   >
                     <td className="px-4 py-3 align-middle">
                       <div className="font-medium">{company.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ref = {company.name}
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className="font-mono">코드:</span>
+                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                          {company.ref_code}
+                        </code>
                       </div>
                     </td>
                     <td className="px-4 py-3 align-middle">
