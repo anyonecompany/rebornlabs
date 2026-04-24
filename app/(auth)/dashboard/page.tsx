@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { formatKRW, formatRelativeTime } from "@/src/lib/format";
@@ -159,9 +160,7 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             {recent.consultations.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                최근 상담이 없습니다.
-              </p>
+              <EmptyState compact icon={MessageSquare} title="최근 상담이 없습니다" />
             ) : (
               recent.consultations.map((c) => (
                 <button
@@ -198,9 +197,7 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             {recent.sales.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                최근 판매가 없습니다.
-              </p>
+              <EmptyState compact icon={TrendingUp} title="최근 판매가 없습니다" />
             ) : (
               recent.sales.map((s) => (
                 <button
@@ -291,9 +288,7 @@ function DealerDashboard({ stats, consultations }: DealerDashboardProps) {
         </CardHeader>
         <CardContent className="space-y-2">
           {consultations.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              배정된 상담이 없습니다.
-            </p>
+            <EmptyState compact icon={MessageSquare} title="배정된 상담이 없습니다" />
           ) : (
             consultations.map((c) => (
               <button
