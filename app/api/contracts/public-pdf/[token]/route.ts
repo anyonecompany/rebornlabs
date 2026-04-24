@@ -85,6 +85,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
 
   // 비차단 access 기록 (실패해도 다운로드는 진행).
+  // 단, 감사 누락이 보안상 blind spot 이므로 실패 사유는 반드시 로그로 남긴다.
   void (async () => {
     try {
       await serviceClient.from("audit_logs").insert({
@@ -94,8 +95,12 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         target_id: contract.id,
         metadata: { token_prefix: token.slice(0, 8) },
       });
-    } catch {
-      // 감사 로그 실패는 삼킨다
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[public-pdf] audit_logs insert 실패 contract=${contract.id} prefix=${token.slice(0, 8)}:`,
+        message,
+      );
     }
   })();
 

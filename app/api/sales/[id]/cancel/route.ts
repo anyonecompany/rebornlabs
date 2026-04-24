@@ -86,8 +86,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     if (rpcError) {
+      // DB 원문 메시지는 로그에만 — 클라이언트엔 일반 메시지로 마스킹.
+      console.error(
+        `[sales/${saleId}/cancel] cancel_sale RPC 실패:`,
+        rpcError.message,
+      );
       return NextResponse.json(
-        { error: rpcError.message },
+        { error: "판매 취소 처리 중 오류가 발생했습니다." },
         { status: 400 },
       );
     }

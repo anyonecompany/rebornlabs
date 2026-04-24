@@ -112,9 +112,15 @@ export async function GET(request: NextRequest) {
       .order("confirmed_at", { ascending: false });
 
     if (commErr) {
+      // authedClient 경로는 RLS 가 권한 경계이므로, 에러는 대부분 토큰/정책 문제.
+      // fail-closed 로 403 반환 — 이후 enrich 단계로 넘어가 service_role 로 추가 노출되는 것을 방지.
+      console.error(
+        "[settlements/commissions] authed commissions 쿼리 실패:",
+        commErr.message,
+      );
       return NextResponse.json(
-        { error: "수당 데이터를 불러오지 못했습니다." },
-        { status: 500 },
+        { error: "수당 데이터 접근 권한이 없습니다." },
+        { status: 403 },
       );
     }
 
