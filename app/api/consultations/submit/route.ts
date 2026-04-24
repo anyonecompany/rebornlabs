@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { resolveCompanyName } from "@/src/lib/source-ref";
+import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -175,15 +176,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 6. GAS 병렬 호출 (fire-and-forget)
-  const gasUrl = process.env.GAS_WEBHOOK_URL;
-  if (gasUrl) {
-    fetch(gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, vehicle, message, ref }),
-    }).catch(() => {});
-  }
+  // 6. GAS 병렬 호출 (fire-and-forget, Bearer 인증 + 5s 타임아웃)
+  voidGasWebhook(
+    { name, phone, vehicle, message, ref },
+    { label: "consultations/submit" },
+  );
 
   return corsJson({ message: "상담 접수가 완료되었습니다." });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 // ─── CORS 헬퍼 ────────────────────────────────────────────────
 
@@ -277,58 +278,43 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // GAS 웹훅 — 딜러/경영진 알림 + 고객 완료 이메일 (fire-and-forget)
-    const gasWebhookUrl = process.env.GAS_WEBHOOK_URL;
-    console.log("[contract-sign] GAS_WEBHOOK_URL:", gasWebhookUrl ? "설정됨" : "미설정");
-    if (gasWebhookUrl) {
-      // 딜러/경영진 알림
-      fetch(gasWebhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "contract_signed",
+    // GAS 웹훅 — 딜러/경영진 알림 + 고객 완료 이메일 (fire-and-forget, Bearer + 5s 타임아웃)
+    // 딜러/경영진 알림
+    voidGasWebhook(
+      {
+        action: "contract_signed",
+        customerName: contract.customer_name,
+        vehicleInfo: contract.vehicle_info,
+        contractId: contract.id,
+      },
+      { label: "contract-sign/dealer" },
+    );
+
+    // 고객에게 완료 이메일
+    const { data: fullContract } = await serviceClient
+      .from("contracts")
+      .select("customer_email")
+      .eq("id", contract.id)
+      .single();
+
+    if (fullContract?.customer_email) {
+      // 고객 이메일에는 영구 중계 URL 을 박는다 (클릭 시점 fresh signed URL 로 리디렉트).
+      // Supabase signed URL 직접 삽입은 24h 뒤 JWT exp 만료로 고객 대면 장애 유발.
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ??
+        "https://rebornlabs-admin.vercel.app";
+      const customerPdfUrl = `${appUrl}/api/contracts/public-pdf/${token}`;
+
+      voidGasWebhook(
+        {
+          action: "contract_complete_customer",
+          email: fullContract.customer_email,
           customerName: contract.customer_name,
           vehicleInfo: contract.vehicle_info,
-          contractId: contract.id,
-        }),
-      }).then(r => console.log("[contract-sign] GAS 딜러알림:", r.status))
-        .catch(e => console.error("[contract-sign] GAS 딜러알림 실패:", e.message));
-
-      // 고객에게 완료 이메일
-      // customer_email 조회
-      const { data: fullContract } = await serviceClient
-        .from("contracts")
-        .select("customer_email")
-        .eq("id", contract.id)
-        .single();
-
-      if (fullContract?.customer_email) {
-        // 고객 이메일에는 영구 중계 URL 을 박는다 (클릭 시점 fresh signed URL 로 리디렉트).
-        // Supabase signed URL 직접 삽입은 24h 뒤 JWT exp 만료로 고객 대면 장애 유발.
-        const appUrl =
-          process.env.NEXT_PUBLIC_APP_URL ??
-          "https://rebornlabs-admin.vercel.app";
-        const customerPdfUrl = `${appUrl}/api/contracts/public-pdf/${token}`;
-
-        console.log(
-          "[contract-sign] 고객 이메일 발송:",
-          fullContract.customer_email,
-          "pdfUrl:",
-          customerPdfUrl,
-        );
-        fetch(gasWebhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "contract_complete_customer",
-            email: fullContract.customer_email,
-            customerName: contract.customer_name,
-            vehicleInfo: contract.vehicle_info,
-            pdfUrl: customerPdfUrl,
-          }),
-        }).then(r => console.log("[contract-sign] GAS 고객이메일:", r.status))
-          .catch(e => console.error("[contract-sign] GAS 고객이메일 실패:", e.message));
-      }
+          pdfUrl: customerPdfUrl,
+        },
+        { label: "contract-sign/customer" },
+      );
     }
 
     return corsResponse({ message: "서명이 완료되었습니다." });

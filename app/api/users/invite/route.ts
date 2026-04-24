@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { AuthError, requireRole, verifyUser } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
+import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 interface InviteRequest {
   email: string;
@@ -123,31 +124,27 @@ export async function POST(request: NextRequest) {
     metadata: { email, name, role },
   });
 
-  // GAS로 초대 이메일 발송 (fire-and-forget)
-  const gasUrl = process.env.GAS_WEBHOOK_URL;
-  if (gasUrl) {
-    const ROLE_LABELS: Record<string, string> = {
-      admin: "경영진",
-      director: "본부장",
-      team_leader: "팀장",
-      staff: "직원",
-      dealer: "딜러",
-    };
-    fetch(gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "invite_user",
-        email,
-        name,
-        role: ROLE_LABELS[role] ?? role,
-        tempPassword: temporaryPassword,
-        loginUrl: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
-          : "https://rebornlabs-admin.vercel.app/login",
-      }),
-    }).catch(() => {});
-  }
+  // GAS로 초대 이메일 발송 (fire-and-forget, Bearer 인증 + 5s 타임아웃)
+  const ROLE_LABELS: Record<string, string> = {
+    admin: "경영진",
+    director: "본부장",
+    team_leader: "팀장",
+    staff: "직원",
+    dealer: "딜러",
+  };
+  voidGasWebhook(
+    {
+      action: "invite_user",
+      email,
+      name,
+      role: ROLE_LABELS[role] ?? role,
+      tempPassword: temporaryPassword,
+      loginUrl: process.env.NEXT_PUBLIC_APP_URL
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
+        : "https://rebornlabs-admin.vercel.app/login",
+    },
+    { label: "users/invite" },
+  );
 
   return NextResponse.json({
     user: { id: authData.user.id, email, name, role },
