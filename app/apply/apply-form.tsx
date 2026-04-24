@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Check } from "lucide-react";
 
 interface UtmState {
   source: string;
@@ -242,15 +243,21 @@ export default function ApplyForm() {
         />
       </Field>
 
-      {/* 개인정보 동의 */}
+      {/* 개인정보 동의 — 체크 시 ✓ 마크 표시 (배경색만 채우던 기존 UI 개선) */}
       <label className="mt-1 flex cursor-pointer items-start gap-3 text-sm text-[#c8bfa8]/80">
-        <input
-          type="checkbox"
-          checked={agreed}
-          onChange={(e) => setAgreed(e.target.checked)}
-          className="mt-[3px] h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-sm border border-[#c8bfa8]/40 bg-transparent checked:border-[#c8bfa8] checked:bg-[#c8bfa8]"
-          aria-label="개인정보 수집·이용 동의"
-        />
+        <span className="relative mt-[3px] inline-flex h-4 w-4 shrink-0 items-center justify-center">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-sm border border-[#c8bfa8]/40 bg-transparent checked:border-[#c8bfa8] checked:bg-[#c8bfa8]"
+            aria-label="개인정보 수집·이용 동의"
+          />
+          <Check
+            className="pointer-events-none relative h-3 w-3 text-[#0a0a0a] opacity-0 peer-checked:opacity-100"
+            strokeWidth={3}
+          />
+        </span>
         <span className="leading-relaxed">
           <span className="text-[#c8bfa8]">[필수]</span> 개인정보 수집·이용에
           동의합니다.{" "}
