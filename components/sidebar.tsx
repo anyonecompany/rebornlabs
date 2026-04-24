@@ -18,6 +18,8 @@ import {
   FileText,
   Network,
   GalleryVerticalEnd,
+  Tag,
+  ExternalLink,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,12 +39,15 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  /** true 면 새 탭으로 열고 외부 링크 아이콘 표시. (예: 고객 시점 공개 페이지) */
+  external?: boolean;
 }
 
 const ADMIN_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
   { label: "차량 관리", href: "/vehicles", icon: Car },
   { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
   { label: "상담 관리", href: "/consultations", icon: MessageSquare },
   { label: "판매 관리", href: "/sales", icon: CreditCard },
   { label: "견적서 관리", href: "/quotes", icon: FileText },
@@ -65,6 +70,7 @@ const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
 const MANAGER_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
   { label: "차량 관리", href: "/vehicles", icon: Car },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
   { label: "상담 관리", href: "/consultations", icon: MessageSquare },
   { label: "판매 관리", href: "/sales", icon: CreditCard },
   { label: "견적서 관리", href: "/quotes", icon: FileText },
@@ -74,6 +80,7 @@ const MANAGER_MENU: NavItem[] = [
 const DEALER_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard },
   { label: "차량 목록", href: "/vehicles", icon: Car },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true },
   { label: "내 상담", href: "/consultations", icon: MessageSquare },
   { label: "내 판매", href: "/sales", icon: CreditCard },
   { label: "내 견적서", href: "/quotes", icon: FileText },
@@ -109,9 +116,29 @@ function NavList({ items, currentPath, onNavigate }: NavListProps) {
   return (
     <nav className="flex-1 px-2 py-2 space-y-0.5">
       {items.map((item) => {
+        const Icon = item.icon;
+
+        // 외부/새 탭 링크 — 고객 시점 공개 페이지 등.
+        // 어드민 라우트와 시각적으로 구분되도록 우측에 ExternalLink 아이콘 표시.
+        if (item.external) {
+          return (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onNavigate}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border-l-[3px] border-transparent"
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{item.label}</span>
+              <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
+            </a>
+          );
+        }
+
         const isActive =
           currentPath === item.href || currentPath.startsWith(item.href + "/");
-        const Icon = item.icon;
         return (
           <Link
             key={item.href}
