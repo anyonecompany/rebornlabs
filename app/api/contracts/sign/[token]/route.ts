@@ -254,8 +254,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
           file_url: pdfUrl,
         })
         .then(({ error: docErr }) => {
-          if (docErr) console.error("[contract-sign] 문서함 연동 실패:", docErr.message);
-          else console.log("[contract-sign] 문서함 연동 완료:", docTitle);
+          if (docErr) {
+            console.error(
+              "[contract-sign] 문서함 연동 실패:",
+              docErr.message,
+            );
+          } else {
+            // docTitle 에 고객명 포함 → 프로덕션 로그에 PII 쌓이지 않도록 contract_id 만 남긴다.
+            console.log(
+              "[contract-sign] 문서함 연동 완료 contract=",
+              contract.id,
+            );
+          }
         });
     }
 

@@ -264,8 +264,7 @@ export default function SaleDetailPage() {
     try {
       const res = await apiFetch(`/api/contracts?sale_id=${id}`);
       if (!res.ok) {
-        const d = await res.json().catch(() => null);
-        console.log("[contracts] 조회 실패:", res.status, d?.error);
+        // 계약서는 선택 기능이므로 조용히 실패 처리. 로그는 남기지 않는다 (production 소음 방지).
         return;
       }
       const data = await res.json();
