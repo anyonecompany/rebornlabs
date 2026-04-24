@@ -46,14 +46,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // file_url 에서 documents 버킷 내부 path 추출.
+    // file_url 에서 버킷명 + 내부 path 추출.
+    // documents 테이블은 여러 버킷(documents/contracts/…)의 URL 을 저장하므로
+    // 버킷명을 하드코딩하지 않고 URL 에서 추출해 동적 바인딩한다.
     // sign/public 두 포맷 모두 허용 (운영 중 혼재 가능성 방어).
     const match =
-      doc.file_url?.match(/\/object\/(?:sign|public)\/documents\/([^?]+)/) ??
-      null;
-    const storagePath = match?.[1] ? decodeURIComponent(match[1]) : null;
+      doc.file_url?.match(
+        /\/object\/(?:sign|public)\/([^/]+)\/(.+?)(?:\?|$)/,
+      ) ?? null;
+    const bucket = match?.[1] ?? null;
+    const storagePath = match?.[2] ? decodeURIComponent(match[2]) : null;
 
-    if (!storagePath) {
+    if (!bucket || !storagePath) {
       return NextResponse.json(
         { error: "문서 저장 경로를 확인할 수 없습니다." },
         { status: 500 },
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const { data: urlData, error: urlErr } = await serviceClient.storage
-      .from("documents")
+      .from(bucket)
       .createSignedUrl(storagePath, 300);
 
     if (urlErr || !urlData?.signedUrl) {

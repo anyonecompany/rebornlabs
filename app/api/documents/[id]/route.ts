@@ -45,13 +45,15 @@ export async function DELETE(
       );
     }
 
-    // 스토리지 경로 추출: URL에서 버킷 이후 경로 파싱.
-    // 쓰기 경로(documents/route.ts:207)는 sign URL을 저장하므로 sign/public 둘 다 매칭.
+    // 스토리지 경로 추출: URL에서 버킷명 + 내부 path 파싱.
+    // documents 테이블은 다중 버킷(documents/contracts/…)을 저장하므로 버킷 하드코딩 금지.
+    // sign/public 두 포맷 모두 허용.
     const storagePathMatch = existing.file_url.match(
-      /\/object\/(?:sign|public)\/documents\/([^?]+)/,
+      /\/object\/(?:sign|public)\/([^/]+)\/(.+?)(?:\?|$)/,
     );
-    const storagePath = storagePathMatch?.[1]
-      ? decodeURIComponent(storagePathMatch[1])
+    const storageBucket = storagePathMatch?.[1] ?? null;
+    const storagePath = storagePathMatch?.[2]
+      ? decodeURIComponent(storagePathMatch[2])
       : null;
 
     // 테이블에서 삭제
@@ -67,10 +69,11 @@ export async function DELETE(
       );
     }
 
-    // 스토리지 파일 삭제 (실패해도 응답은 200 — 고아 파일은 추후 정리)
-    if (storagePath) {
+    // 스토리지 파일 삭제 (실패해도 응답은 200 — 고아 파일은 추후 정리).
+    // 버킷은 file_url 에서 추출한 값 사용 (documents/contracts 등 다중 버킷 지원).
+    if (storageBucket && storagePath) {
       await serviceClient.storage
-        .from("documents")
+        .from(storageBucket)
         .remove([storagePath]);
     }
 
