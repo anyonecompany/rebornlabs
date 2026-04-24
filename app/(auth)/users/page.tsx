@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Copy, Check, UserPlus, Plus } from "lucide-react";
+import {
+  Copy,
+  Check,
+  UserPlus,
+  Plus,
+  Globe,
+  LayoutGrid,
+  MessageSquareText,
+  ExternalLink,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -60,21 +69,88 @@ interface MarketingCompanyRow {
 
 const LANDING_URL = process.env.NEXT_PUBLIC_LANDING_URL ?? "https://rebornlabs.vercel.app";
 
+type LinkKind = "landing" | "cars" | "apply";
+
+const LINK_KINDS: {
+  key: LinkKind;
+  label: string;
+  shortLabel: string;
+  description: string;
+  icon: React.ElementType;
+}[] = [
+  {
+    key: "landing",
+    label: "고객 홈 랜딩",
+    shortLabel: "홈",
+    description: "SNS 광고·바이오에 붙일 기본 링크",
+    icon: Globe,
+  },
+  {
+    key: "cars",
+    label: "차량 카탈로그",
+    shortLabel: "카탈로그",
+    description: "재고 목록을 바로 보여줄 때",
+    icon: LayoutGrid,
+  },
+  {
+    key: "apply",
+    label: "상담 신청 폼",
+    shortLabel: "상담폼",
+    description: "상담 신청 폼을 바로 열 때",
+    icon: MessageSquareText,
+  },
+];
+
 function MarketingCompaniesSection() {
   const [companies, setCompanies] = useState<MarketingCompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
 
-  const handleCopyLink = (company: MarketingCompanyRow) => {
-    const url = `${LANDING_URL}?ref=${encodeURIComponent(company.name)}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(company.id);
-    toast.success("UTM 링크가 복사되었습니다.");
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  // 어드민 도메인(/cars, /apply 용) 은 클라이언트 측 origin 으로 확정.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
+  const buildUrl = useCallback(
+    (kind: LinkKind, companyName: string): string => {
+      const ref = encodeURIComponent(companyName);
+      if (kind === "landing") return `${LANDING_URL}?ref=${ref}`;
+      if (kind === "cars") return `${origin}/cars?ref=${ref}`;
+      return `${origin}/apply?ref=${ref}`;
+    },
+    [origin],
+  );
+
+  const handleCopy = useCallback(
+    async (kind: LinkKind, company: MarketingCompanyRow) => {
+      const meta = LINK_KINDS.find((k) => k.key === kind);
+      if (!meta) return;
+      const url = buildUrl(kind, company.name);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopiedKey(`${company.id}:${kind}`);
+        toast.success(`${company.name} · ${meta.label} 링크가 복사되었습니다.`);
+        setTimeout(() => setCopiedKey(null), 2000);
+      } catch {
+        toast.error("클립보드 복사에 실패했습니다.");
+      }
+    },
+    [buildUrl],
+  );
+
+  const handleOpen = useCallback(
+    (kind: LinkKind, company: MarketingCompanyRow) => {
+      const url = buildUrl(kind, company.name);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [buildUrl],
+  );
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -145,49 +221,83 @@ function MarketingCompaniesSection() {
     }
   };
 
+  const activeCount = companies.filter((c) => c.is_active).length;
+
   return (
     <Card className="mt-8">
-      <CardHeader>
-        <CardTitle className="text-base">마케팅업체 관리</CardTitle>
+      <CardHeader className="pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">마케팅 업체 · 공유 링크</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              SNS·광고용 업체를 등록하고 업체별 공유 URL 을 생성합니다. 고객이 이
+              링크로 상담 신청하면 어느 업체에서 왔는지 자동으로 기록됩니다.
+            </p>
+          </div>
+          {!loading && companies.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              전체 <span className="text-foreground font-medium">{companies.length}</span>
+              {" / "}활성 <span className="text-emerald-400 font-medium">{activeCount}</span>
+            </div>
+          )}
+        </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
-        {/* 추가 폼 */}
-        <form onSubmit={handleAdd} className="flex gap-2">
+        {/* 업체 추가 */}
+        <form
+          onSubmit={handleAdd}
+          className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3"
+        >
           <Input
-            placeholder="업체명 입력"
+            placeholder="새 업체명 (예: 인스타그램, 네이버, 카카오)"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             disabled={adding}
-            className="flex-1 max-w-xs"
+            maxLength={50}
+            className="flex-1 min-w-[200px] bg-background"
           />
-          <Button type="submit" size="sm" disabled={adding}>
+          <Button type="submit" size="sm" disabled={adding || !newName.trim()}>
             <Plus className="h-4 w-4 mr-1.5" />
-            {adding ? "추가 중..." : "추가"}
+            {adding ? "추가 중..." : "업체 추가"}
           </Button>
         </form>
 
         {/* 업체 목록 */}
         {loading ? (
-          <p className="text-sm text-muted-foreground">불러오는 중...</p>
+          <div className="space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-14 rounded-md bg-muted animate-pulse"
+              />
+            ))}
+          </div>
         ) : companies.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            등록된 마케팅업체가 없습니다.
-          </p>
+          <div className="rounded-md border border-border bg-muted/20 py-10 text-center">
+            <Globe className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+            <p className="text-sm font-medium mb-1">등록된 업체가 없습니다</p>
+            <p className="text-xs text-muted-foreground">
+              위에서 첫 업체를 추가하면 공유 링크 3종이 자동 생성됩니다.
+            </p>
+          </div>
         ) : (
           <div className="rounded-md border border-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
+                <tr className="border-b border-border bg-muted/30 text-xs uppercase tracking-wide">
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
-                    업체명
+                    업체
                   </th>
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
                     상태
                   </th>
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">
-                    UTM 링크
+                    공유 링크 · 클릭하면 복사
                   </th>
-                  <th className="px-4 py-2.5" />
+                  <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">
+                    관리
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -196,8 +306,13 @@ function MarketingCompaniesSection() {
                     key={company.id}
                     className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium">{company.name}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-middle">
+                      <div className="font-medium">{company.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ref = {company.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-middle">
                       {company.is_active ? (
                         <Badge
                           variant="outline"
@@ -214,21 +329,50 @@ function MarketingCompaniesSection() {
                         </Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-7 gap-1"
-                        onClick={() => handleCopyLink(company)}
-                      >
-                        {copiedId === company.id ? (
-                          <><Check className="h-3 w-3 text-emerald-400" /> 복사됨</>
-                        ) : (
-                          <><Copy className="h-3 w-3" /> 링크 복사</>
-                        )}
-                      </Button>
+                    <td className="px-4 py-3 align-middle">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {LINK_KINDS.map((kind) => {
+                          const Icon = kind.icon;
+                          const isCopied =
+                            copiedKey === `${company.id}:${kind.key}`;
+                          return (
+                            <div
+                              key={kind.key}
+                              className="inline-flex items-center rounded-md border border-border bg-background"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(kind.key, company)}
+                                title={`${kind.label} 링크 복사 — ${kind.description}`}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs hover:bg-muted transition-colors rounded-l-md"
+                              >
+                                {isCopied ? (
+                                  <>
+                                    <Check className="h-3 w-3 text-emerald-400" />
+                                    <span className="text-emerald-400">복사됨</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Icon className="h-3 w-3" />
+                                    <span>{kind.shortLabel}</span>
+                                    <Copy className="h-3 w-3 text-muted-foreground" />
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpen(kind.key, company)}
+                                title={`${kind.label} 새 창에서 열기`}
+                                className="flex items-center px-1.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l border-border rounded-r-md"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 align-middle text-right">
                       <Button
                         variant="outline"
                         size="sm"

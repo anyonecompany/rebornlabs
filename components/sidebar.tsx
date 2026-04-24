@@ -18,7 +18,6 @@ import {
   FileText,
   Network,
   GalleryVerticalEnd,
-  Share2,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -47,7 +46,6 @@ const ADMIN_MENU: NavItem[] = [
   { label: "상담 관리", href: "/consultations", icon: MessageSquare },
   { label: "판매 관리", href: "/sales", icon: CreditCard },
   { label: "견적서 관리", href: "/quotes", icon: FileText },
-  { label: "공유 링크", href: "/share-links", icon: Share2 },
   { label: "정산", href: "/settlements", icon: Calculator },
   { label: "지출결의", href: "/expenses", icon: Receipt },
   { label: "문서함", href: "/documents", icon: FolderOpen },

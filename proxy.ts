@@ -10,12 +10,10 @@ const DEALER_BLOCKED = [
   "/users",
   "/team-structure",
   "/audit-logs",
-  "/share-links",
 ];
 const STAFF_BLOCKED = ["/users", "/team-structure", "/audit-logs"];
 // director / team_leader — 관리직. 조직 데이터(상담·판매·계약·견적·차량·정산)는 접근 허용.
-// 경영 전용 기능(/expenses, /documents, /users, /team-structure, /audit-logs, /vehicle-models,
-// /share-links) 차단. 공유 링크 관리는 admin/staff 전용 (대표 지시).
+// 경영 전용 기능(/expenses, /documents, /users, /team-structure, /audit-logs, /vehicle-models) 차단.
 const MANAGER_BLOCKED = [
   "/expenses",
   "/documents",
@@ -23,7 +21,6 @@ const MANAGER_BLOCKED = [
   "/team-structure",
   "/audit-logs",
   "/vehicle-models",
-  "/share-links",
 ];
 
 function isBlocked(pathname: string, blockedPaths: string[]): boolean {
