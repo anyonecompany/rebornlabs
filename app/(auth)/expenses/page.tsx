@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatKRW } from "@/src/lib/format";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +36,6 @@ import type { UserRole } from "@/types/database";
 // ---------------------------------------------------------------------------
 // 유틸
 // ---------------------------------------------------------------------------
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
 
 /** 이번 달 YYYY-MM 문자열을 반환합니다. */
 function currentMonth(): string {

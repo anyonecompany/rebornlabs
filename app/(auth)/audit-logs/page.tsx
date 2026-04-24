@@ -13,6 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatDate } from "@/src/lib/format";
+
+// 감사 로그는 정확한 시각(초 단위) 필요.
+const formatDateTime = (iso: string) => formatDate(iso, "datetime-seconds");
 
 // ---------------------------------------------------------------------------
 // 액션 한글 매핑
@@ -67,17 +71,6 @@ interface AuditLogRow {
 // ---------------------------------------------------------------------------
 // 날짜 포맷
 // ---------------------------------------------------------------------------
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const HH = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
-}
 
 // ---------------------------------------------------------------------------
 // 메타데이터 표시 컴포넌트

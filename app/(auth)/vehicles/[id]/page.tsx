@@ -20,6 +20,9 @@ import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
+
+const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
 import { GenerateQuoteDialog } from "@/src/components/quote/generate-quote-dialog";
 import type { VehicleStatus, UserRole } from "@/types/database";
@@ -70,19 +73,6 @@ const CHECKLIST_LABELS: Record<ChecklistField, string> = {
   delivery_photo_uploaded: "출고 사진 업로드",
 };
 
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();

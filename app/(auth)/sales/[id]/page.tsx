@@ -38,6 +38,9 @@ import {
 import { FileUpload } from "@/components/file-upload";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
+
+const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -129,23 +132,6 @@ interface SaleDetail {
   deliveryConfirmedBy: DeliveryConfirmedBy | null;
   signatureUrl: string | null;
   contractFiles: ContractFile[];
-}
-
-// ---------------------------------------------------------------------------
-// 헬퍼
-// ---------------------------------------------------------------------------
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const HH = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
 }
 
 // ---------------------------------------------------------------------------

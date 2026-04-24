@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatKRW, formatDate } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
@@ -42,20 +43,6 @@ interface SaleRow {
 }
 
 type CancelFilter = "all" | "active" | "cancelled";
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
-
-/** ISO 날짜를 한국 날짜 형식으로 포맷합니다. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
 
 export default function SalesPage() {
   const router = useRouter();

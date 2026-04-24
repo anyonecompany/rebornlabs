@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { formatDate } from "@/src/lib/format";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -73,14 +74,6 @@ interface DocumentRow {
 // ---------------------------------------------------------------------------
 // 날짜 포맷
 // ---------------------------------------------------------------------------
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd}`;
-}
-
 // ---------------------------------------------------------------------------
 // 문서 업로드 Dialog
 // ---------------------------------------------------------------------------

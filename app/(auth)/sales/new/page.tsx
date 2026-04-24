@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatKRW } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import type { UserRole } from "@/types/database";
 
@@ -42,11 +43,6 @@ interface DealerOption {
 // ---------------------------------------------------------------------------
 const SELF_SALE_DEALER_FEE = 1_000_000; // 100만
 const SELF_SALE_MARKETING_FEE = 0;
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
 
 export default function NewSalePage() {
   const router = useRouter();

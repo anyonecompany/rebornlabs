@@ -13,6 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatDate as formatDateBase } from "@/src/lib/format";
+
+// 만료일 미설정(null)은 "무제한"으로 표기 — 견적서 도메인 컨벤션.
+const formatDate = (iso: string | null) =>
+  iso ? formatDateBase(iso) : "무제한";
 
 type Option = { label: string; days: number | null };
 
@@ -37,15 +42,6 @@ type Props = {
   vehicleId: string;
   vehicleLabel: string;
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "무제한";
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
 
 export function GenerateQuoteDialog({
   open,

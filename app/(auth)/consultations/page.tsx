@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatDate } from "@/src/lib/format";
 import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef, isDirectSource } from "@/src/lib/source-ref";
 import type { ConsultationStatus } from "@/types/database";
@@ -29,17 +30,6 @@ interface ConsultationRow {
   assigned_dealer_name: string | null;
   is_duplicate: boolean;
   created_at: string;
-}
-
-/** ISO 날짜를 YYYY-MM-DD HH:mm 형식으로 변환합니다. */
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const HH = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
 }
 
 export default function ConsultationsPage() {
@@ -135,7 +125,7 @@ export default function ConsultationsPage() {
     {
       key: "created_at",
       header: "접수일",
-      render: (value: unknown) => formatDate(value as string),
+      render: (value: unknown) => formatDate(value as string, "datetime"),
     },
   ];
 

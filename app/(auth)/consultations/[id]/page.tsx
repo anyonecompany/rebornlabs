@@ -29,6 +29,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatDate as formatDateBase } from "@/src/lib/format";
+
+const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
 import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef } from "@/src/lib/source-ref";
@@ -110,19 +113,6 @@ interface ConsultationLog {
   content: string;
   status_snapshot: string;
   created_at: string;
-}
-
-// ---------------------------------------------------------------------------
-// 날짜 헬퍼
-// ---------------------------------------------------------------------------
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const HH = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
 }
 
 // ---------------------------------------------------------------------------

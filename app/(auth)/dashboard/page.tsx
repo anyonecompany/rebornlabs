@@ -15,29 +15,8 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { formatKRW, formatRelativeTime } from "@/src/lib/format";
 import type { UserRole, ConsultationStatus } from "@/types/database";
-
-// ---------------------------------------------------------------------------
-// 유틸
-// ---------------------------------------------------------------------------
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number | undefined | null): string {
-  return (value ?? 0).toLocaleString("ko-KR") + "원";
-}
-
-/** ISO 날짜를 상대 시간 또는 날짜로 포맷합니다. */
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
 
 // ---------------------------------------------------------------------------
 // 타입 정의

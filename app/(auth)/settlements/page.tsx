@@ -18,15 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import CommissionsTab from "@/src/components/settlements/commissions-tab";
+import { formatKRW } from "@/src/lib/format";
 
 // ---------------------------------------------------------------------------
-// 유틸
+// 유틸 (날짜 범위 — 정산 페이지 전용)
 // ---------------------------------------------------------------------------
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
 
 /** Date를 YYYY-MM-DD 문자열로 변환합니다. */
 function toDateString(d: Date): string {

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { formatKRW, formatMileage } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
@@ -35,16 +36,6 @@ interface VehicleRow {
   status: VehicleStatus;
   photos: string[];
   created_at: string;
-}
-
-/** 숫자를 한국 원화 형식으로 포맷합니다. */
-function formatKRW(value: number): string {
-  return value.toLocaleString("ko-KR") + "원";
-}
-
-/** 주행거리를 km 단위로 포맷합니다. */
-function formatMileage(value: number): string {
-  return value.toLocaleString("ko-KR") + "km";
 }
 
 export default function VehiclesPage() {

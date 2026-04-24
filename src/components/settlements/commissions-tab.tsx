@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { DollarSign, Receipt, TrendingUp, Users } from "lucide-react";
 
 import { apiFetch } from "@/src/lib/api-client";
+import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
+
+const formatDate = (iso: string) => formatDateBase(iso, "compact");
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
@@ -79,20 +82,6 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "관리자",
   staff: "직원",
 };
-
-// ─── 유틸 ──────────────────────────────────────────────────
-
-function formatKRW(value: number): string {
-  return (value ?? 0).toLocaleString("ko-KR") + "원";
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const y = String(d.getFullYear()).slice(2);
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}.${m}.${day}`;
-}
 
 /** 최근 12개월 (이번 달 포함, 최신순). */
 function getMonthOptions(): string[] {
