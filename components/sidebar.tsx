@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationBell } from "@/components/notification-bell";
 import type { UserRole } from "@/types/database";
 
 interface SidebarUser {
@@ -292,6 +293,10 @@ export function Sidebar({ user }: { user: SidebarUser }) {
           </SheetContent>
         </Sheet>
         <span className="ml-3 text-sm font-bold tracking-tight">REBORN LABS</span>
+        {/* 우측 알림 종 — admin/staff 만 표시 (NotificationBell 내부에서 분기) */}
+        <div className="ml-auto">
+          <NotificationBell role={user.role} />
+        </div>
       </div>
     </>
   );
