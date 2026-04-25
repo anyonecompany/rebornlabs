@@ -42,10 +42,15 @@ export async function GET(request: NextRequest) {
     requireRole(user, ["admin", "staff"]);
 
     const { searchParams } = new URL(request.url);
-    const cursor = searchParams.get("cursor"); // "expense_date__id" 형식
+    const cursor = searchParams.get("cursor"); // 레거시 호환
     const monthParam = searchParams.get("month"); // "YYYY-MM" 형식
     const userIdParam = searchParams.get("user_id");
-    const PAGE_SIZE = 20;
+
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") ?? 20)),
+    );
 
     // 기간 필터: 이번 달 기본값
     const now = new Date();
@@ -87,30 +92,33 @@ export async function GET(request: NextRequest) {
       0,
     );
 
-    // 목록 조회 (커서 페이지네이션)
+    // 목록 조회 (page 번호 기본, cursor 레거시 호환)
     let listQuery = serviceClient
       .from("expenses")
-      .select("*")
+      .select("*", { count: "exact" })
       .gte("expense_date", startDate)
       .lt("expense_date", nextMonth)
       .order("expense_date", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PAGE_SIZE + 1);
+      .order("id", { ascending: false });
 
     if (userIdParam) {
       listQuery = listQuery.eq("user_id", userIdParam);
     }
 
     if (cursor) {
+      listQuery = listQuery.limit(pageSize + 1);
       const [cursorDate, cursorId] = cursor.split("__");
       if (cursorDate && cursorId) {
         listQuery = listQuery.or(
           `expense_date.lt.${cursorDate},and(expense_date.eq.${cursorDate},id.lt.${cursorId})`,
         );
       }
+    } else {
+      const offset = (page - 1) * pageSize;
+      listQuery = listQuery.range(offset, offset + pageSize - 1);
     }
 
-    const { data: expenses, error: listError } = await listQuery;
+    const { data: expenses, error: listError, count } = await listQuery;
     if (listError) {
       return NextResponse.json(
         { error: "지출 목록을 불러오지 못했습니다." },
@@ -118,11 +126,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const hasMore = (expenses?.length ?? 0) > PAGE_SIZE;
-    const items = hasMore ? expenses!.slice(0, PAGE_SIZE) : (expenses ?? []);
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const hasMore = cursor ? (expenses?.length ?? 0) > pageSize : false;
+    const items =
+      cursor && hasMore ? expenses!.slice(0, pageSize) : (expenses ?? []);
 
     if (items.length === 0) {
-      return NextResponse.json({ data: [], nextCursor: null, totalAmount });
+      return NextResponse.json({
+        data: [],
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor: null,
+        totalAmount,
+      });
     }
 
     // 작성자 이름 join
@@ -143,11 +162,19 @@ export async function GET(request: NextRequest) {
 
     const lastItem = items[items.length - 1];
     const nextCursor =
-      hasMore && lastItem
+      cursor && hasMore && lastItem
         ? `${lastItem.expense_date}__${lastItem.id}`
         : null;
 
-    return NextResponse.json({ data: merged, nextCursor, totalAmount });
+    return NextResponse.json({
+      data: merged,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      nextCursor,
+      totalAmount,
+    });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

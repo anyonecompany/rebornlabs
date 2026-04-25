@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Plus, Paperclip, X, FileText } from "lucide-react";
+import {
+  Plus,
+  Paperclip,
+  X,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import Image from "next/image";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/data-table";
@@ -470,10 +477,12 @@ function RegisterExpenseDialog({
 // ---------------------------------------------------------------------------
 
 export default function ExpensesPage() {
+  const PAGE_SIZE = 20;
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [totalAmount, setTotalAmount] = useState(0);
 
   const [month, setMonth] = useState(currentMonth);
@@ -498,44 +507,40 @@ export default function ExpensesPage() {
       .catch(() => null);
   }, []);
 
-  const fetchExpenses = useCallback(
-    async (cursor?: string) => {
-      if (!cursor) setLoading(true);
-      else setLoadingMore(true);
+  const fetchExpenses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ month });
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
+      if (userFilter !== "all") params.set("user_id", userFilter);
 
-      try {
-        const params = new URLSearchParams({ month });
-        if (userFilter !== "all") params.set("user_id", userFilter);
-        if (cursor) params.set("cursor", cursor);
-
-        const res = await apiFetch(`/api/expenses?${params.toString()}`);
-        if (!res.ok) {
-          const d = await res.json();
-          toast.error(d.error ?? "지출 목록을 불러오지 못했습니다.");
-          return;
-        }
+      const res = await apiFetch(`/api/expenses?${params.toString()}`);
+      if (!res.ok) {
         const d = await res.json();
-
-        if (cursor) {
-          setExpenses((prev) => [...prev, ...(d.data ?? [])]);
-        } else {
-          setExpenses(d.data ?? []);
-          setTotalAmount(d.totalAmount ?? 0);
-        }
-        setNextCursor(d.nextCursor ?? null);
-      } catch {
-        toast.error("지출 목록을 불러오는 중 오류가 발생했습니다.");
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        toast.error(d.error ?? "지출 목록을 불러오지 못했습니다.");
+        return;
       }
-    },
-    [month, userFilter],
-  );
+      const d = await res.json();
+      setExpenses(d.data ?? []);
+      setTotal(d.total ?? 0);
+      setTotalPages(d.totalPages ?? 1);
+      setTotalAmount(d.totalAmount ?? 0);
+    } catch {
+      toast.error("지출 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, month, userFilter]);
 
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
+
+  // 필터 변경 시 1페이지 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [month, userFilter]);
 
   const handleDelete = async () => {
     if (!deleteTargetId) return;
@@ -684,16 +689,40 @@ export default function ExpensesPage() {
         emptyMessage="등록된 지출 내역이 없습니다."
       />
 
-      {/* 더보기 버튼 */}
-      {nextCursor && !loading && (
-        <div className="flex justify-center mt-4">
-          <Button
-            variant="outline"
-            onClick={() => fetchExpenses(nextCursor)}
-            disabled={loadingMore}
-          >
-            {loadingMore ? "불러오는 중..." : "더보기"}
-          </Button>
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, total)} / {total}건
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              aria-label="이전 페이지"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                setPage((p) => Math.min(totalPages, p + 1))
+              }
+              disabled={page >= totalPages || loading}
+              aria-label="다음 페이지"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 

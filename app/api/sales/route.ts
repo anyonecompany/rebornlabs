@@ -41,19 +41,31 @@ export async function GET(request: NextRequest) {
     const user = await verifyUser(token);
 
     const { searchParams } = new URL(request.url);
-    const cursor = searchParams.get("cursor");
+    const cursor = searchParams.get("cursor"); // 레거시 호환
     const isCancelledParam = searchParams.get("is_cancelled");
-    const PAGE_SIZE = 20;
+
+    // 페이지 번호 기반 (cursor 미지정 시 기본).
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") ?? 20)),
+    );
 
     const serviceClient = createServiceClient();
 
     // sales 조회
     let query = serviceClient
       .from("sales")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PAGE_SIZE + 1);
+      .order("id", { ascending: false });
+
+    if (cursor) {
+      query = query.limit(pageSize + 1);
+    } else {
+      const offset = (page - 1) * pageSize;
+      query = query.range(offset, offset + pageSize - 1);
+    }
 
     // dealer: 본인 건만 필터
     if (user.role === "dealer") {
@@ -77,7 +89,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const { data: sales, error: salesError } = await query;
+    const { data: sales, error: salesError, count } = await query;
     if (salesError) {
       return NextResponse.json(
         { error: "판매 목록을 불러오지 못했습니다." },
@@ -85,11 +97,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const hasMore = (sales?.length ?? 0) > PAGE_SIZE;
-    const items = hasMore ? sales!.slice(0, PAGE_SIZE) : (sales ?? []);
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const hasMore = cursor ? (sales?.length ?? 0) > pageSize : false;
+    const items = cursor && hasMore ? sales!.slice(0, pageSize) : (sales ?? []);
 
     if (items.length === 0) {
-      return NextResponse.json({ data: [], nextCursor: null });
+      return NextResponse.json({
+        data: [],
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor: null,
+      });
     }
 
     // vehicle, dealer, consultation 정보 병렬 조회 후 merge
@@ -148,9 +169,18 @@ export async function GET(request: NextRequest) {
 
     const lastItem = items[items.length - 1];
     const nextCursor =
-      hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
+      cursor && hasMore && lastItem
+        ? `${lastItem.created_at}__${lastItem.id}`
+        : null;
 
-    return NextResponse.json({ data: merged, nextCursor });
+    return NextResponse.json({
+      data: merged,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      nextCursor, // 레거시 호환
+    });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

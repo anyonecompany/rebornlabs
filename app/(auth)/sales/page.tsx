@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -47,53 +47,49 @@ type CancelFilter = "all" | "active" | "cancelled";
 export default function SalesPage() {
   const router = useRouter();
 
+  const PAGE_SIZE = 20;
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { role: userRole } = useUserRole();
   const [cancelFilter, setCancelFilter] = useState<CancelFilter>("all");
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // 판매 목록 로드
-  const fetchSales = useCallback(
-    async (cursor?: string) => {
-      if (cursor) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-      try {
-        const params = new URLSearchParams();
-        if (cursor) params.set("cursor", cursor);
-        if (cancelFilter === "active") params.set("is_cancelled", "false");
-        if (cancelFilter === "cancelled") params.set("is_cancelled", "true");
+  const fetchSales = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
+      if (cancelFilter === "active") params.set("is_cancelled", "false");
+      if (cancelFilter === "cancelled") params.set("is_cancelled", "true");
 
-        const res = await apiFetch(`/api/sales?${params.toString()}`);
-        if (!res.ok) {
-          const data = await res.json();
-          toast.error(data.error ?? "판매 목록을 불러오지 못했습니다.");
-          return;
-        }
+      const res = await apiFetch(`/api/sales?${params.toString()}`);
+      if (!res.ok) {
         const data = await res.json();
-        if (cursor) {
-          setSales((prev) => [...prev, ...(data.data ?? [])]);
-        } else {
-          setSales(data.data ?? []);
-        }
-        setNextCursor(data.nextCursor ?? null);
-      } catch {
-        toast.error("판매 목록을 불러오는 중 오류가 발생했습니다.");
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        toast.error(data.error ?? "판매 목록을 불러오지 못했습니다.");
+        return;
       }
-    },
-    [cancelFilter],
-  );
+      const data = await res.json();
+      setSales(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
+    } catch {
+      toast.error("판매 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, cancelFilter]);
 
   useEffect(() => {
     fetchSales();
   }, [fetchSales]);
+
+  // 필터 변경 시 1페이지 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [cancelFilter]);
 
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
@@ -233,16 +229,40 @@ export default function SalesPage() {
         }}
       />
 
-      {/* 더 보기 */}
-      {nextCursor && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="outline"
-            onClick={() => fetchSales(nextCursor)}
-            disabled={loadingMore}
-          >
-            {loadingMore ? "로딩 중..." : "더 보기"}
-          </Button>
+      {/* 페이지네이션 — page/pageSize */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, total)} / {total}건
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              aria-label="이전 페이지"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                setPage((p) => Math.min(totalPages, p + 1))
+              }
+              disabled={page >= totalPages || loading}
+              aria-label="다음 페이지"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

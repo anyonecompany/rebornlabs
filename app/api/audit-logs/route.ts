@@ -28,18 +28,29 @@ export async function GET(request: NextRequest) {
     requireRole(user, ["admin"]);
 
     const { searchParams } = new URL(request.url);
-    const cursor = searchParams.get("cursor"); // "created_at__id" 형식
+    const cursor = searchParams.get("cursor"); // 레거시 호환
     const actionParam = searchParams.get("action");
-    const PAGE_SIZE = 20;
+
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") ?? 20)),
+    );
 
     const serviceClient = createServiceClient();
 
     let query = serviceClient
       .from("audit_logs")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PAGE_SIZE + 1);
+      .order("id", { ascending: false });
+
+    if (cursor) {
+      query = query.limit(pageSize + 1);
+    } else {
+      const offset = (page - 1) * pageSize;
+      query = query.range(offset, offset + pageSize - 1);
+    }
 
     // action 필터 (값이 있는 경우에만 적용)
     if (actionParam) {
@@ -56,7 +67,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const { data: logs, error: listError } = await query;
+    const { data: logs, error: listError, count } = await query;
     if (listError) {
       return NextResponse.json(
         { error: "감사 로그를 불러오지 못했습니다." },
@@ -64,11 +75,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const hasMore = (logs?.length ?? 0) > PAGE_SIZE;
-    const items = hasMore ? logs!.slice(0, PAGE_SIZE) : (logs ?? []);
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const hasMore = cursor ? (logs?.length ?? 0) > pageSize : false;
+    const items = cursor && hasMore ? logs!.slice(0, pageSize) : (logs ?? []);
 
     if (items.length === 0) {
-      return NextResponse.json({ data: [], nextCursor: null });
+      return NextResponse.json({
+        data: [],
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor: null,
+      });
     }
 
     // actor 이름 join (null 제외)
@@ -98,9 +118,18 @@ export async function GET(request: NextRequest) {
 
     const lastItem = items[items.length - 1];
     const nextCursor =
-      hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
+      cursor && hasMore && lastItem
+        ? `${lastItem.created_at}__${lastItem.id}`
+        : null;
 
-    return NextResponse.json({ data: merged, nextCursor });
+    return NextResponse.json({
+      data: merged,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      nextCursor,
+    });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
