@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -35,8 +36,12 @@ interface ConsultationRow {
 export default function ConsultationsPage() {
   const router = useRouter();
 
+  const PAGE_SIZE = 20;
   const [consultations, setConsultations] = useState<ConsultationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // 검색/필터 상태
   const [search, setSearch] = useState("");
@@ -53,6 +58,8 @@ export default function ConsultationsPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
       if (search) params.set("search", search);
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (duplicateFilter !== "all")
@@ -67,16 +74,23 @@ export default function ConsultationsPage() {
       }
       const data = await res.json();
       setConsultations(data.data ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch {
       toast.error("상담 목록을 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, duplicateFilter, sourceFilter]);
+  }, [page, search, statusFilter, duplicateFilter, sourceFilter]);
 
   useEffect(() => {
     fetchConsultations();
   }, [fetchConsultations]);
+
+  // 검색·필터 변경 시 1페이지로 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, duplicateFilter, sourceFilter]);
 
   const columns = [
     { key: "customer_name", header: "고객명" },
@@ -207,6 +221,43 @@ export default function ConsultationsPage() {
           )
         }
       />
+
+      {/* 페이지네이션 — page/pageSize 기반 */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, total)} / {total}건
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+              aria-label="이전 페이지"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                setPage((p) => Math.min(totalPages, p + 1))
+              }
+              disabled={page >= totalPages || loading}
+              aria-label="다음 페이지"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

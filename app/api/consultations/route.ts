@@ -29,14 +29,19 @@ export async function GET(request: NextRequest) {
     const user = await verifyUser(token);
 
     const { searchParams } = new URL(request.url);
-    const cursor = searchParams.get("cursor");
+    const cursor = searchParams.get("cursor"); // 레거시 호환
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
     const isDuplicate = searchParams.get("is_duplicate");
-    // 유입 채널 필터: direct | instagram | other | "" (전체)
-    // 값 매핑은 src/lib/source-ref.ts 의 SOURCE_REF_LABELS 와 일관되게 유지.
     const sourceCategory = searchParams.get("source_category") ?? "";
-    const PAGE_SIZE = 20;
+
+    // 페이지 번호 기반 페이지네이션 (cursor 미지정 시 기본).
+    // page=1 부터 시작, pageSize 기본 20·최대 100.
+    const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") ?? 20)),
+    );
 
     const INSTAGRAM_ALIASES = ["ig", "instagram", "insta"];
 
@@ -44,10 +49,17 @@ export async function GET(request: NextRequest) {
 
     let query = serviceClient
       .from("consultations")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PAGE_SIZE + 1);
+      .order("id", { ascending: false });
+
+    // cursor 모드(레거시) — limit 만 사용. page 모드 — range 사용.
+    if (cursor) {
+      query = query.limit(pageSize + 1);
+    } else {
+      const offset = (page - 1) * pageSize;
+      query = query.range(offset, offset + pageSize - 1);
+    }
 
     // 역할별 조회 범위 필터
     //   dealer                  : 본인 배정 상담만
@@ -127,7 +139,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       return NextResponse.json(
@@ -136,11 +148,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const hasMore = (data?.length ?? 0) > PAGE_SIZE;
-    const items = hasMore ? data!.slice(0, PAGE_SIZE) : (data ?? []);
+    // page 모드 응답 메타
+    const total = count ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    // cursor 모드(레거시) 호환 — slice + nextCursor
+    const hasMore = cursor ? (data?.length ?? 0) > pageSize : false;
+    const items = cursor && hasMore ? data!.slice(0, pageSize) : (data ?? []);
     const lastItem = items[items.length - 1];
     const nextCursor =
-      hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
+      cursor && hasMore && lastItem
+        ? `${lastItem.created_at}__${lastItem.id}`
+        : null;
 
     // 배정 딜러 이름 병합 (profiles 별도 조회 → id → name 매핑)
     const dealerIds = [
@@ -167,7 +186,14 @@ export async function GET(request: NextRequest) {
         : null,
     }));
 
-    return NextResponse.json({ data: itemsWithDealer, nextCursor });
+    return NextResponse.json({
+      data: itemsWithDealer,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      nextCursor, // 레거시 호환
+    });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
