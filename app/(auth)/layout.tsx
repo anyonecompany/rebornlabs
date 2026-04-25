@@ -44,7 +44,7 @@ export default async function AuthLayout({
           email: profile.email,
         }}
       />
-      <main className="flex-1 overflow-auto relative">
+      <main className="flex-1 overflow-auto relative pt-14 md:pt-0">
         {profile.must_change_password && <PasswordBanner />}
         {/* 우측 상단 알림 종 — 데스크톱 전용. 모바일은 사이드바 헤더 안 종이 담당. */}
         <div className="hidden md:block absolute right-6 top-5 z-30">
