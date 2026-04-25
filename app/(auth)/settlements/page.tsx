@@ -143,7 +143,7 @@ function DealerSettlementTab() {
 
   // 딜러 목록 로드
   useEffect(() => {
-    apiFetch("/api/dealers/names")
+    apiFetch("/api/consultations/dealers")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.data) setDealers(d.data as DealerOption[]);
