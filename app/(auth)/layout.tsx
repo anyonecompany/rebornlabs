@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { Sidebar } from "@/components/sidebar";
 import { PasswordBanner } from "@/components/password-banner";
+import { NotificationBell } from "@/components/notification-bell";
 import type { UserRole } from "@/types/database";
 
 export default async function AuthLayout({
@@ -43,8 +44,12 @@ export default async function AuthLayout({
           email: profile.email,
         }}
       />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto relative">
         {profile.must_change_password && <PasswordBanner />}
+        {/* 우측 상단 알림 종 — admin/staff 만 표시 */}
+        <div className="absolute right-4 top-4 z-30 md:right-6 md:top-5">
+          <NotificationBell role={profile.role} />
+        </div>
         <div
           className="px-6 py-6 md:px-8 md:py-8 w-full"
           data-user-role={profile.role}
