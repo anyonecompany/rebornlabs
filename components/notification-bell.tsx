@@ -27,7 +27,11 @@ export function NotificationBell({ role }: Props) {
   const has = count > 0;
 
   const handleClick = () => {
-    if (!has) return; // 신규 0 → 무동작
+    if (!has) {
+      // 신규 0 → 안내 토스트만, 페이지 이동 없음
+      toast("신규 상담 알림이 없습니다.");
+      return;
+    }
     const captured = count;
     toast.success(`신규 상담 ${captured}건이 등록되었습니다.`, {
       description: "보기를 누르면 신규 상담 목록으로 이동합니다.",
