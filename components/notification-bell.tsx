@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
+import { toast } from "sonner";
 
 import { useNewConsultationCount } from "@/src/lib/use-new-consultation-count";
 
@@ -12,8 +13,9 @@ interface Props {
 
 /**
  * 어드민 우측 상단 종 알림.
- * - 신규 상담 카운트가 1 이상이면 빨간 배지 + 펄스 애니메이션
- * - 클릭 시 /consultations 이동 + 읽음 처리(카운트 0)
+ * - 신규 상담 카운트가 1 이상이면 빨간 배지 (정적)
+ * - 종 클릭 → 토스트만 표시. 토스트의 "보기" 액션 클릭 시 /consultations 이동
+ * - 카운트 0 이면 클릭해도 토스트·이동 없음
  * - admin / staff 만 노출 — 다른 역할은 본인 자체 상담 페이지 사용
  */
 export function NotificationBell({ role }: Props) {
@@ -25,8 +27,17 @@ export function NotificationBell({ role }: Props) {
   const has = count > 0;
 
   const handleClick = () => {
+    if (!has) return; // 신규 0 → 무동작
+    const captured = count;
+    toast.success(`신규 상담 ${captured}건이 등록되었습니다.`, {
+      description: "보기를 누르면 신규 상담 목록으로 이동합니다.",
+      duration: 8000,
+      action: {
+        label: "보기",
+        onClick: () => router.push("/consultations?status=new"),
+      },
+    });
     markAsRead();
-    router.push("/consultations?status=new");
   };
 
   return (
@@ -41,30 +52,14 @@ export function NotificationBell({ role }: Props) {
       <Bell
         className={[
           "h-4 w-4",
-          has
-            ? "text-foreground animate-[wiggle_1s_ease-in-out_infinite]"
-            : "text-muted-foreground",
+          has ? "text-foreground" : "text-muted-foreground",
         ].join(" ")}
       />
       {has && (
-        <>
-          {/* 빨간 카운트 배지 */}
-          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-            {count > 99 ? "99+" : count}
-          </span>
-          {/* 펄스 링 */}
-          <span className="absolute -right-1 -top-1 inline-flex h-4 w-4 animate-ping rounded-full bg-red-500 opacity-75" />
-        </>
+        <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+          {count > 99 ? "99+" : count}
+        </span>
       )}
-
-      {/* 종 wiggle 키프레임 — 인라인 정의로 글로벌 css 의존 0 */}
-      <style jsx>{`
-        @keyframes wiggle {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-8deg); }
-          75% { transform: rotate(8deg); }
-        }
-      `}</style>
     </button>
   );
 }
