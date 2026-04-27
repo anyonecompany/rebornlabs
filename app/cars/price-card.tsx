@@ -1,21 +1,22 @@
 "use client";
 
-import {
-  calculateMonthlyPayment,
-  formatKRW,
-} from "@/src/lib/vehicle-price";
+import { formatKRW } from "@/src/lib/vehicle-price";
 
 interface Props {
   brand: string;
   model: string;
   trim: string;
-  carPrice: number;
+  monthlyPayment: number | null;
   maxDeposit: number;
 }
 
-export function PriceCard({ brand, model, trim, carPrice, maxDeposit }: Props) {
-  const monthly = calculateMonthlyPayment(carPrice);
-
+export function PriceCard({
+  brand,
+  model,
+  trim,
+  monthlyPayment,
+  maxDeposit,
+}: Props) {
   return (
     <div className="rounded-2xl bg-gradient-to-br from-[#16140e] to-[#0d0b07] border border-[#c8bfa8]/20 p-6 sm:p-8">
       <p className="text-[10px] tracking-[0.3em] text-[#b8a875] uppercase mb-1">
@@ -31,7 +32,7 @@ export function PriceCard({ brand, model, trim, carPrice, maxDeposit }: Props) {
             월 납입료
           </p>
           <p className="mt-1 text-3xl sm:text-4xl font-bold tracking-tight text-white">
-            {formatKRW(monthly)}
+            {formatKRW(monthlyPayment)}
           </p>
         </div>
 

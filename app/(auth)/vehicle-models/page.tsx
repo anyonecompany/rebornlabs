@@ -224,6 +224,9 @@ export default function VehicleModelsPage() {
                     차량가격
                   </TableHead>
                   <TableHead className="text-muted-foreground text-right">
+                    월 납입료
+                  </TableHead>
+                  <TableHead className="text-muted-foreground text-right">
                     최대보증금
                   </TableHead>
                   <TableHead className="text-muted-foreground">상태</TableHead>
@@ -252,6 +255,9 @@ export default function VehicleModelsPage() {
                     </TableCell>
                     <TableCell className="py-3 px-4 text-sm text-right">
                       {formatKRW(item.carPrice)}
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-sm text-right">
+                      {formatKRW(item.monthlyPayment)}
                     </TableCell>
                     <TableCell className="py-3 px-4 text-sm text-right">
                       {formatKRW(item.maxDeposit)}
@@ -323,10 +329,14 @@ export default function VehicleModelsPage() {
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <p className="text-muted-foreground">차량가격</p>
                     <p>{formatKRW(item.carPrice)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">월 납입료</p>
+                    <p>{formatKRW(item.monthlyPayment)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">최대보증금</p>

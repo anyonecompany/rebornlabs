@@ -9,6 +9,7 @@ export interface TrimNode {
   id: string;
   trim: string;
   carPrice: number;
+  monthlyPayment: number | null;
   maxDeposit: number;
   displayOrder: number;
 }
@@ -239,7 +240,7 @@ export function CarsSelector({ brands }: Props) {
               brand={currentBrand.name}
               model={currentModel.name}
               trim={selectedTrimNode.trim}
-              carPrice={selectedTrimNode.carPrice}
+              monthlyPayment={selectedTrimNode.monthlyPayment}
               maxDeposit={selectedTrimNode.maxDeposit}
             />
 

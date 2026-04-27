@@ -11,6 +11,7 @@ const CreateSchema = z.object({
   model: z.string().min(1).max(100),
   trim: z.string().min(1).max(100),
   carPrice: z.number().int().positive(),
+  monthlyPayment: z.number().int().positive().nullable().optional(),
   maxDeposit: z.number().int().min(0),
   displayOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     let query = serviceClient
       .from("vehicle_models")
       .select(
-        "id, brand, model, trim, car_price, max_deposit, display_order, is_active, created_at, updated_at",
+        "id, brand, model, trim, car_price, monthly_payment, max_deposit, display_order, is_active, created_at, updated_at",
         { count: "exact" },
       )
       .order("display_order", { ascending: true })
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
       model: row.model,
       trim: row.trim,
       carPrice: row.car_price,
+      monthlyPayment: row.monthly_payment,
       maxDeposit: row.max_deposit,
       displayOrder: row.display_order,
       isActive: row.is_active,
@@ -152,12 +154,13 @@ export async function POST(request: NextRequest) {
         model: input.model.trim(),
         trim: input.trim.trim(),
         car_price: input.carPrice,
+        monthly_payment: input.monthlyPayment ?? null,
         max_deposit: input.maxDeposit,
         display_order: input.displayOrder ?? 0,
         is_active: input.isActive ?? true,
       })
       .select(
-        "id, brand, model, trim, car_price, max_deposit, display_order, is_active, created_at, updated_at",
+        "id, brand, model, trim, car_price, monthly_payment, max_deposit, display_order, is_active, created_at, updated_at",
       )
       .single();
 
@@ -182,6 +185,7 @@ export async function POST(request: NextRequest) {
         model: inserted.model,
         trim: inserted.trim,
         carPrice: inserted.car_price,
+        monthlyPayment: inserted.monthly_payment,
         maxDeposit: inserted.max_deposit,
         displayOrder: inserted.display_order,
         isActive: inserted.is_active,

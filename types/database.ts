@@ -312,6 +312,7 @@ export interface Database {
           model: string;
           trim: string;
           car_price: number;
+          monthly_payment: number | null;
           max_deposit: number;
           display_order: number;
           is_active: boolean;
@@ -325,12 +326,14 @@ export interface Database {
           | "updated_at"
           | "display_order"
           | "is_active"
+          | "monthly_payment"
         > & {
           id?: string;
           created_at?: string;
           updated_at?: string;
           display_order?: number;
           is_active?: boolean;
+          monthly_payment?: number | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["vehicle_models"]["Insert"]

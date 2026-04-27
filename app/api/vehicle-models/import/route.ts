@@ -16,6 +16,7 @@ interface ParsedRow {
   model: string;
   trim: string;
   car_price: number;
+  monthly_payment: number;
   max_deposit: number;
   display_order: number;
 }
@@ -28,17 +29,21 @@ interface ParseResult {
 /**
  * 엑셀 bytes → ParsedRow[].
  *
- * 파일 포맷 (고객용+페이지.xlsx, 2026-04-21 node 파싱 교차 검증):
+ * 파일 포맷 (업로드.xlsx, 2026-04-26부터 6컬럼):
  *   - 첫 번째 시트 사용 (Sheet1)
  *   - row 0~5: 안내 문구 (띄엄띄엄)
- *   - row 6:   헤더 ["차종", "모델", "등급", "차량가격", null, "월 납입료", "최대보증금"]
+ *   - row 6:   헤더 ["차종", "모델", "등급", "차량가격", "월 납입료", "최대보증금"]
  *   - row 7~:  데이터
  *
  * 컬럼 인덱스 (0-based):
  *   0=brand, 1=model, 2=trim,
- *   3=car_price, 4=추가가격(무시), 5=월납입료(무시), 6=max_deposit
+ *   3=car_price, 4=monthly_payment, 5=max_deposit
  *
  * brand/model 컬럼은 merge cell → 직전 값 forward-fill.
+ *
+ * 변경 이력:
+ *   2026-04-26: 기존 7컬럼(추가가격 포함)에서 6컬럼으로 변경. monthly_payment를
+ *               공식 계산 대신 엑셀 값으로 직접 저장하도록 전환.
  */
 function parseWorkbook(buffer: ArrayBuffer): ParseResult {
   const wb = XLSX.read(buffer, { type: "array" });
@@ -63,7 +68,8 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
   const COL_MODEL = 1;
   const COL_TRIM = 2;
   const COL_CAR_PRICE = 3;
-  const COL_MAX_DEPOSIT = 6;
+  const COL_MONTHLY_PAYMENT = 4;
+  const COL_MAX_DEPOSIT = 5;
 
   for (let i = DATA_START_IDX; i < data.length; i++) {
     const row = data[i] ?? [];
@@ -73,6 +79,7 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
     const rawModel = stringCell(row[COL_MODEL]);
     const rawTrim = stringCell(row[COL_TRIM]);
     const rawCarPrice = row[COL_CAR_PRICE];
+    const rawMonthlyPayment = row[COL_MONTHLY_PAYMENT];
     const rawMaxDeposit = row[COL_MAX_DEPOSIT];
 
     // forward-fill
@@ -80,7 +87,12 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
     if (rawModel) currentModel = rawModel;
 
     // 완전 빈 행 스킵
-    if (!rawTrim && rawCarPrice == null && rawMaxDeposit == null) {
+    if (
+      !rawTrim &&
+      rawCarPrice == null &&
+      rawMonthlyPayment == null &&
+      rawMaxDeposit == null
+    ) {
       continue;
     }
 
@@ -98,9 +110,16 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
     }
 
     const carPrice = toInt(rawCarPrice);
+    const monthlyPayment = toInt(rawMonthlyPayment);
     const maxDeposit = toInt(rawMaxDeposit);
     if (carPrice === null || carPrice <= 0) {
       errors.push(`${rowNum}행: 차량가격이 올바르지 않습니다 (${rawCarPrice}).`);
+      continue;
+    }
+    if (monthlyPayment === null || monthlyPayment <= 0) {
+      errors.push(
+        `${rowNum}행: 월 납입료가 올바르지 않습니다 (${rawMonthlyPayment}).`,
+      );
       continue;
     }
     if (maxDeposit === null || maxDeposit < 0) {
@@ -113,6 +132,7 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
       model: currentModel,
       trim: rawTrim,
       car_price: carPrice,
+      monthly_payment: monthlyPayment,
       max_deposit: maxDeposit,
       display_order: order,
     });
