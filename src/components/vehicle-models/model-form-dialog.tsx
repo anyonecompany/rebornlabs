@@ -20,6 +20,7 @@ export interface VehicleModelItem {
   model: string;
   trim: string;
   carPrice: number;
+  monthlyPayment: number | null;
   maxDeposit: number;
   displayOrder: number;
   isActive: boolean;
@@ -44,6 +45,7 @@ export function ModelFormDialog({
   const [model, setModel] = useState("");
   const [trim, setTrim] = useState("");
   const [carPrice, setCarPrice] = useState("");
+  const [monthlyPayment, setMonthlyPayment] = useState("");
   const [maxDeposit, setMaxDeposit] = useState("");
   const [displayOrder, setDisplayOrder] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -55,6 +57,9 @@ export function ModelFormDialog({
       setModel(editing.model);
       setTrim(editing.trim);
       setCarPrice(String(editing.carPrice));
+      setMonthlyPayment(
+        editing.monthlyPayment != null ? String(editing.monthlyPayment) : "",
+      );
       setMaxDeposit(String(editing.maxDeposit));
       setDisplayOrder(String(editing.displayOrder));
       setIsActive(editing.isActive);
@@ -63,6 +68,7 @@ export function ModelFormDialog({
       setModel("");
       setTrim("");
       setCarPrice("");
+      setMonthlyPayment("");
       setMaxDeposit("");
       setDisplayOrder("0");
       setIsActive(true);
@@ -74,6 +80,8 @@ export function ModelFormDialog({
     const priceNum = Number(carPrice);
     const depositNum = Number(maxDeposit);
     const orderNum = Number(displayOrder || "0");
+    const monthlyTrimmed = monthlyPayment.trim();
+    const monthlyNum = monthlyTrimmed === "" ? null : Number(monthlyTrimmed);
 
     if (!brand.trim() || !model.trim() || !trim.trim()) {
       toast.error("브랜드, 모델, 등급은 필수입니다.");
@@ -81,6 +89,13 @@ export function ModelFormDialog({
     }
     if (!Number.isFinite(priceNum) || priceNum <= 0) {
       toast.error("차량가격을 올바르게 입력해 주세요.");
+      return;
+    }
+    if (
+      monthlyNum !== null &&
+      (!Number.isFinite(monthlyNum) || monthlyNum <= 0)
+    ) {
+      toast.error("월 납입료를 올바르게 입력해 주세요.");
       return;
     }
     if (!Number.isFinite(depositNum) || depositNum < 0) {
@@ -102,6 +117,7 @@ export function ModelFormDialog({
           model: model.trim(),
           trim: trim.trim(),
           carPrice: priceNum,
+          monthlyPayment: monthlyNum,
           maxDeposit: depositNum,
           displayOrder: orderNum,
           isActive,
@@ -179,6 +195,20 @@ export function ModelFormDialog({
               />
             </div>
             <div className="space-y-1.5">
+              <Label>월 납입료 (원)</Label>
+              <Input
+                type="number"
+                value={monthlyPayment}
+                onChange={(e) => setMonthlyPayment(e.target.value)}
+                placeholder="435000 (비우면 미설정)"
+                disabled={submitting}
+                min={0}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <Label>최대보증금 (원)</Label>
               <Input
                 type="number"
@@ -189,9 +219,6 @@ export function ModelFormDialog({
                 min={0}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>표시 순서</Label>
               <Input
@@ -202,21 +229,22 @@ export function ModelFormDialog({
                 min={0}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>상태</Label>
-              <button
-                type="button"
-                onClick={() => setIsActive((p) => !p)}
-                disabled={submitting}
-                className={`w-full rounded-md border px-3 py-2 text-sm text-left transition-colors ${
-                  isActive
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                {isActive ? "활성 (공개 노출)" : "비활성 (공개 미노출)"}
-              </button>
-            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>상태</Label>
+            <button
+              type="button"
+              onClick={() => setIsActive((p) => !p)}
+              disabled={submitting}
+              className={`w-full rounded-md border px-3 py-2 text-sm text-left transition-colors ${
+                isActive
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              {isActive ? "활성 (공개 노출)" : "비활성 (공개 미노출)"}
+            </button>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

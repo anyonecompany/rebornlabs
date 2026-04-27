@@ -27,7 +27,9 @@ export async function GET() {
 
     const { data, error } = await serviceClient
       .from("vehicle_models")
-      .select("id, brand, model, trim, car_price, max_deposit, display_order")
+      .select(
+        "id, brand, model, trim, car_price, monthly_payment, max_deposit, display_order",
+      )
       .eq("is_active", true)
       .order("display_order", { ascending: true });
 
@@ -43,6 +45,7 @@ export async function GET() {
       id: string;
       trim: string;
       carPrice: number;
+      monthlyPayment: number | null;
       maxDeposit: number;
       displayOrder: number;
     };
@@ -70,6 +73,7 @@ export async function GET() {
         id: row.id,
         trim: row.trim,
         carPrice: row.car_price,
+        monthlyPayment: row.monthly_payment,
         maxDeposit: row.max_deposit,
         displayOrder: row.display_order,
       });

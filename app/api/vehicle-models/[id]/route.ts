@@ -10,6 +10,7 @@ const UpdateSchema = z
     model: z.string().min(1).max(100).optional(),
     trim: z.string().min(1).max(100).optional(),
     carPrice: z.number().int().positive().optional(),
+    monthlyPayment: z.number().int().positive().nullable().optional(),
     maxDeposit: z.number().int().min(0).optional(),
     displayOrder: z.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
@@ -57,11 +58,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const input = parsed.data;
-    const updates: Record<string, string | number | boolean> = {};
+    const updates: Record<string, string | number | boolean | null> = {};
     if (input.brand !== undefined) updates.brand = input.brand.trim();
     if (input.model !== undefined) updates.model = input.model.trim();
     if (input.trim !== undefined) updates.trim = input.trim.trim();
     if (input.carPrice !== undefined) updates.car_price = input.carPrice;
+    if (input.monthlyPayment !== undefined)
+      updates.monthly_payment = input.monthlyPayment;
     if (input.maxDeposit !== undefined) updates.max_deposit = input.maxDeposit;
     if (input.displayOrder !== undefined)
       updates.display_order = input.displayOrder;
@@ -74,7 +77,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .update(updates)
       .eq("id", id)
       .select(
-        "id, brand, model, trim, car_price, max_deposit, display_order, is_active, created_at, updated_at",
+        "id, brand, model, trim, car_price, monthly_payment, max_deposit, display_order, is_active, created_at, updated_at",
       )
       .single();
 
@@ -99,6 +102,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         model: updated.model,
         trim: updated.trim,
         carPrice: updated.car_price,
+        monthlyPayment: updated.monthly_payment,
         maxDeposit: updated.max_deposit,
         displayOrder: updated.display_order,
         isActive: updated.is_active,
