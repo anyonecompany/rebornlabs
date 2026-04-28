@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,13 +152,7 @@ export default function NewSalePage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href="/sales"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          판매 목록으로
-        </Link>
+        <BackLink href="/sales">판매 목록으로</BackLink>
       </div>
 
       <PageHeader title="직접 판매 등록" />

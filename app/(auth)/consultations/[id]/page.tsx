@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, ShoppingCart } from "lucide-react";
-import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { LoadingState } from "@/components/loading-state";
@@ -509,13 +509,7 @@ export default function ConsultationDetailPage() {
     return (
       <div>
         <div className="mb-4">
-          <Link
-            href="/consultations"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            상담 목록으로
-          </Link>
+          <BackLink href="/consultations">상담 목록으로</BackLink>
         </div>
         <LoadingState variant="form" />
       </div>
@@ -546,13 +540,7 @@ export default function ConsultationDetailPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href="/consultations"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          상담 목록으로
-        </Link>
+        <BackLink href="/consultations">상담 목록으로</BackLink>
       </div>
 
       <PageHeader title={`${consultation.customer_name} 님 상담`}>

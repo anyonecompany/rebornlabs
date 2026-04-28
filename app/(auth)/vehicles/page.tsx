@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Search, Car, List, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
@@ -19,6 +19,7 @@ import {
 import { apiFetch } from "@/src/lib/api-client";
 import { formatKRW, formatMileage } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { useUrlState } from "@/src/lib/use-url-state";
 import type { VehicleStatus, UserRole } from "@/types/database";
 
 interface VehicleRow {
@@ -38,30 +39,26 @@ interface VehicleRow {
   created_at: string;
 }
 
-export default function VehiclesPage() {
+function VehiclesPageInner() {
   const router = useRouter();
 
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { role: userRole } = useUserRole();
 
-  // 검색/필터/뷰 상태
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<VehicleStatus | "all">("all");
-  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("vehicles-view") as "list" | "grid") ?? "list";
-    }
-    return "list";
-  });
-
-  const [gridPage, setGridPage] = useState(0);
+  // 검색/필터/뷰 — URL searchParams에 동기화
+  const [search, setSearch] = useUrlState<string>("search", "");
+  const [statusFilter, setStatusFilter] = useUrlState<VehicleStatus | "all">(
+    "status",
+    "all",
+  );
+  const [viewMode, setViewMode] = useUrlState<"list" | "grid">("view", "list");
+  const [gridPage, setGridPage] = useUrlState<number>("page", 0);
   const GRID_PAGE_SIZE = 18; // 3열 × 6행
 
   const toggleView = (mode: "list" | "grid") => {
     setViewMode(mode);
-    setGridPage(0);
-    localStorage.setItem("vehicles-view", mode);
+    if (gridPage !== 0) setGridPage(0);
   };
 
   const fetchVehicles = useCallback(async () => {
@@ -193,12 +190,18 @@ export default function VehiclesPage() {
             className="pl-9"
             placeholder="차종, 모델, 코드 검색"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (gridPage !== 0) setGridPage(0);
+            }}
           />
         </div>
         <Select
           value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as VehicleStatus | "all")}
+          onValueChange={(v) => {
+            setStatusFilter(v as VehicleStatus | "all");
+            if (gridPage !== 0) setGridPage(0);
+          }}
         >
           <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="상태 필터" />
@@ -211,16 +214,22 @@ export default function VehiclesPage() {
             <SelectItem value="sold">판매완료</SelectItem>
           </SelectContent>
         </Select>
-        <div className="flex gap-1 ml-auto">
+        <div className="flex gap-1 ml-auto" role="group" aria-label="뷰 전환">
           <button
+            type="button"
             onClick={() => toggleView("list")}
-            className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="리스트 보기"
+            aria-pressed={viewMode === "list"}
+            className={`p-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${viewMode === "list" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
           >
             <List className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => toggleView("grid")}
-            className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="그리드 보기"
+            aria-pressed={viewMode === "grid"}
+            className={`p-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${viewMode === "grid" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -294,11 +303,11 @@ export default function VehiclesPage() {
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setGridPage(p => Math.max(0, p - 1))} disabled={gridPage === 0}>
+                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="이전 페이지" onClick={() => setGridPage(Math.max(0, gridPage - 1))} disabled={gridPage === 0}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="px-2">{gridPage + 1} / {gridTotalPages}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setGridPage(p => Math.min(gridTotalPages - 1, p + 1))} disabled={gridPage === gridTotalPages - 1}>
+                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="다음 페이지" onClick={() => setGridPage(Math.min(gridTotalPages - 1, gridPage + 1))} disabled={gridPage === gridTotalPages - 1}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -309,5 +318,13 @@ export default function VehiclesPage() {
         })()
       )}
     </div>
+  );
+}
+
+export default function VehiclesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+      <VehiclesPageInner />
+    </Suspense>
   );
 }

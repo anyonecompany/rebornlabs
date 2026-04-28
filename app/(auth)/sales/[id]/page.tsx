@@ -16,7 +16,7 @@ import {
   CheckCircle,
   PackageCheck,
 } from "lucide-react";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { LoadingState } from "@/components/loading-state";
@@ -601,13 +601,7 @@ export default function SaleDetailPage() {
     return (
       <div>
         <div className="mb-4">
-          <Link
-            href="/sales"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            판매 목록으로
-          </Link>
+          <BackLink href="/sales">판매 목록으로</BackLink>
         </div>
         <LoadingState variant="form" />
       </div>
@@ -640,13 +634,7 @@ export default function SaleDetailPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href="/sales"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          판매 목록으로
-        </Link>
+        <BackLink href="/sales">판매 목록으로</BackLink>
       </div>
 
       <PageHeader

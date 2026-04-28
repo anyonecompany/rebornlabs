@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { useUrlState } from "@/src/lib/use-url-state";
 import { QuoteListTable, type QuoteRow } from "@/src/components/quote/quote-list-table";
 import { QuoteDetailDialog } from "@/src/components/quote/quote-detail-dialog";
 
@@ -21,15 +22,20 @@ const STATUS_TABS: { value: Status; label: string }[] = [
 
 const PAGE_SIZE = 20;
 
-export default function QuotesPage() {
+function QuotesPageInner() {
   const { role } = useUserRole();
   const [quotes, setQuotes] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [status, setStatus] = useState<Status>("all");
-  const [search, setSearch] = useState("");
+  const [status, setStatus] = useUrlState<Status>("status", "all");
+  const [search, setSearch] = useUrlState<string>("search", "");
   const [searchInput, setSearchInput] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlState<number>("page", 1);
+
+  // URL의 검색어 → input에 동기화 (초기 로드 + 외부 URL 변경 시)
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   const [selectedQuote, setSelectedQuote] = useState<QuoteRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -188,7 +194,7 @@ export default function QuotesPage() {
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -200,7 +206,7 @@ export default function QuotesPage() {
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
             >
               <ChevronRight className="h-4 w-4" />
@@ -216,5 +222,13 @@ export default function QuotesPage() {
         onUpdated={handleQuoteUpdated}
       />
     </div>
+  );
+}
+
+export default function QuotesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+      <QuotesPageInner />
+    </Suspense>
   );
 }

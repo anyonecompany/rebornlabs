@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Search,
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { useUrlState } from "@/src/lib/use-url-state";
 import { useRouter } from "next/navigation";
 import {
   ModelFormDialog,
@@ -43,17 +44,22 @@ const STATUS_TABS: { value: StatusTab; label: string }[] = [
 
 const PAGE_SIZE = 20;
 
-export default function VehicleModelsPage() {
+function VehicleModelsPageInner() {
   const router = useRouter();
   const { role, isReady } = useUserRole();
 
   const [items, setItems] = useState<VehicleModelItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [status, setStatus] = useState<StatusTab>("all");
-  const [search, setSearch] = useState("");
+  const [status, setStatus] = useUrlState<StatusTab>("status", "all");
+  const [search, setSearch] = useUrlState<string>("search", "");
   const [searchInput, setSearchInput] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useUrlState<number>("page", 1);
+
+  // URL search → input 동기화
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<VehicleModelItem | null>(null);
@@ -381,7 +387,7 @@ export default function VehicleModelsPage() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -393,7 +399,7 @@ export default function VehicleModelsPage() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page >= totalPages}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -417,5 +423,13 @@ export default function VehicleModelsPage() {
         onImported={fetchData}
       />
     </div>
+  );
+}
+
+export default function VehicleModelsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+      <VehicleModelsPageInner />
+    </Suspense>
   );
 }

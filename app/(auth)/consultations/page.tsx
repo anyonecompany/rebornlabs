@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -20,6 +20,8 @@ import { apiFetch } from "@/src/lib/api-client";
 import { formatDate } from "@/src/lib/format";
 import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef, isDirectSource } from "@/src/lib/source-ref";
+import { useUrlState } from "@/src/lib/use-url-state";
+import { useDebounce } from "@/src/lib/use-debounce";
 import type { ConsultationStatus } from "@/types/database";
 
 interface ConsultationRow {
@@ -33,26 +35,46 @@ interface ConsultationRow {
   created_at: string;
 }
 
-export default function ConsultationsPage() {
+type SourceCategory = "all" | "direct" | "instagram" | "other";
+type DuplicateFilter = "all" | "true" | "false";
+type StatusFilter = ConsultationStatus | "all";
+
+function ConsultationsPageInner() {
   const router = useRouter();
 
   const PAGE_SIZE = 20;
   const [consultations, setConsultations] = useState<ConsultationRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  // 검색/필터 상태
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ConsultationStatus | "all">(
+  // 검색/필터 — URL searchParams에 동기화 (뒤로가기·새로고침·공유 가능)
+  const [page, setPage] = useUrlState<number>("page", 1);
+  const [search, setSearch] = useUrlState<string>("search", "");
+  const [statusFilter, setStatusFilter] = useUrlState<StatusFilter>(
+    "status",
     "all",
   );
-  const [duplicateFilter, setDuplicateFilter] = useState<
-    "all" | "true" | "false"
-  >("all");
-  type SourceCategory = "all" | "direct" | "instagram" | "other";
-  const [sourceFilter, setSourceFilter] = useState<SourceCategory>("all");
+  const [duplicateFilter, setDuplicateFilter] = useUrlState<DuplicateFilter>(
+    "duplicate",
+    "all",
+  );
+  const [sourceFilter, setSourceFilter] = useUrlState<SourceCategory>(
+    "source",
+    "all",
+  );
+
+  // 입력 → API는 debounce. URL은 즉시 갱신(router.replace는 cheap).
+  const debouncedSearch = useDebounce(search, 300);
+
+  // 필터 변경 시 1페이지로. 단순 setter wrapper.
+  const updateFilter = <T extends string | number | boolean>(
+    setter: (next: T) => void,
+    next: T,
+  ) => {
+    setter(next);
+    if (page !== 1) setPage(1);
+  };
 
   const fetchConsultations = useCallback(async () => {
     setLoading(true);
@@ -60,7 +82,7 @@ export default function ConsultationsPage() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("pageSize", String(PAGE_SIZE));
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (duplicateFilter !== "all")
         params.set("is_duplicate", duplicateFilter);
@@ -81,16 +103,11 @@ export default function ConsultationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, duplicateFilter, sourceFilter]);
+  }, [page, debouncedSearch, statusFilter, duplicateFilter, sourceFilter]);
 
   useEffect(() => {
     fetchConsultations();
   }, [fetchConsultations]);
-
-  // 검색·필터 변경 시 1페이지로 리셋
-  useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter, duplicateFilter, sourceFilter]);
 
   const columns = [
     { key: "customer_name", header: "고객명" },
@@ -158,13 +175,13 @@ export default function ConsultationsPage() {
             className="pl-9"
             placeholder="고객명, 전화번호로 검색"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateFilter(setSearch, e.target.value)}
           />
         </div>
         <Select
           value={statusFilter}
           onValueChange={(v) =>
-            setStatusFilter(v as ConsultationStatus | "all")
+            updateFilter(setStatusFilter, v as StatusFilter)
           }
         >
           <SelectTrigger className="w-full sm:w-40">
@@ -182,7 +199,7 @@ export default function ConsultationsPage() {
         <Select
           value={duplicateFilter}
           onValueChange={(v) =>
-            setDuplicateFilter(v as "all" | "true" | "false")
+            updateFilter(setDuplicateFilter, v as DuplicateFilter)
           }
         >
           <SelectTrigger className="w-full sm:w-36">
@@ -196,7 +213,9 @@ export default function ConsultationsPage() {
         </Select>
         <Select
           value={sourceFilter}
-          onValueChange={(v) => setSourceFilter(v as SourceCategory)}
+          onValueChange={(v) =>
+            updateFilter(setSourceFilter, v as SourceCategory)
+          }
         >
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="유입 채널" />
@@ -234,7 +253,7 @@ export default function ConsultationsPage() {
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1 || loading}
               aria-label="이전 페이지"
             >
@@ -247,9 +266,7 @@ export default function ConsultationsPage() {
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() =>
-                setPage((p) => Math.min(totalPages, p + 1))
-              }
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages || loading}
               aria-label="다음 페이지"
             >
@@ -259,5 +276,14 @@ export default function ConsultationsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ConsultationsPage() {
+  // useSearchParams는 Suspense boundary 내에서만 사용 가능
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+      <ConsultationsPageInner />
+    </Suspense>
   );
 }

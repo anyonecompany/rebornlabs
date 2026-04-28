@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { CheckCircle, Car, PenLine, RotateCcw, Check, Smartphone } from "lucide-react";
+import { CheckCircle, Car, PenLine, RotateCcw, Check, Smartphone, Loader2 } from "lucide-react";
 import {
   getContractArticles,
   type ContractType,
@@ -174,6 +174,8 @@ function InlineSignaturePad({ onClose, onComplete }: SignaturePadProps) {
       <div className="flex-1 relative overflow-hidden bg-gray-50 mx-4 rounded-lg border border-gray-200">
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label="서명 입력 영역. 마우스 또는 손가락으로 서명하세요."
           className="absolute inset-0 w-full h-full touch-none cursor-crosshair"
           onMouseDown={startDrawing}
           onMouseMove={draw}
@@ -573,8 +575,10 @@ export default function SignPage() {
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="w-full py-4 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-busy={submitting}
+                className="w-full py-4 rounded-xl text-sm font-semibold text-white bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center gap-2"
               >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 {submitting ? "제출 중..." : "계약 완료"}
               </button>
 

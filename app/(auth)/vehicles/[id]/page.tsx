@@ -12,7 +12,7 @@ import {
   ChevronRight as ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -201,13 +201,7 @@ export default function VehicleDetailPage() {
     return (
       <div>
         <div className="mb-4">
-          <Link
-            href="/vehicles"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            차량 목록으로
-          </Link>
+          <BackLink href="/vehicles">차량 목록으로</BackLink>
         </div>
         <LoadingState variant="form" />
       </div>
@@ -221,13 +215,7 @@ export default function VehicleDetailPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href="/vehicles"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          차량 목록으로
-        </Link>
+        <BackLink href="/vehicles">차량 목록으로</BackLink>
       </div>
 
       <PageHeader title={`${vehicle.make} ${vehicle.model}`}>
