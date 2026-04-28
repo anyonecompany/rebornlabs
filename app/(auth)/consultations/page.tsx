@@ -3,7 +3,8 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search } from "lucide-react";
+import { PageNav } from "@/components/page-nav";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -241,38 +242,19 @@ function ConsultationsPageInner() {
         }
       />
 
-      {/* 페이지네이션 — page/pageSize 기반 */}
+      {/* 페이지네이션 — 1~10 블록 + 화살표 */}
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <span>
+        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground gap-3 flex-wrap">
+          <span className="shrink-0">
             {(page - 1) * PAGE_SIZE + 1}–
             {Math.min(page * PAGE_SIZE, total)} / {total}건
           </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1 || loading}
-              aria-label="이전 페이지"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="px-2 text-foreground">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page >= totalPages || loading}
-              aria-label="다음 페이지"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <PageNav
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            disabled={loading}
+          />
         </div>
       )}
     </div>

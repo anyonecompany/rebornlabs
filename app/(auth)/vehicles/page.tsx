@@ -3,7 +3,8 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search, Car, List, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Car, List, LayoutGrid } from "lucide-react";
+import { PageNav } from "@/components/page-nav";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
@@ -300,17 +301,14 @@ function VehiclesPageInner() {
             ))}
           </div>
           {gridTotalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="이전 페이지" onClick={() => setGridPage(Math.max(0, gridPage - 1))} disabled={gridPage === 0}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="px-2">{gridPage + 1} / {gridTotalPages}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="다음 페이지" onClick={() => setGridPage(Math.min(gridTotalPages - 1, gridPage + 1))} disabled={gridPage === gridTotalPages - 1}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground gap-3 flex-wrap">
+              <span className="shrink-0">{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
+              <PageNav
+                page={gridPage + 1}
+                totalPages={gridTotalPages}
+                onChange={(next) => setGridPage(next - 1)}
+                disabled={loading}
+              />
             </div>
           )}
           </div>

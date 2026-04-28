@@ -7,9 +7,8 @@ import {
   Plus,
   Pencil,
   Upload,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
+import { PageNav } from "@/components/page-nav";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
 import { EmptyState } from "@/components/empty-state";
@@ -377,34 +376,17 @@ function VehicleModelsPageInner() {
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground gap-3 flex-wrap">
+              <span className="shrink-0">
                 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}{" "}
                 / {total}개
               </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="px-2">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={page >= totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              <PageNav
+                page={page}
+                totalPages={totalPages}
+                onChange={setPage}
+                disabled={loading}
+              />
             </div>
           )}
         </>
