@@ -1337,6 +1337,7 @@ export default function RebornLabsLanding() {
               <option value="제네시스 EQ900">제네시스 EQ900</option>
               <option value="제네시스 GV70">제네시스 GV70</option>
               <option value="제네시스 GV80">제네시스 GV80</option>
+              <option value="제네시스 G90">제네시스 G90</option>
               <option disabled>── BMW ──</option>
               <option value="BMW 3시리즈">BMW 3시리즈</option>
               <option value="BMW 5시리즈">BMW 5시리즈</option>
@@ -1346,6 +1347,8 @@ export default function RebornLabsLanding() {
               <option value="BMW X5">BMW X5</option>
               <option value="BMW X6">BMW X6</option>
               <option value="BMW X7">BMW X7</option>
+              <option value="BMW 1시리즈">BMW 1시리즈</option>
+              <option value="BMW 그란투리스모(GT)">BMW 그란투리스모(GT)</option>
               <option disabled>── 랜드로버 ──</option>
               <option value="랜드로버 디스커버리 스포츠">랜드로버 디스커버리 스포츠</option>
               <option value="랜드로버 디스커버리">랜드로버 디스커버리</option>
@@ -1375,6 +1378,8 @@ export default function RebornLabsLanding() {
               <option value="벤츠 CLS-클래스">벤츠 CLS-클래스</option>
               <option value="벤츠 GLC-클래스">벤츠 GLC-클래스</option>
               <option value="벤츠 GLE-클래스">벤츠 GLE-클래스</option>
+              <option value="벤츠 G-클래스">벤츠 G-클래스</option>
+              <option value="벤츠 AMG GT">벤츠 AMG GT</option>
               <option disabled>── 아우디 ──</option>
               <option value="아우디 A4">아우디 A4</option>
               <option value="아우디 A5">아우디 A5</option>
@@ -1382,6 +1387,7 @@ export default function RebornLabsLanding() {
               <option value="아우디 A7">아우디 A7</option>
               <option value="아우디 Q5">아우디 Q5</option>
               <option value="아우디 Q7">아우디 Q7</option>
+              <option value="아우디 A8">아우디 A8</option>
               <option disabled>── 지프 ──</option>
               <option value="지프 글래디에이터">지프 글래디에이터</option>
               <option value="지프 랭글러">지프 랭글러</option>
@@ -1404,6 +1410,8 @@ export default function RebornLabsLanding() {
               <option value="포르쉐 파나메라">포르쉐 파나메라</option>
               <option value="포르쉐 마칸">포르쉐 마칸</option>
               <option value="포르쉐 타이칸">포르쉐 타이칸</option>
+              <option value="포르쉐 718 박스터">포르쉐 718 박스터</option>
+              <option value="포르쉐 718 카이맨">포르쉐 718 카이맨</option>
               <option disabled>── 폭스바겐 ──</option>
               <option value="폭스바겐 티구안">폭스바겐 티구안</option>
               <option value="폭스바겐 아테온">폭스바겐 아테온</option>
@@ -1411,6 +1419,11 @@ export default function RebornLabsLanding() {
               <option value="폭스바겐 골프">폭스바겐 골프</option>
               <option value="폭스바겐 투아렉">폭스바겐 투아렉</option>
               <option value="폭스바겐 파사트">폭스바겐 파사트</option>
+              <option disabled>── 미니 ──</option>
+              <option value="미니 쿠퍼">미니 쿠퍼</option>
+              <option value="미니 클럽맨">미니 클럽맨</option>
+              <option disabled>── 캐딜락 ──</option>
+              <option value="캐딜락 에스컬레이드">캐딜락 에스컬레이드</option>
               <option disabled>────────</option>
               <option value="기타">기타 (문의사항에 기재)</option>
             </select>
@@ -1908,6 +1921,7 @@ export default function RebornLabsLanding() {
                         <option value="제네시스 EQ900">제네시스 EQ900</option>
                         <option value="제네시스 GV70">제네시스 GV70</option>
                         <option value="제네시스 GV80">제네시스 GV80</option>
+                        <option value="제네시스 G90">제네시스 G90</option>
                         <option disabled>── BMW ──</option>
                         <option value="BMW 3시리즈">BMW 3시리즈</option>
                         <option value="BMW 5시리즈">BMW 5시리즈</option>
@@ -1917,6 +1931,8 @@ export default function RebornLabsLanding() {
                         <option value="BMW X5">BMW X5</option>
                         <option value="BMW X6">BMW X6</option>
                         <option value="BMW X7">BMW X7</option>
+                        <option value="BMW 1시리즈">BMW 1시리즈</option>
+                        <option value="BMW 그란투리스모(GT)">BMW 그란투리스모(GT)</option>
                         <option disabled>── 랜드로버 ──</option>
                         <option value="랜드로버 디스커버리 스포츠">랜드로버 디스커버리 스포츠</option>
                         <option value="랜드로버 디스커버리">랜드로버 디스커버리</option>
@@ -1946,6 +1962,8 @@ export default function RebornLabsLanding() {
                         <option value="벤츠 CLS-클래스">벤츠 CLS-클래스</option>
                         <option value="벤츠 GLC-클래스">벤츠 GLC-클래스</option>
                         <option value="벤츠 GLE-클래스">벤츠 GLE-클래스</option>
+                        <option value="벤츠 G-클래스">벤츠 G-클래스</option>
+                        <option value="벤츠 AMG GT">벤츠 AMG GT</option>
                         <option disabled>── 아우디 ──</option>
                         <option value="아우디 A4">아우디 A4</option>
                         <option value="아우디 A5">아우디 A5</option>
@@ -1953,6 +1971,7 @@ export default function RebornLabsLanding() {
                         <option value="아우디 A7">아우디 A7</option>
                         <option value="아우디 Q5">아우디 Q5</option>
                         <option value="아우디 Q7">아우디 Q7</option>
+                        <option value="아우디 A8">아우디 A8</option>
                         <option disabled>── 지프 ──</option>
                         <option value="지프 글래디에이터">지프 글래디에이터</option>
                         <option value="지프 랭글러">지프 랭글러</option>
@@ -1975,6 +1994,8 @@ export default function RebornLabsLanding() {
                         <option value="포르쉐 파나메라">포르쉐 파나메라</option>
                         <option value="포르쉐 마칸">포르쉐 마칸</option>
                         <option value="포르쉐 타이칸">포르쉐 타이칸</option>
+                        <option value="포르쉐 718 박스터">포르쉐 718 박스터</option>
+                        <option value="포르쉐 718 카이맨">포르쉐 718 카이맨</option>
                         <option disabled>── 폭스바겐 ──</option>
                         <option value="폭스바겐 티구안">폭스바겐 티구안</option>
                         <option value="폭스바겐 아테온">폭스바겐 아테온</option>
@@ -1982,6 +2003,11 @@ export default function RebornLabsLanding() {
                         <option value="폭스바겐 골프">폭스바겐 골프</option>
                         <option value="폭스바겐 투아렉">폭스바겐 투아렉</option>
                         <option value="폭스바겐 파사트">폭스바겐 파사트</option>
+                        <option disabled>── 미니 ──</option>
+                        <option value="미니 쿠퍼">미니 쿠퍼</option>
+                        <option value="미니 클럽맨">미니 클럽맨</option>
+                        <option disabled>── 캐딜락 ──</option>
+                        <option value="캐딜락 에스컬레이드">캐딜락 에스컬레이드</option>
                         <option disabled>────────</option>
                         <option value="기타">기타 (문의사항에 기재)</option>
                       </select>
