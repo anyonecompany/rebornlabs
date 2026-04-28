@@ -1,0 +1,34 @@
+name: Scheduled merge — feat/pagination-and-header-fix
+
+# 1회성 자동 머지: PR #5(페이지네이션 + 헤더 충돌 수정)를 KST 23:00에 머지.
+# 이미 머지·종료된 상태면 noop이라 매일 실행돼도 안전.
+
+on:
+  schedule:
+    # KST 23:00 = UTC 14:00
+    - cron: "0 14 * * *"
+  workflow_dispatch: # GitHub Actions 탭에서 수동 trigger
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Squash merge PR #5 if still open
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: "5"
+        run: |
+          set -euo pipefail
+          STATE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state -q .state || echo "MISSING")
+          echo "PR #$PR_NUMBER state = $STATE"
+          if [ "$STATE" = "OPEN" ]; then
+            echo "Merging PR #$PR_NUMBER (squash + delete branch)..."
+            gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch
+            echo "✓ Merged."
+          else
+            echo "Nothing to do (state=$STATE)."
+          fi
