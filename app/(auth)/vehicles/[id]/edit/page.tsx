@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, Upload, X, Loader2, Star } from "lucide-react";
+import { Upload, X, Loader2, Star } from "lucide-react";
 import Image from "next/image";
 import { BackLink } from "@/components/back-link";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,9 @@ export default function VehicleEditPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  // 미저장 변경사항 감지용 — fetch 시점의 초기 상태 보관
+  const initialSnapshotRef = useRef<{ form: FormState; photos: string[] } | null>(null);
+
   const { role: userRole } = useUserRole();
 
   const fetchVehicle = useCallback(async () => {
@@ -87,7 +91,7 @@ export default function VehicleEditPage() {
       const data = await res.json();
       // API 응답: { data: vehicle, checklists: [...] }
       const v = data.data;
-      setForm({
+      const nextForm: FormState = {
         make: v.make,
         model: v.model,
         year: String(v.year),
@@ -100,8 +104,11 @@ export default function VehicleEditPage() {
         plate_number: v.plate_number ?? "",
         vin: v.vin ?? "",
         color: v.color ?? "",
-      });
-      setPhotos(v.photos ?? []);
+      };
+      const nextPhotos: string[] = v.photos ?? [];
+      setForm(nextForm);
+      setPhotos(nextPhotos);
+      initialSnapshotRef.current = { form: nextForm, photos: nextPhotos };
     } catch {
       toast.error("차량 정보를 불러오는 중 오류가 발생했습니다.");
       router.push("/vehicles");
@@ -249,8 +256,17 @@ export default function VehicleEditPage() {
     );
   }
 
+  // 미저장 변경사항 가드 — 초기 fetch 결과와 다르고 저장 중이 아닐 때만
+  const initial = initialSnapshotRef.current;
+  const isDirty =
+    !saving &&
+    initial !== null &&
+    (JSON.stringify(form) !== JSON.stringify(initial.form) ||
+      JSON.stringify(photos) !== JSON.stringify(initial.photos));
+
   return (
     <div>
+      <UnsavedChangesGuard isDirty={isDirty} />
       <div className="mb-4">
         <BackLink href={`/vehicles/${id}`}>상세 페이지로</BackLink>
       </div>

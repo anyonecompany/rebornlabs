@@ -3,10 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Upload, X, Loader2, ChevronLeft, Star } from "lucide-react";
+import { Upload, X, Loader2, Star } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,16 +208,17 @@ export default function VehicleNewPage() {
   if (!isReady) return null;
   if (userRole === "dealer") return null;
 
+  // 미저장 변경사항 가드 — 폼이 비어있지 않거나 이미지가 업로드된 상태에서 페이지 이탈 시 경고
+  const isDirty =
+    !saving &&
+    (JSON.stringify(form) !== JSON.stringify(INITIAL_FORM) ||
+      images.length > 0);
+
   return (
     <div>
+      <UnsavedChangesGuard isDirty={isDirty} />
       <div className="mb-4">
-        <Link
-          href="/vehicles"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          차량 목록으로
-        </Link>
+        <BackLink href="/vehicles">차량 목록으로</BackLink>
       </div>
 
       <PageHeader title="차량 등록" description="새 차량을 등록합니다." />
