@@ -242,19 +242,22 @@ function ConsultationsPageInner() {
         }
       />
 
-      {/* 페이지네이션 — 1~10 블록 + 화살표 */}
+      {/* 페이지네이션 — 중앙: 1~10 블록 + 화살표, 우측: 정보 텍스트 */}
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground gap-3 flex-wrap">
-          <span className="shrink-0">
+        <div className="mt-4 flex flex-col sm:grid sm:grid-cols-3 sm:items-center gap-3 text-sm text-muted-foreground">
+          <div className="hidden sm:block" />
+          <div className="flex justify-center">
+            <PageNav
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              disabled={loading}
+            />
+          </div>
+          <span className="text-center sm:text-right">
             {(page - 1) * PAGE_SIZE + 1}–
             {Math.min(page * PAGE_SIZE, total)} / {total}건
           </span>
-          <PageNav
-            page={page}
-            totalPages={totalPages}
-            onChange={setPage}
-            disabled={loading}
-          />
         </div>
       )}
     </div>

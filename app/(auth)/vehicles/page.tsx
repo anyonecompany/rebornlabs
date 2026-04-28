@@ -301,14 +301,17 @@ function VehiclesPageInner() {
             ))}
           </div>
           {gridTotalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground gap-3 flex-wrap">
-              <span className="shrink-0">{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
-              <PageNav
-                page={gridPage + 1}
-                totalPages={gridTotalPages}
-                onChange={(next) => setGridPage(next - 1)}
-                disabled={loading}
-              />
+            <div className="flex flex-col sm:grid sm:grid-cols-3 sm:items-center gap-3 text-sm text-muted-foreground">
+              <div className="hidden sm:block" />
+              <div className="flex justify-center">
+                <PageNav
+                  page={gridPage + 1}
+                  totalPages={gridTotalPages}
+                  onChange={(next) => setGridPage(next - 1)}
+                  disabled={loading}
+                />
+              </div>
+              <span className="text-center sm:text-right">{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
             </div>
           )}
           </div>
