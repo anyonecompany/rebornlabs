@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChevronLeft, Upload, X, Loader2, Star } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
@@ -242,13 +242,7 @@ export default function VehicleEditPage() {
     return (
       <div>
         <div className="mb-4">
-          <Link
-            href={`/vehicles/${id}`}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            상세 페이지로
-          </Link>
+          <BackLink href={`/vehicles/${id}`}>상세 페이지로</BackLink>
         </div>
         <LoadingState variant="form" />
       </div>
@@ -258,13 +252,7 @@ export default function VehicleEditPage() {
   return (
     <div>
       <div className="mb-4">
-        <Link
-          href={`/vehicles/${id}`}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          상세 페이지로
-        </Link>
+        <BackLink href={`/vehicles/${id}`}>상세 페이지로</BackLink>
       </div>
 
       <PageHeader title="차량 수정" description="차량 정보를 수정합니다." />

@@ -265,7 +265,7 @@ export function Sidebar({ user }: { user: SidebarUser }) {
   return (
     <>
       {/* 데스크톱 사이드바 */}
-      <aside className="hidden md:flex w-[260px] shrink-0 h-screen flex-col border-r border-sidebar-border">
+      <aside className="hidden md:flex w-[260px] shrink-0 h-dvh flex-col border-r border-sidebar-border">
         <SidebarContent
           user={user}
           currentPath={pathname}

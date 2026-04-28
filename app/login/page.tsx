@@ -117,7 +117,13 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p
+                  role="alert"
+                  aria-live="polite"
+                  className="text-sm text-red-400"
+                >
+                  {error}
+                </p>
               )}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -131,7 +137,7 @@ export default function LoginPage() {
                     setShowReset(true);
                     setError(null);
                   }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   비밀번호를 잊으셨나요?
                 </button>

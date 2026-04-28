@@ -36,7 +36,7 @@ export default async function AuthLayout({
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-dvh">
       <Sidebar
         user={{
           name: profile.name,

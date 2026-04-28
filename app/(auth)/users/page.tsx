@@ -676,7 +676,10 @@ export default function UsersPage() {
         const user = row as unknown as UserRow;
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors">
+            <DropdownMenuTrigger
+              aria-label={`${user.name} 액션 메뉴`}
+              className="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               •••
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

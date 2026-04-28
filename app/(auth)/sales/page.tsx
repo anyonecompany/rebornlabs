@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 import { apiFetch } from "@/src/lib/api-client";
 import { formatKRW, formatDate } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { useUrlState } from "@/src/lib/use-url-state";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -44,15 +45,18 @@ interface SaleRow {
 
 type CancelFilter = "all" | "active" | "cancelled";
 
-export default function SalesPage() {
+function SalesPageInner() {
   const router = useRouter();
 
   const PAGE_SIZE = 20;
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { role: userRole } = useUserRole();
-  const [cancelFilter, setCancelFilter] = useState<CancelFilter>("all");
-  const [page, setPage] = useState(1);
+  const [cancelFilter, setCancelFilter] = useUrlState<CancelFilter>(
+    "cancel",
+    "all",
+  );
+  const [page, setPage] = useUrlState<number>("page", 1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -85,11 +89,6 @@ export default function SalesPage() {
   useEffect(() => {
     fetchSales();
   }, [fetchSales]);
-
-  // 필터 변경 시 1페이지 리셋
-  useEffect(() => {
-    setPage(1);
-  }, [cancelFilter]);
 
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
@@ -205,7 +204,10 @@ export default function SalesPage() {
       <div className="flex items-center gap-3 mb-4">
         <Select
           value={cancelFilter}
-          onValueChange={(v) => setCancelFilter(v as CancelFilter)}
+          onValueChange={(v) => {
+            setCancelFilter(v as CancelFilter);
+            if (page !== 1) setPage(1);
+          }}
         >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="상태 필터" />
@@ -241,7 +243,7 @@ export default function SalesPage() {
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1 || loading}
               aria-label="이전 페이지"
             >
@@ -255,7 +257,7 @@ export default function SalesPage() {
               size="icon"
               className="h-8 w-8"
               onClick={() =>
-                setPage((p) => Math.min(totalPages, p + 1))
+                setPage(Math.min(totalPages, page + 1))
               }
               disabled={page >= totalPages || loading}
               aria-label="다음 페이지"
@@ -266,5 +268,13 @@ export default function SalesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+      <SalesPageInner />
+    </Suspense>
   );
 }
