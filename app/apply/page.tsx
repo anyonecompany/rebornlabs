@@ -272,6 +272,15 @@ export default function ApplyPage() {
           <div className="flex flex-col gap-1 text-[11px] leading-relaxed">
             <span>리본랩스 · 대표 심재윤</span>
             <span>서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)</span>
+            <span>
+              대표전화{" "}
+              <a
+                href="tel:02-462-5222"
+                className="underline decoration-[#c8bfa8]/30 underline-offset-4 hover:text-white"
+              >
+                02-462-5222
+              </a>
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
             <Link

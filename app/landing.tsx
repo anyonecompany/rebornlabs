@@ -1019,6 +1019,12 @@ export default function RebornLabsLanding() {
           color: #a09880;
           line-height: 1.8;
         }
+        .footer-tel {
+          color: #c8bfa8;
+          text-decoration: none;
+          border-bottom: 1px solid rgba(200, 191, 168, 0.3);
+        }
+        .footer-tel:hover { color: #fff; }
         .footer-copy {
           margin-top: 40px;
           font-size: 12px;
@@ -1825,6 +1831,11 @@ export default function RebornLabsLanding() {
             대표 심재윤
             <br />
             서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)
+            <br />
+            대표전화{" "}
+            <a href="tel:02-462-5222" className="footer-tel">
+              02-462-5222
+            </a>
           </p>
           <p className="footer-copy">
             © {new Date().getFullYear()} REBORN LABS. All rights reserved.
