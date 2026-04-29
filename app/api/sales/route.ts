@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError } from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -340,8 +340,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (rpcError) {
+      console.error("[sales] complete_sale RPC 실패:", rpcError.message);
       return NextResponse.json(
-        { error: rpcError.message },
+        { error: "판매 등록 처리 중 오류가 발생했습니다." },
         { status: 400 },
       );
     }
@@ -363,7 +364,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

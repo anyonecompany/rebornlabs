@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError } from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -100,7 +100,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .upload(pdfPath, pdfBuffer, { contentType: "application/pdf", upsert: true });
 
     if (upErr) {
-      return NextResponse.json({ error: `PDF 저장 실패: ${upErr.message}` }, { status: 500 });
+      console.error("[contracts/regenerate-pdf] Storage 업로드 실패:", upErr.message);
+      return NextResponse.json({ error: "PDF 저장 중 오류가 발생했습니다." }, { status: 500 });
     }
 
     // DB에는 storage path만 저장. 조회 시점마다 새 signed URL을 발급하여 만료 문제를 방지.
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     console.error("[regenerate-pdf] 오류:", err); return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { maskEmail } from "@/src/lib/mask-pii";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -117,20 +118,24 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 감사 로그
+    // 감사 로그 (email 추적성 유지, name은 첫 글자만 노출)
+    const maskedName =
+      target.name.length > 1
+        ? `${target.name.slice(0, 1)}${"*".repeat(target.name.length - 1)}`
+        : target.name;
     await serviceClient.from("audit_logs").insert({
       actor_id: user.id,
       action: "user_deleted",
       target_type: "profile",
       target_id: userId,
-      metadata: { email: target.email, name: target.name, role: target.role },
+      metadata: { email: maskEmail(target.email), name: maskedName, role: target.role },
     });
 
     return NextResponse.json({ success: true });
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

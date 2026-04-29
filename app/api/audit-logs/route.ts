@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -110,10 +110,11 @@ export async function GET(request: NextRequest) {
 
     const merged = items.map((log) => ({
       ...log,
-      // actor_id가 null이면 "시스템", 있으면 프로필 이름 (없으면 "(알 수 없음)")
+      // actor_id가 null이면 "시스템 (자동)" — 웹훅·스케줄러·마이그레이션 등 자동 액션
+      // actor_id가 있으면 프로필 이름, 프로필이 없으면 "(알 수 없음)"
       actor_name: log.actor_id
         ? (profileMap.get(log.actor_id) ?? "(알 수 없음)")
-        : "시스템",
+        : "시스템 (자동)",
     }));
 
     const lastItem = items[items.length - 1];
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

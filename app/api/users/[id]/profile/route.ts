@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 const UpdateProfileSchema = z.object({
   name: z.string().min(1, "이름은 비워둘 수 없습니다.").optional(),
@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }

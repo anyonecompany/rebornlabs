@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError } from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -98,33 +98,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // signature_url, pdf_url → on-demand signed URL 생성
-    const resolved = [];
-    for (const c of contracts ?? []) {
-      const updated = { ...c };
-      if (c.signature_url) {
-        const match = (c.signature_url as string).match(/\/signatures\/(.+?)(?:\?|$)/);
-        if (match?.[1]) {
-          const { data: d } = await serviceClient.storage.from("signatures").createSignedUrl(decodeURIComponent(match[1]), 3600);
-          updated.signature_url = d?.signedUrl ?? c.signature_url;
-        }
-      }
-      if (c.pdf_url) {
-        const match = (c.pdf_url as string).match(/\/contracts\/(.+?)(?:\?|$)/);
-        if (match?.[1]) {
-          const { data: d } = await serviceClient.storage.from("contracts").createSignedUrl(decodeURIComponent(match[1]), 3600);
-          updated.pdf_url = d?.signedUrl ?? c.pdf_url;
-        }
-      }
-      resolved.push(updated);
-    }
+    // signature_url, pdf_url → on-demand signed URL 생성 (Promise.all 병렬화)
+    const resolved = await Promise.all(
+      (contracts ?? []).map(async (c) => {
+        const sigMatch = (c.signature_url as string | null)?.match(/\/signatures\/(.+?)(?:\?|$)/);
+        const pdfMatch = (c.pdf_url as string | null)?.match(/\/contracts\/(.+?)(?:\?|$)/);
+
+        const [sigResult, pdfResult] = await Promise.all([
+          sigMatch?.[1]
+            ? serviceClient.storage.from("signatures").createSignedUrl(decodeURIComponent(sigMatch[1]), 3600)
+            : Promise.resolve(null),
+          pdfMatch?.[1]
+            ? serviceClient.storage.from("contracts").createSignedUrl(decodeURIComponent(pdfMatch[1]), 3600)
+            : Promise.resolve(null),
+        ]);
+
+        return {
+          ...c,
+          signature_url: sigResult?.data?.signedUrl ?? c.signature_url,
+          pdf_url: pdfResult?.data?.signedUrl ?? c.pdf_url,
+        };
+      }),
+    );
 
     return NextResponse.json({ data: resolved });
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -277,7 +279,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

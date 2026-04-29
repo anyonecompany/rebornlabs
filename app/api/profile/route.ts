@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { AuthError, verifyUser } from "@/lib/auth/verify";
+import { AuthError, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 
 interface ProfileUpdateRequest {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ profile: data });
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status: 401 });
     }
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }
@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest) {
     currentUser = await verifyUser(token);
   } catch (err) {
     if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status: 401 });
     }
     return NextResponse.json(
       { error: "인증 처리 중 오류가 발생했습니다." },
