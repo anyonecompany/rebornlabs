@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { LoadingState } from "@/components/loading-state";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
@@ -275,7 +276,7 @@ function SalesPageInner() {
 
 export default function SalesPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">불러오는 중...</div>}>
+    <Suspense fallback={<LoadingState variant="table" />}>
       <SalesPageInner />
     </Suspense>
   );

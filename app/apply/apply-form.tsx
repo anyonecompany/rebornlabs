@@ -131,6 +131,12 @@ export default function ApplyForm() {
           );
           return;
         }
+        // 제출 성공 후 UTM 세션 데이터 정리 (다음 사용자 누수 방지)
+        try {
+          sessionStorage.removeItem("reborn_apply_utm");
+        } catch {
+          // sessionStorage 접근 실패 — 무시
+        }
         setSubmitted(true);
       } catch {
         setErrorMessage("네트워크 오류가 발생했습니다. 다시 시도해 주세요.");

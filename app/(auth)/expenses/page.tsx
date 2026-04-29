@@ -340,6 +340,7 @@ function RegisterExpenseDialog({
             <Input
               type="date"
               value={expenseDate}
+              max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => setExpenseDate(e.target.value)}
               disabled={submitting}
             />

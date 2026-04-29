@@ -258,13 +258,21 @@ export function Sidebar({ user }: { user: SidebarUser }) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  /** same-origin path 만 허용. 외부 URL / protocol-relative 거부. */
+  function sanitizeReturnUrl(raw: string): string {
+    if (!raw.startsWith("/")) return "/dashboard";
+    if (raw.startsWith("//")) return "/dashboard"; // protocol-relative
+    return raw;
+  }
+
   const handleLogout = async () => {
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
     await supabase.auth.signOut();
-    router.push("/login");
+    const safeReturn = sanitizeReturnUrl(pathname);
+    router.push(`/login?returnUrl=${encodeURIComponent(safeReturn)}`);
   };
 
   return (

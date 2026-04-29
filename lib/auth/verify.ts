@@ -27,7 +27,8 @@ export type AuthErrorCode =
   | "NO_PROFILE"
   | "INACTIVE"
   | "PENDING_APPROVAL"
-  | "MUST_CHANGE_PASSWORD";
+  | "MUST_CHANGE_PASSWORD"
+  | "FORBIDDEN";
 
 export class AuthError extends Error {
   constructor(
@@ -61,6 +62,8 @@ export function getAuthErrorMessage(code: AuthErrorCode): string {
       return "계정 승인 대기 중입니다. 관리자의 승인을 기다려주세요.";
     case "MUST_CHANGE_PASSWORD":
       return "비밀번호 변경이 필요합니다.";
+    case "FORBIDDEN":
+      return "이 작업을 수행할 권한이 없습니다.";
     default:
       return "인증 오류가 발생했습니다.";
   }
@@ -183,8 +186,8 @@ export function requireRole(
 ): void {
   if (!hasRole(user, allowedRoles)) {
     throw new AuthError(
-      "INACTIVE",
-      "접근 권한이 없습니다.",
+      "FORBIDDEN",
+      "이 작업을 수행할 권한이 없습니다.",
     );
   }
 }
