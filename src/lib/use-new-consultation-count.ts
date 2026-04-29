@@ -52,7 +52,7 @@ export function useNewConsultationCount(): {
     fetchInitial();
   }, [fetchInitial]);
 
-  // Realtime 구독: 새 상담 INSERT → 카운트 즉시 증가
+  // Realtime 구독: INSERT + UPDATE 모두 구독 → 카운트 재조회
   useEffect(() => {
     const supabase = createBrowserClient();
     const channel = supabase
@@ -77,12 +77,27 @@ export function useNewConsultationCount(): {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "consultations",
+        },
+        () => {
+          // status 변경(예: 'new' → 'consulting')이 반영되도록 전체 카운트 재조회.
+          // filter: 'status=eq.new' 로 서버 필터링하면 status 가 이미 변경된 row 는
+          // 이벤트 자체가 오지 않아 카운트 감소를 감지할 수 없음 → 전체 UPDATE 구독 후
+          // 클라이언트에서 재조회하는 방식을 사용.
+          fetchInitial();
+        },
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchInitial]);
 
   const markAsRead = useCallback(() => {
     setLastCheckedAt(new Date().toISOString());
