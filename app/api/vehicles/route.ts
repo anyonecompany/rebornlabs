@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
     const cursor = searchParams.get("cursor"); // "created_at__id" 형식
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
+    // TODO: 차량 1000대 초과 시 페이로드 폭증 우려.
+    //       photos JSONB가 큰 경우 응답 크기가 급증할 수 있으므로,
+    //       규모 확장 시 무한 스크롤/lazy load(커서 기반 20건 단위) 도입 검토.
     const PAGE_SIZE = 1000;
 
     const serviceClient = createServiceClient();
@@ -149,21 +152,29 @@ export async function GET(request: NextRequest) {
     }
 
     // admin/staff
+    // status=deleted 필터 시: soft-delete된 차량을 보여줌 (deleted_at IS NOT NULL)
+    // 그 외: 삭제되지 않은 차량만 조회
+    const isDeletedFilter = status === "deleted";
     let query = serviceClient
       .from("vehicles")
       .select("*")
-      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(PAGE_SIZE + 1);
+
+    if (isDeletedFilter) {
+      query = query.not("deleted_at", "is", null);
+    } else {
+      query = query.is("deleted_at", null);
+    }
 
     if (search) {
       query = query.or(
         `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
       );
     }
-    if (status) {
-      query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted");
+    if (status && !isDeletedFilter) {
+      query = query.eq("status", status as "available" | "consulting" | "sold");
     }
     if (cursor) {
       const [cursorDate, cursorId] = cursor.split("__");
@@ -194,7 +205,7 @@ export async function GET(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -274,7 +285,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

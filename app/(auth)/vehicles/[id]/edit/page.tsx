@@ -9,6 +9,7 @@ import { BackLink } from "@/components/back-link";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { PageHeader } from "@/components/page-header";
 import { LoadingState } from "@/components/loading-state";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +72,9 @@ export default function VehicleEditPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<"converting" | "uploading" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [deleteThumbnailOpen, setDeleteThumbnailOpen] = useState(false);
 
   // 미저장 변경사항 감지용 — fetch 시점의 초기 상태 보관
   const initialSnapshotRef = useRef<{ form: FormState; photos: string[] } | null>(null);
@@ -138,13 +141,24 @@ export default function VehicleEditPage() {
       if (files.length === 0) return;
       setUploading(true);
       setUploadProgress(0);
+      setUploadStage("converting");
 
       const newUrls: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
-          const blob = await processImage(file);
+          setUploadStage("converting");
+          let blob: Blob;
+          try {
+            blob = await processImage(file);
+          } catch {
+            toast.error(
+              `${file.name}: 이미지 변환 실패 — 다른 형식(JPG, PNG)으로 다시 시도해 주세요.`,
+            );
+            continue;
+          }
+          setUploadStage("uploading");
           const url = await uploadVehicleImage(null, blob, id);
           newUrls.push(url);
           setUploadProgress(Math.round(((i + 1) / files.length) * 100));
@@ -156,6 +170,7 @@ export default function VehicleEditPage() {
       setPhotos((prev) => [...prev, ...newUrls]);
       setUploading(false);
       setUploadProgress(0);
+      setUploadStage(null);
     },
     [id],
   );
@@ -186,7 +201,30 @@ export default function VehicleEditPage() {
   };
 
   const removePhoto = (index: number) => {
+    if (index === 0) {
+      // 대표 사진: confirm 다이얼로그로 확인
+      setDeleteThumbnailOpen(true);
+      return;
+    }
+    // 일반 사진: 즉시 삭제 + Undo Toast
+    const removed = photos[index];
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+    toast("사진이 삭제되었습니다.", {
+      action: {
+        label: "실행 취소",
+        onClick: () => setPhotos((prev) => {
+          const next = [...prev];
+          next.splice(index, 0, removed);
+          return next;
+        }),
+      },
+      duration: 5000,
+    });
+  };
+
+  const confirmDeleteThumbnail = () => {
+    setDeleteThumbnailOpen(false);
+    setPhotos((prev) => prev.filter((_, i) => i !== 0));
   };
 
   const setThumbnail = (index: number) => {
@@ -267,6 +305,15 @@ export default function VehicleEditPage() {
   return (
     <div>
       <UnsavedChangesGuard isDirty={isDirty} />
+      <ConfirmDialog
+        open={deleteThumbnailOpen}
+        onOpenChange={setDeleteThumbnailOpen}
+        title="대표 사진 삭제"
+        description="대표 사진을 삭제하시겠습니까? 다음 사진이 자동으로 대표 사진이 됩니다."
+        confirmLabel="삭제"
+        onConfirm={confirmDeleteThumbnail}
+        variant="destructive"
+      />
       <div className="mb-4">
         <BackLink href={`/vehicles/${id}`}>상세 페이지로</BackLink>
       </div>
@@ -436,7 +483,11 @@ export default function VehicleEditPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>이미지 처리 중... {uploadProgress}%</span>
+                  <span>
+                    {uploadStage === "converting"
+                      ? `이미지 변환 중... (${uploadProgress}%)`
+                      : `업로드 중... (${uploadProgress}%)`}
+                  </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
@@ -531,8 +582,16 @@ export default function VehicleEditPage() {
           >
             취소
           </Button>
-          <Button type="submit" disabled={saving || uploading}>
-            {saving ? "처리 중..." : "저장"}
+          <Button
+            type="submit"
+            disabled={saving || uploading}
+            className={
+              isDirty
+                ? "ring-2 ring-offset-2 ring-primary ring-offset-background"
+                : undefined
+            }
+          >
+            {saving ? "처리 중..." : isDirty ? "저장 (미저장 변경사항 있음)" : "저장"}
           </Button>
         </div>
       </form>

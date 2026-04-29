@@ -50,7 +50,7 @@ function VehiclesPageInner() {
 
   // 검색/필터/뷰 — URL searchParams에 동기화
   const [search, setSearch] = useUrlState<string>("search", "");
-  const [statusFilter, setStatusFilter] = useUrlState<VehicleStatus | "all">(
+  const [statusFilter, setStatusFilter] = useUrlState<VehicleStatus | "all" | "deleted">(
     "status",
     "all",
   );
@@ -81,6 +81,7 @@ function VehiclesPageInner() {
     try {
       const sp = new URLSearchParams();
       if (search) sp.set("search", search);
+      // "deleted" 필터는 admin/staff만 허용 (서버에서도 검증하나, 클라이언트 isPrivileged 체크 후 전송)
       if (statusFilter !== "all") sp.set("status", statusFilter);
       const qs = sp.toString();
       const res = await apiFetch(`/api/vehicles${qs ? `?${qs}` : ""}`);
@@ -112,7 +113,8 @@ function VehiclesPageInner() {
         v.make.toLowerCase().includes(searchLower) ||
         v.model.toLowerCase().includes(searchLower) ||
         v.vehicle_code.toLowerCase().includes(searchLower);
-      const matchStatus = statusFilter === "all" || v.status === statusFilter;
+      // "deleted" 필터: 서버가 deleted_at IS NOT NULL인 차량을 반환하므로 클라이언트 필터는 pass-through
+      const matchStatus = statusFilter === "all" || statusFilter === "deleted" || v.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [vehicles, search, statusFilter]);
@@ -217,7 +219,7 @@ function VehiclesPageInner() {
         <Select
           value={statusFilter}
           onValueChange={(v) => {
-            setStatusFilter(v as VehicleStatus | "all");
+            setStatusFilter(v as VehicleStatus | "all" | "deleted");
             if (gridPage !== 0) setGridPage(0);
           }}
         >
@@ -229,6 +231,9 @@ function VehiclesPageInner() {
             <SelectItem value="available">출고가능</SelectItem>
             <SelectItem value="consulting">상담중</SelectItem>
             <SelectItem value="sold">판매완료</SelectItem>
+            {isPrivileged && (
+              <SelectItem value="deleted">삭제됨</SelectItem>
+            )}
           </SelectContent>
         </Select>
         <div className="flex gap-1 ml-auto" role="group" aria-label="뷰 전환">

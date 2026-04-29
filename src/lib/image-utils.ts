@@ -40,17 +40,22 @@ export async function processImage(file: File): Promise<Blob> {
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("이미지 변환에 실패했습니다."));
-            return;
-          }
-          resolve(blob);
-        },
-        "image/webp",
-        WEBP_QUALITY,
-      );
+      try {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("이미지 변환에 실패했습니다. (canvas.toBlob: null 반환)"));
+              return;
+            }
+            resolve(blob);
+          },
+          "image/webp",
+          WEBP_QUALITY,
+        );
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        reject(new Error(`이미지 변환에 실패했습니다. (canvas.toBlob: ${reason})`));
+      }
     };
 
     img.onerror = () => {
