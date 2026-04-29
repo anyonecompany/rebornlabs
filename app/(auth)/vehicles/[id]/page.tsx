@@ -231,11 +231,8 @@ export default function VehicleDetailPage() {
 
       <PageHeader title={`${vehicle.make} ${vehicle.model}`}>
         <div className="flex items-center gap-2">
-          {(userRole === "admin" ||
-            userRole === "staff" ||
-            userRole === "director" ||
-            userRole === "team_leader" ||
-            userRole === "dealer") && (
+          {/* 어드민에 로그인한 모든 사용자(pending 제외)에게 견적서 발행 노출 */}
+          {userRole && userRole !== "pending" && userRole !== "none" && (
             <Button
               variant="outline"
               size="sm"
