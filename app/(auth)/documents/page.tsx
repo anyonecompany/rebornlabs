@@ -375,7 +375,7 @@ export default function DocumentsPage() {
       render: (v: unknown) => formatDate(v as string),
     },
     {
-      key: "id",
+      key: "actions__download",
       header: "다운로드",
       render: (_v: unknown, row: Record<string, unknown>) => (
         <Button
@@ -395,14 +395,14 @@ export default function DocumentsPage() {
     ...(isAdmin
       ? [
           {
-            key: "id",
+            key: "actions__delete",
             header: "",
-            render: (v: unknown) => (
+            render: (_v: unknown, row: Record<string, unknown>) => (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setDeleteTargetId(v as string);
+                  setDeleteTargetId(row.id as string);
                 }}
                 className="text-xs text-destructive hover:underline"
               >
