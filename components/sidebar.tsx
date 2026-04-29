@@ -194,6 +194,8 @@ interface SidebarContentProps {
   currentPath: string;
   onNavigate?: () => void;
   onLogout: () => void;
+  /** 데스크톱 사이드바에서만 종을 표시. 모바일은 별도 fixed 헤더의 종을 사용. */
+  showBell?: boolean;
 }
 
 function SidebarContent({
@@ -201,15 +203,17 @@ function SidebarContent({
   currentPath,
   onNavigate,
   onLogout,
+  showBell = false,
 }: SidebarContentProps) {
   const menuItems = getMenuItems(user.role);
 
   return (
     <div className="flex flex-col h-full bg-sidebar">
-      <div className="px-5 py-5">
+      <div className="px-5 py-5 flex items-center justify-between gap-2">
         <span className="text-lg font-bold tracking-tight text-sidebar-foreground">
           REBORN LABS
         </span>
+        {showBell && <NotificationBell role={user.role} />}
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -270,6 +274,7 @@ export function Sidebar({ user }: { user: SidebarUser }) {
           user={user}
           currentPath={pathname}
           onLogout={handleLogout}
+          showBell
         />
       </aside>
 
