@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await verifyUser(token);
+    const user = await verifyUser(token, { allowMustChangePassword: true });
     const serviceClient = createServiceClient();
     const { data, error } = await serviceClient
       .from("profiles")
@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest) {
 
   let currentUser;
   try {
-    currentUser = await verifyUser(token);
+    currentUser = await verifyUser(token, { allowMustChangePassword: true });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status: 401 });

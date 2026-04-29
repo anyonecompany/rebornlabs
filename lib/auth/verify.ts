@@ -66,6 +66,15 @@ export function getAuthErrorMessage(code: AuthErrorCode): string {
   }
 }
 
+/** verifyUser 옵션 */
+export interface VerifyUserOptions {
+  /**
+   * true로 설정하면 must_change_password=true여도 에러를 던지지 않는다.
+   * 비밀번호 변경 API(profile PATCH/GET) 등 허용된 라우트에서만 사용한다.
+   */
+  allowMustChangePassword?: boolean;
+}
+
 /**
  * 인증 토큰을 검증하고 사용자 프로필을 반환한다.
  *
@@ -74,14 +83,16 @@ export function getAuthErrorMessage(code: AuthErrorCode): string {
  *   2. profiles 레코드 존재
  *   3. is_active = true
  *   4. role != 'pending' (승인 대기가 아닌지)
- *
- * must_change_password는 에러를 던지지 않고 결과에 포함한다.
- * 호출자가 비밀번호 변경 페이지로 리다이렉트할지 결정한다.
+ *   5. must_change_password = false (allowMustChangePassword 옵션 미설정 시)
  *
  * @param accessToken - Supabase Auth access token (Bearer 토큰)
+ * @param options - 선택적 옵션
  * @throws {AuthError} 검증 실패 시
  */
-export async function verifyUser(accessToken: string): Promise<VerifiedUser> {
+export async function verifyUser(
+  accessToken: string,
+  options?: VerifyUserOptions,
+): Promise<VerifiedUser> {
   if (!accessToken) {
     throw new AuthError("NO_TOKEN", "인증 토큰이 없습니다.");
   }
@@ -128,6 +139,14 @@ export async function verifyUser(accessToken: string): Promise<VerifiedUser> {
     throw new AuthError(
       "PENDING_APPROVAL",
       "계정 승인 대기 중입니다. 관리자의 승인을 기다려주세요.",
+    );
+  }
+
+  // 5. 비밀번호 변경 강제 확인
+  if (profile.must_change_password && !options?.allowMustChangePassword) {
+    throw new AuthError(
+      "MUST_CHANGE_PASSWORD",
+      "비밀번호 변경이 필요합니다.",
     );
   }
 
