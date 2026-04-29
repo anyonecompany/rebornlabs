@@ -4,6 +4,35 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
+// ─── 공통 헬퍼 ───────────────────────────────────────────────
+
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+
+/**
+ * director/team_leader의 산하 dealer UUID 목록 조회.
+ * 실패 또는 0명이면 [ZERO_UUID]로 폴백 → 0건 매칭 (fail-closed).
+ */
+async function getSubordinateIds(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<string[]> {
+  type SubResult = { get_subordinate_ids: string } | string;
+  const { data: subData, error: subError } = await serviceClient.rpc(
+    "get_subordinate_ids" as never,
+    { p_user_id: userId } as never,
+  );
+  if (!subError && subData) {
+    const rows = subData as unknown as SubResult[];
+    const ids = rows.map((r) =>
+      typeof r === "string"
+        ? r
+        : (r as { get_subordinate_ids: string }).get_subordinate_ids,
+    );
+    if (ids.length > 0) return ids;
+  }
+  return [ZERO_UUID];
+}
+
 // ─── 허용 status_snapshot 값 ─────────────────────────────────
 
 const ALLOWED_STATUS_SNAPSHOTS = [
@@ -82,16 +111,31 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // dealer는 본인 배정 상담만 조회 가능
-    if (
-      user.role === "dealer" &&
-      consultation.assigned_dealer_id !== user.id
-    ) {
-      return NextResponse.json(
-        { error: "접근 권한이 없습니다." },
-        { status: 403 },
-      );
+    // ── 역할별 접근 권한 검증 ─────────────────────────────────────
+    // 권한 매트릭스:
+    //   admin/staff:          모든 상담
+    //   director/team_leader: get_subordinate_ids에 포함된 dealer의 상담만
+    //   dealer:               assigned_dealer_id === user.id
+    if (user.role === "dealer") {
+      if (consultation.assigned_dealer_id !== user.id) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    } else if (user.role === "director" || user.role === "team_leader") {
+      const subordinateIds = await getSubordinateIds(serviceClient, user.id);
+      if (
+        consultation.assigned_dealer_id === null ||
+        !subordinateIds.includes(consultation.assigned_dealer_id)
+      ) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
     }
+    // admin/staff: 추가 필터 없음
 
     // 상담 기록 조회 (오래된 순)
     const { data: logs, error: logsError } = await serviceClient
