@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
 import type { ConsultationStatus } from "@/types/database";
 
 // ─── 상태 전이 매트릭스 ───────────────────────────────────────
@@ -43,9 +43,11 @@ type RouteContext = { params: Promise<{ id: string }> };
 // ─── PATCH /api/consultations/[id]/status — 상태 직접 변경 ───
 
 /**
- * 상담 상태 직접 변경 (admin/staff 전용).
+ * 상담 상태 직접 변경.
  *
- * dealer는 consultation_logs를 통해서만 상태 변경 가능.
+ * - admin / staff: 모든 상담 상태 변경 가능
+ * - director / team_leader: 하위 딜러 배정 상담만 변경 가능
+ * - dealer: 본인 배정 상담만 변경 가능
  * sold 상태는 complete_sale() 함수 통해서만 설정 가능.
  * DB 트리거가 최종 강제하며, API는 친절한 에러 메시지를 먼저 제공한다.
  */
@@ -54,7 +56,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "dealer"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader", "dealer"]);
 
     let body: unknown;
     try {
@@ -106,12 +108,43 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 딜러: 본인 배정 상담만 변경 가능
-    if (user.role === "dealer" && consultation.assigned_dealer_id !== user.id) {
-      return NextResponse.json(
-        { error: "본인이 담당하는 상담만 상태를 변경할 수 있습니다." },
-        { status: 403 },
+    // 역할별 상담 접근 범위 검증
+    if (user.role === "dealer") {
+      // dealer: 본인 배정 상담만 변경 가능
+      if (consultation.assigned_dealer_id !== user.id) {
+        return NextResponse.json(
+          { error: "본인이 담당하는 상담만 상태를 변경할 수 있습니다." },
+          { status: 403 },
+        );
+      }
+    } else if (user.role === "director" || user.role === "team_leader") {
+      // director / team_leader: 하위 딜러 배정 상담만 변경 가능
+      const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+      type SubResult = { get_subordinate_ids: string } | string;
+      const { data: subData, error: subError } = await serviceClient.rpc(
+        "get_subordinate_ids" as never,
+        { p_user_id: user.id } as never,
       );
+      let subordinateIds: string[] = [];
+      if (!subError && subData) {
+        const rows = subData as unknown as SubResult[];
+        subordinateIds = rows.map((r) =>
+          typeof r === "string"
+            ? r
+            : (r as { get_subordinate_ids: string }).get_subordinate_ids,
+        );
+      }
+      const allowedIds =
+        subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID];
+      if (
+        !consultation.assigned_dealer_id ||
+        !allowedIds.includes(consultation.assigned_dealer_id)
+      ) {
+        return NextResponse.json(
+          { error: "산하 딜러가 담당하는 상담만 상태를 변경할 수 있습니다." },
+          { status: 403 },
+        );
+      }
     }
 
     const currentStatus = consultation.status as ConsultationStatus;
@@ -157,7 +190,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
