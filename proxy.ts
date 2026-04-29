@@ -30,6 +30,8 @@ function isBlocked(pathname: string, blockedPaths: string[]): boolean {
 const PUBLIC_PATHS = ["/login", "/unauthorized", "/api", "/_next", "/favicon.ico", "/sign", "/quote", "/cars", "/apply", "/privacy"];
 
 function isPublicPath(pathname: string): boolean {
+  // 루트(/) 정확 매칭 — 공개 도메인은 랜딩, 어드민 도메인은 page.tsx에서 /login 리다이렉트.
+  if (pathname === "/") return true;
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
