@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { rememberReturnUrl } from "@/src/lib/return-url";
 import { formatKRW, formatMileage } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { useUrlState } from "@/src/lib/use-url-state";
@@ -258,9 +259,10 @@ function VehiclesPageInner() {
           data={filtered as unknown as Record<string, unknown>[]}
           loading={loading}
           emptyMessage="등록된 차량이 없습니다."
-          onRowClick={(row) =>
-            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`)
-          }
+          onRowClick={(row) => {
+            rememberReturnUrl("vehicles");
+            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`);
+          }}
         />
       ) : (
         /* 썸네일 그리드 뷰 */
@@ -282,7 +284,10 @@ function VehiclesPageInner() {
               <button
                 key={v.id}
                 type="button"
-                onClick={() => router.push(`/vehicles/${v.id}`)}
+                onClick={() => {
+                  rememberReturnUrl("vehicles");
+                  router.push(`/vehicles/${v.id}`);
+                }}
                 className="text-left rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
               >
                 {/* 사진 */}
