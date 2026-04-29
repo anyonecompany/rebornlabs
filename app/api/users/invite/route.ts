@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { AuthError, requireRole, verifyUser } from "@/lib/auth/verify";
+import { AuthError, requireRole, verifyUser, getAuthErrorMessage} from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "인증 처리 중 오류가 발생했습니다." },
