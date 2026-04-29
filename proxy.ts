@@ -77,6 +77,7 @@ export async function proxy(request: NextRequest) {
 
   // ── 2. 캐시 쿠키에서 프로필 읽기 (네트워크 0) ──
   let profile: CachedProfile | null = null;
+  let corruptedCache = false;
   const cached = request.cookies.get(CACHE_COOKIE)?.value;
 
   if (cached) {
@@ -85,8 +86,13 @@ export async function proxy(request: NextRequest) {
       // 필수 필드 검증 — 손상된 캐시 방어
       if (parsed?.id && parsed?.role && typeof parsed?.is_active === "boolean") {
         profile = parsed as CachedProfile;
+      } else {
+        // 파싱은 성공했으나 필수 필드 누락 → 손상 캐시로 판정
+        corruptedCache = true;
       }
     } catch {
+      // JSON 파싱 자체 실패 → 손상 캐시로 판정
+      corruptedCache = true;
       profile = null;
     }
   }
@@ -160,6 +166,11 @@ export async function proxy(request: NextRequest) {
   })));
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // ── 6-pre. 손상 캐시 즉시 삭제 → 무한 리다이렉트 방지 ──
+  if (corruptedCache) {
+    res.cookies.delete(CACHE_COOKIE);
+  }
 
   // ── 6. auth 갱신 쿠키 전파 (토큰 리프레시) ──
   for (const c of authCookies) {

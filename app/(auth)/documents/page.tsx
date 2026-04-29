@@ -293,13 +293,18 @@ export default function DocumentsPage() {
     }
   }, [page, categoryFilter]);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
-
+  // categoryFilter 변경 시 page를 1로 리셋 (fetchDocuments보다 먼저 처리)
   useEffect(() => {
     setPage(1);
   }, [categoryFilter]);
+
+  // 300ms debounce — categoryFilter 변경 → setPage(1) 연쇄로 인한 중복 fetch 방지
+  useEffect(() => {
+    const id = setTimeout(() => {
+      fetchDocuments();
+    }, 300);
+    return () => clearTimeout(id);
+  }, [fetchDocuments]);
 
   const handleDelete = async () => {
     if (!deleteTargetId) return;

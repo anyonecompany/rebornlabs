@@ -219,6 +219,7 @@ function DealerSettlementTab() {
           <Input
             type="date"
             value={startDate}
+            max={today()}
             onChange={(e) => setStartDate(e.target.value)}
             className="w-40"
           />
@@ -226,6 +227,7 @@ function DealerSettlementTab() {
           <Input
             type="date"
             value={endDate}
+            max={today()}
             onChange={(e) => setEndDate(e.target.value)}
             className="w-40"
           />
@@ -358,6 +360,7 @@ function MarketingSettlementTab() {
           <Input
             type="date"
             value={startDate}
+            max={today()}
             onChange={(e) => setStartDate(e.target.value)}
             className="w-40"
           />
@@ -365,6 +368,7 @@ function MarketingSettlementTab() {
           <Input
             type="date"
             value={endDate}
+            max={today()}
             onChange={(e) => setEndDate(e.target.value)}
             className="w-40"
           />

@@ -27,7 +27,8 @@ export type AuthErrorCode =
   | "NO_PROFILE"
   | "INACTIVE"
   | "PENDING_APPROVAL"
-  | "MUST_CHANGE_PASSWORD";
+  | "MUST_CHANGE_PASSWORD"
+  | "FORBIDDEN";
 
 export class AuthError extends Error {
   constructor(
@@ -128,6 +129,30 @@ export function hasRole(
 }
 
 /**
+ * AuthError 코드를 클라이언트에 반환할 안전한 메시지로 변환한다.
+ *
+ * 내부 역할 체계, DB 구조 등을 노출하지 않는다.
+ */
+export function getAuthErrorMessage(code: AuthErrorCode): string {
+  switch (code) {
+    case "NO_TOKEN":
+    case "INVALID_TOKEN":
+      return "인증이 필요합니다. 다시 로그인해주세요.";
+    case "NO_PROFILE":
+    case "INACTIVE":
+      return "계정 접근이 제한되었습니다. 관리자에게 문의하세요.";
+    case "PENDING_APPROVAL":
+      return "계정 승인 대기 중입니다. 관리자의 승인을 기다려주세요.";
+    case "MUST_CHANGE_PASSWORD":
+      return "비밀번호를 변경해야 합니다.";
+    case "FORBIDDEN":
+      return "이 작업을 수행할 권한이 없습니다.";
+    default:
+      return "인증 오류가 발생했습니다.";
+  }
+}
+
+/**
  * 역할 확인 + 권한 없으면 에러.
  * Route Handler / Server Action에서 사용.
  */
@@ -137,8 +162,8 @@ export function requireRole(
 ): void {
   if (!hasRole(user, allowedRoles)) {
     throw new AuthError(
-      "INACTIVE",
-      `이 작업에는 ${allowedRoles.join(" 또는 ")} 역할이 필요합니다.`,
+      "FORBIDDEN",
+      "이 작업을 수행할 권한이 없습니다.",
     );
   }
 }
