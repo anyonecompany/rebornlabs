@@ -20,6 +20,7 @@ import { LoadingState } from "@/components/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/src/lib/api-client";
+import { getReturnUrl } from "@/src/lib/return-url";
 import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
@@ -97,7 +98,7 @@ export default function VehicleDetailPage() {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error ?? "차량 정보를 불러오지 못했습니다.");
-        router.push("/vehicles");
+        router.push(getReturnUrl("vehicles", "/vehicles"));
         return;
       }
       const data = await res.json();
@@ -106,7 +107,7 @@ export default function VehicleDetailPage() {
       setChecklists(data.checklists ?? []);
     } catch {
       toast.error("차량 정보를 불러오는 중 오류가 발생했습니다.");
-      router.push("/vehicles");
+      router.push(getReturnUrl("vehicles", "/vehicles"));
     } finally {
       setLoading(false);
     }
@@ -125,7 +126,7 @@ export default function VehicleDetailPage() {
         return;
       }
       toast.success("차량이 삭제되었습니다.");
-      router.push("/vehicles");
+      router.push(getReturnUrl("vehicles", "/vehicles"));
     } catch {
       toast.error("차량 삭제 중 오류가 발생했습니다.");
     }

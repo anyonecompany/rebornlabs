@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Search, Car, List, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/src/lib/api-client";
+import { rememberReturnUrl } from "@/src/lib/return-url";
 import { formatKRW, formatMileage } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { useUrlState } from "@/src/lib/use-url-state";
@@ -56,6 +57,19 @@ function VehiclesPageInner() {
   const [gridPage, setGridPage] = useUrlState<number>("page", 0);
   const GRID_PAGE_SIZE = 18; // 3열 × 6행
 
+  // 입력 즉시 반영용 로컬 state (IME 조합 보호 + router.replace 부하 분리)
+  const [searchInput, setSearchInput] = useState(search);
+
+  // searchInput → URL/fetch 트리거 (300ms debounce)
+  useEffect(() => {
+    if (searchInput === search) return;
+    const id = setTimeout(() => {
+      setSearch(searchInput);
+      if (gridPage !== 0) setGridPage(0);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [searchInput, search, setSearch, gridPage, setGridPage]);
+
   const toggleView = (mode: "list" | "grid") => {
     setViewMode(mode);
     if (gridPage !== 0) setGridPage(0);
@@ -64,7 +78,11 @@ function VehiclesPageInner() {
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch("/api/vehicles");
+      const sp = new URLSearchParams();
+      if (search) sp.set("search", search);
+      if (statusFilter !== "all") sp.set("status", statusFilter);
+      const qs = sp.toString();
+      const res = await apiFetch(`/api/vehicles${qs ? `?${qs}` : ""}`);
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error ?? "차량 목록을 불러오지 못했습니다.");
@@ -78,23 +96,25 @@ function VehiclesPageInner() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, statusFilter]);
 
   useEffect(() => {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  // 클라이언트 사이드 필터링
-  const filtered = vehicles.filter((v) => {
-    const searchLower = search.toLowerCase();
-    const matchSearch =
-      !search ||
-      v.make.toLowerCase().includes(searchLower) ||
-      v.model.toLowerCase().includes(searchLower) ||
-      v.vehicle_code.toLowerCase().includes(searchLower);
-    const matchStatus = statusFilter === "all" || v.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  // 서버에서 이미 필터링된 결과 — 이중 안전판으로 클라이언트도 필터 (메모이즈)
+  const filtered = useMemo(() => {
+    return vehicles.filter((v) => {
+      const searchLower = search.toLowerCase();
+      const matchSearch =
+        !search ||
+        v.make.toLowerCase().includes(searchLower) ||
+        v.model.toLowerCase().includes(searchLower) ||
+        v.vehicle_code.toLowerCase().includes(searchLower);
+      const matchStatus = statusFilter === "all" || v.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [vehicles, search, statusFilter]);
 
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
@@ -189,11 +209,8 @@ function VehiclesPageInner() {
           <Input
             className="pl-9"
             placeholder="차종, 모델, 코드 검색"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              if (gridPage !== 0) setGridPage(0);
-            }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
         <Select
@@ -242,9 +259,10 @@ function VehiclesPageInner() {
           data={filtered as unknown as Record<string, unknown>[]}
           loading={loading}
           emptyMessage="등록된 차량이 없습니다."
-          onRowClick={(row) =>
-            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`)
-          }
+          onRowClick={(row) => {
+            rememberReturnUrl("vehicles");
+            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`);
+          }}
         />
       ) : (
         /* 썸네일 그리드 뷰 */
@@ -266,7 +284,10 @@ function VehiclesPageInner() {
               <button
                 key={v.id}
                 type="button"
-                onClick={() => router.push(`/vehicles/${v.id}`)}
+                onClick={() => {
+                  rememberReturnUrl("vehicles");
+                  router.push(`/vehicles/${v.id}`);
+                }}
                 className="text-left rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
               >
                 {/* 사진 */}
