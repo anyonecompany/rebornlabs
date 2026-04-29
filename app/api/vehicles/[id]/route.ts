@@ -43,7 +43,7 @@ const UpdateVehicleSchema = z
       .optional(),
     photos: z.array(z.string().url()).optional(),
     status: z
-      .enum(["available", "consulting", "vehicle_waiting", "sold"])
+      .enum(["available", "consulting", "sold", "deleted"])
       .optional(),
     plate_number: z.string().nullable().optional(),
     vin: z.string().nullable().optional(),

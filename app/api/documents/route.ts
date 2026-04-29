@@ -8,7 +8,7 @@ import type { DocumentCategory } from "@/types/database";
 
 const VALID_CATEGORIES: DocumentCategory[] = [
   "business_registration",
-  "contract",
+  "contract_template",
   "other",
 ];
 

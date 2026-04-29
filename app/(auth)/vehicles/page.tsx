@@ -228,7 +228,6 @@ function VehiclesPageInner() {
             <SelectItem value="all">전체</SelectItem>
             <SelectItem value="available">출고가능</SelectItem>
             <SelectItem value="consulting">상담중</SelectItem>
-            <SelectItem value="vehicle_waiting">차량대기</SelectItem>
             <SelectItem value="sold">판매완료</SelectItem>
           </SelectContent>
         </Select>

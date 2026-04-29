@@ -43,15 +43,15 @@ import type { UserRole } from "@/types/database";
 const DOCUMENT_CATEGORIES = [
   { value: "all", label: "전체" },
   { value: "business_registration", label: "사업자등록증" },
-  { value: "contract", label: "계약서" },
+  { value: "contract_template", label: "계약서" },
   { value: "other", label: "기타" },
 ] as const;
 
-type DocumentCategory = "business_registration" | "contract" | "other";
+type DocumentCategory = "business_registration" | "contract_template" | "other";
 
 const CATEGORY_LABEL: Record<DocumentCategory, string> = {
   business_registration: "사업자등록증",
-  contract: "계약서",
+  contract_template: "계약서",
   other: "기타",
 };
 
@@ -60,7 +60,7 @@ const CATEGORY_VARIANT: Record<
   "default" | "secondary" | "outline"
 > = {
   business_registration: "default",
-  contract: "secondary",
+  contract_template: "secondary",
   other: "outline",
 };
 
@@ -186,7 +186,7 @@ function UploadDocumentDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="business_registration">사업자등록증</SelectItem>
-                <SelectItem value="contract">계약서</SelectItem>
+                <SelectItem value="contract_template">계약서</SelectItem>
                 <SelectItem value="other">기타</SelectItem>
               </SelectContent>
             </Select>

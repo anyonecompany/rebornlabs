@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -114,11 +115,11 @@ export async function GET(request: NextRequest) {
 
       if (search) {
         query = query.or(
-          `make.ilike.%${search}%,model.ilike.%${search}%,vehicle_code.ilike.%${search}%`,
+          `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
         );
       }
       if (status) {
-        query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted" | "vehicle_waiting");
+        query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted");
       }
       if (cursor) {
         const [cursorDate, cursorId] = cursor.split("__");
@@ -158,11 +159,11 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query = query.or(
-        `make.ilike.%${search}%,model.ilike.%${search}%,vehicle_code.ilike.%${search}%`,
+        `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
       );
     }
     if (status) {
-      query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted" | "vehicle_waiting");
+      query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted");
     }
     if (cursor) {
       const [cursorDate, cursorId] = cursor.split("__");
