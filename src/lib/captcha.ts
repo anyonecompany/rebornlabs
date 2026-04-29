@@ -48,13 +48,10 @@ export async function verifyTurnstile(
     return true;
   }
 
-  // 클라이언트 위젯이 아직 미통합인 동안은 token 없이도 통과 (honeypot + rate-limit가 1차 방어).
-  // 클라이언트 위젯 통합 후에는 다음 줄을 `return false`로 복원하여 강제할 것.
+  // CAPTCHA 활성화 + 시크릿 설정된 상태에서 token 미제출 → 거부
+  // (운영에서 위젯 통합 전이면 ENABLE_CAPTCHA env를 미설정/제거하여 비활성화할 것)
   if (!token) {
-    console.warn(
-      "[captcha] token 미제출 — 클라이언트 위젯 통합 전이라 임시 통과. 위젯 통합 후 본 분기를 'return false'로 복원할 것.",
-    );
-    return true;
+    return false;
   }
 
   const body = new URLSearchParams({
