@@ -75,10 +75,10 @@ export async function POST(request: NextRequest) {
     const { vehicleId, expiresInDays, force } = parsed.data;
     const serviceClient = createServiceClient();
 
-    // 1. 차량 존재 확인 (삭제 안 된 차량만)
+    // 1. 차량 존재 확인 (삭제 안 된 차량만) — 가격 snapshot용 컬럼 포함
     const { data: vehicle, error: vehicleError } = await serviceClient
       .from("vehicles")
-      .select("id, vehicle_code")
+      .select("id, vehicle_code, selling_price, deposit, monthly_payment")
       .eq("id", vehicleId)
       .is("deleted_at", null)
       .single();
@@ -145,6 +145,10 @@ export async function POST(request: NextRequest) {
           token: quoteToken,
           quote_number: quoteNumber,
           expires_at: expiresAt,
+          // 발행 시점 가격 snapshot — 이후 vehicles 가격 변경에 영향받지 않음
+          quoted_selling_price: vehicle.selling_price,
+          quoted_deposit: vehicle.deposit ?? null,
+          quoted_monthly_payment: vehicle.monthly_payment ?? null,
         })
         .select("id, token, quote_number, expires_at")
         .single();

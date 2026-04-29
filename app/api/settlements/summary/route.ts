@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { resolveKstMonthBounds } from "@/lib/kst";
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -38,32 +39,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    // 이번 달 기본값: YYYY-MM 형식
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const month = searchParams.get("month") ?? currentMonth;
-
-    // YYYY-MM → 월 시작일 / 다음 달 시작일 계산
-    const [yearStr, monthStr] = month.split("-");
-    const year = parseInt(yearStr, 10);
-    const monthNum = parseInt(monthStr, 10);
-
-    if (isNaN(year) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+    // KST 기준 월 경계 계산 (commissions/route.ts와 동일 헬퍼 사용)
+    const bounds = resolveKstMonthBounds(searchParams.get("month"));
+    if (!bounds) {
       return NextResponse.json(
         { error: "올바른 월 형식이 아닙니다. YYYY-MM 형식으로 입력하세요." },
         { status: 400 },
       );
     }
 
-    const startDate = `${year}-${String(monthNum).padStart(2, "0")}-01`;
-    // 다음 달 1일 (해당 월 전체 포함)
-    const nextMonth = monthNum === 12 ? 1 : monthNum + 1;
-    const nextYear = monthNum === 12 ? year + 1 : year;
-    const endDateStr = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+    const { month, start: startDate, end: endDateStr } = bounds;
 
     const serviceClient = createServiceClient();
 
-    // 해당 월의 취소되지 않은 판매 전체 조회
+    // 해당 월의 취소되지 않은 판매 전체 조회 (KST 기준 월 경계 적용)
     const { data: sales, error: salesError } = await serviceClient
       .from("sales")
       .select("id, dealer_fee, marketing_fee, cancelled_at, created_at")

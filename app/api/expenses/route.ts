@@ -4,6 +4,43 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
 
+// ─── Storage 헬퍼 ─────────────────────────────────────────────
+
+/**
+ * receipt_urls 배열의 각 항목을 storage path → 신선한 signed URL로 변환.
+ *
+ * 항목이 이미 http(s) URL이면 path 추출을 시도:
+ *   /object/sign/receipts/{path}?token=... → path 복원 후 재발급
+ * 항목이 path 형식(http 없음)이면 그대로 사용.
+ * 재발급 실패 시 빈 문자열을 유지 (표시만 안 됨).
+ *
+ * 유효기간: 1시간 (3600s)
+ */
+async function resolveReceiptSignedUrls(
+  rawUrls: string[],
+  serviceClient: ReturnType<typeof createServiceClient>,
+): Promise<string[]> {
+  if (!rawUrls.length) return [];
+
+  const paths = rawUrls.map((url) => {
+    if (!url.startsWith("http")) return url; // 이미 path 형식
+    const match = url.match(/\/object\/(?:sign|public)\/receipts\/(.+?)(?:\?|$)/);
+    return match ? decodeURIComponent(match[1]) : url;
+  });
+
+  const results = await Promise.all(
+    paths.map(async (path) => {
+      if (path.startsWith("http")) return path; // path 추출 실패 — 원본 유지
+      const { data } = await serviceClient.storage
+        .from("receipts")
+        .createSignedUrl(path, 3600);
+      return data?.signedUrl ?? "";
+    }),
+  );
+
+  return results;
+}
+
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
 const CreateExpenseSchema = z.object({
@@ -15,7 +52,8 @@ const CreateExpenseSchema = z.object({
     .string()
     .min(1, "지출 목적은 필수입니다.")
     .max(500, "지출 목적은 500자 이내여야 합니다."),
-  receipt_urls: z.array(z.string().url("올바른 URL 형식이 아닙니다.")).optional(),
+  // storage path 또는 URL 모두 허용 (upload 응답의 storagePath/fileUrl 사용)
+  receipt_urls: z.array(z.string().min(1, "올바른 파일 경로가 아닙니다.")).optional(),
 });
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
@@ -155,10 +193,21 @@ export async function GET(request: NextRequest) {
       (profiles ?? []).map((p) => [p.id, p.name]),
     );
 
-    const merged = items.map((expense) => ({
+    // receipt_urls: storage path → 신선한 signed URL 변환
+    const mergedRaw = items.map((expense) => ({
       ...expense,
       user_name: profileMap.get(expense.user_id) ?? null,
     }));
+
+    const merged = await Promise.all(
+      mergedRaw.map(async (expense) => {
+        const rawUrls: string[] = Array.isArray(expense.receipt_urls)
+          ? expense.receipt_urls
+          : [];
+        const receipt_urls = await resolveReceiptSignedUrls(rawUrls, serviceClient);
+        return { ...expense, receipt_urls };
+      }),
+    );
 
     const lastItem = items[items.length - 1];
     const nextCursor =
