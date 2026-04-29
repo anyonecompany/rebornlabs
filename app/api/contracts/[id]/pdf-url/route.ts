@@ -28,13 +28,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const token = extractToken(request);
-    await verifyUser(token);
+    const user = await verifyUser(token);
 
     const serviceClient = createServiceClient();
 
     const { data: contract, error } = await serviceClient
       .from("contracts")
-      .select("id, status")
+      .select("id, sale_id, status")
       .eq("id", id)
       .maybeSingle();
 
@@ -43,6 +43,29 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { error: "계약서를 찾을 수 없습니다." },
         { status: 404 },
       );
+    }
+
+    // 인가 검증 — dealer: 본인 판매 건만 허용
+    if (user.role === "dealer") {
+      const { data: sale, error: saleError } = await serviceClient
+        .from("sales")
+        .select("dealer_id")
+        .eq("id", contract.sale_id)
+        .single();
+
+      if (saleError || !sale) {
+        return NextResponse.json(
+          { error: "판매 정보를 찾을 수 없습니다." },
+          { status: 404 },
+        );
+      }
+
+      if (sale.dealer_id !== user.id) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
     }
 
     const pdfPath = `contracts/${contract.id}/contract.pdf`;

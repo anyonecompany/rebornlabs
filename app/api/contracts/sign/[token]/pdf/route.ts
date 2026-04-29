@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // token으로 계약서 조회
     const { data: contract, error } = await serviceClient
       .from("contracts")
-      .select("id, status")
+      .select("id, status, pdf_url")
       .eq("token", token)
       .single();
 
@@ -25,6 +25,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (contract.status !== "signed") {
       return NextResponse.json({ error: "서명 완료된 계약서만 PDF를 업로드할 수 있습니다." }, { status: 400 });
+    }
+
+    // 이미 PDF가 존재하면 덮어쓰기 차단 — 서명 완료 후 위·변조 방지
+    if (contract.pdf_url) {
+      return NextResponse.json({ error: "이미 PDF가 생성된 계약서입니다." }, { status: 409 });
     }
 
     // FormData에서 PDF 추출
