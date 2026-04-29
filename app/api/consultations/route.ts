@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError } from "@/lib/auth/verify";
+import { escapeLike } from "@/src/lib/escape-like";
 import type { ConsultationStatus } from "@/types/database";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
     // 검색 필터
     if (search) {
       query = query.or(
-        `customer_name.ilike.%${search}%,phone.ilike.%${search}%`,
+        `customer_name.ilike.%${escapeLike(search)}%,phone.ilike.%${escapeLike(search)}%`,
       );
     }
 

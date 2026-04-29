@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError } from "@/lib/auth/verify";
+import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         .from("vehicles")
         .select("id, make, model, vehicle_code")
         .or(
-          `make.ilike.%${search}%,model.ilike.%${search}%,vehicle_code.ilike.%${search}%`,
+          `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
         )
         .is("deleted_at", null)
         .limit(200);
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       // 견적번호 부분 일치 OR 차량 매칭 vehicle_id
-      const clauses = [`quote_number.ilike.%${search}%`];
+      const clauses = [`quote_number.ilike.%${escapeLike(search)}%`];
       if (vehicleIdFilter && vehicleIdFilter.length > 0) {
         clauses.push(`vehicle_id.in.(${vehicleIdFilter.join(",")})`);
       }
