@@ -991,7 +991,7 @@ export default function UsersPage() {
                 취소
               </Button>
               <Button onClick={handleEdit} disabled={editLoading}>
-                {editLoading ? "저장 중..." : "저장"}
+                {editLoading ? "처리 중..." : "저장"}
               </Button>
             </div>
           </div>

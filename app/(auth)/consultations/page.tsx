@@ -22,6 +22,7 @@ import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef, isDirectSource } from "@/src/lib/source-ref";
 import { useUrlState } from "@/src/lib/use-url-state";
 import { useDebounce } from "@/src/lib/use-debounce";
+import { rememberReturnUrl } from "@/src/lib/return-url";
 import type { ConsultationStatus } from "@/types/database";
 
 interface ConsultationRow {
@@ -75,6 +76,10 @@ function ConsultationsPageInner() {
     setter(next);
     if (page !== 1) setPage(1);
   };
+
+  useEffect(() => {
+    document.title = "상담 관리 - REBORN LABS";
+  }, []);
 
   const fetchConsultations = useCallback(async () => {
     setLoading(true);
@@ -234,11 +239,12 @@ function ConsultationsPageInner() {
         data={consultations as unknown as Record<string, unknown>[]}
         loading={loading}
         emptyMessage="등록된 상담이 없습니다."
-        onRowClick={(row) =>
+        onRowClick={(row) => {
+          rememberReturnUrl("consultations");
           router.push(
             `/consultations/${(row as unknown as ConsultationRow).id}`,
-          )
-        }
+          );
+        }}
       />
 
       {/* 페이지네이션 — page/pageSize 기반 */}

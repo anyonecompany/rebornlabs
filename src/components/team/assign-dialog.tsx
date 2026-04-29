@@ -97,7 +97,16 @@ export function AssignDialog({
     }
   };
 
+  const isDirty = userId !== "";
+
   const handleOpenChange = (next: boolean) => {
+    if (!next && isDirty) {
+      if (
+        !window.confirm("저장하지 않은 입력이 있습니다. 닫으시겠습니까?")
+      ) {
+        return;
+      }
+    }
     if (!next) {
       setUserId("");
       setLeaderId(defaultLeader);

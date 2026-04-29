@@ -292,11 +292,9 @@ export function Sidebar({ user }: { user: SidebarUser }) {
             />
           </SheetContent>
         </Sheet>
-        <span className="ml-3 text-sm font-bold tracking-tight">REBORN LABS</span>
-        {/* 우측 알림 종 — admin/staff 만 표시 (NotificationBell 내부에서 분기) */}
-        <div className="ml-auto">
-          <NotificationBell role={user.role} />
-        </div>
+        <span className="ml-3 mr-2 text-sm font-bold tracking-tight">REBORN LABS</span>
+        {/* 좌측 그룹 — 알림 종 (우측 PageHeader 액션과 충돌 방지) */}
+        <NotificationBell role={user.role} />
       </div>
     </>
   );

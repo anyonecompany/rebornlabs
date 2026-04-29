@@ -128,7 +128,7 @@ function VehicleModelsPageInner() {
         toast.error(data.error ?? "상태 변경에 실패했습니다.");
         return;
       }
-      toast.success(item.isActive ? "비활성화되었습니다." : "활성화되었습니다.");
+      toast.success("상태가 변경되었습니다.");
       fetchData();
     } catch {
       toast.error("상태 변경 중 오류가 발생했습니다.");

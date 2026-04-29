@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
 import { formatDate as formatDateBase } from "@/src/lib/format";
+import { getReturnUrl } from "@/src/lib/return-url";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
@@ -190,7 +191,7 @@ export default function ConsultationDetailPage() {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error ?? "상담 정보를 불러오지 못했습니다.");
-        router.push("/consultations");
+        router.push(getReturnUrl("consultations", "/consultations"));
         return;
       }
       const data = await res.json();
@@ -203,11 +204,18 @@ export default function ConsultationDetailPage() {
       setMarketingCompany(c.marketing_company ?? "");
     } catch {
       toast.error("상담 정보를 불러오는 중 오류가 발생했습니다.");
-      router.push("/consultations");
+      router.push(getReturnUrl("consultations", "/consultations"));
     } finally {
       setLoading(false);
     }
   }, [id, router]);
+
+  // D1 동적 페이지 타이틀
+  useEffect(() => {
+    if (consultation) {
+      document.title = `${consultation.customer_name} 상담 - REBORN LABS`;
+    }
+  }, [consultation]);
 
   // 딜러 목록 로드
   const fetchDealers = useCallback(async () => {
@@ -509,7 +517,7 @@ export default function ConsultationDetailPage() {
     return (
       <div>
         <div className="mb-4">
-          <BackLink href="/consultations">상담 목록으로</BackLink>
+          <BackLink href={getReturnUrl("consultations", "/consultations")}>상담 목록으로</BackLink>
         </div>
         <LoadingState variant="form" />
       </div>
@@ -540,7 +548,7 @@ export default function ConsultationDetailPage() {
   return (
     <div>
       <div className="mb-4">
-        <BackLink href="/consultations">상담 목록으로</BackLink>
+        <BackLink href={getReturnUrl("consultations", "/consultations")}>상담 목록으로</BackLink>
       </div>
 
       <PageHeader title={`${consultation.customer_name} 님 상담`}>
@@ -757,9 +765,14 @@ export default function ConsultationDetailPage() {
                   <Select
                     value={selectedDealerId}
                     onValueChange={setSelectedDealerId}
+                    disabled={loading}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="딜러를 선택하세요" />
+                    <SelectTrigger className={loading ? "opacity-60" : ""}>
+                      <SelectValue
+                        placeholder={
+                          loading ? "로딩 중..." : "딜러를 선택하세요"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {dealers.map((d) => (
@@ -903,7 +916,7 @@ export default function ConsultationDetailPage() {
                     onClick={handleSubmitLog}
                     disabled={submittingLog || !logContent.trim()}
                   >
-                    {submittingLog ? "등록 중..." : "등록"}
+                    {submittingLog ? "처리 중..." : "등록"}
                   </Button>
                 </div>
               </div>
@@ -990,7 +1003,7 @@ export default function ConsultationDetailPage() {
               onClick={handleSaleSubmit}
               disabled={submittingSale || !selectedVehicleId}
             >
-              {submittingSale ? "등록 중..." : "판매 등록"}
+              {submittingSale ? "처리 중..." : "판매 등록"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1066,7 +1079,7 @@ export default function ConsultationDetailPage() {
               취소
             </Button>
             <Button onClick={handleBudgetSave} disabled={savingBudget}>
-              {savingBudget ? "저장 중..." : "저장"}
+              {savingBudget ? "처리 중..." : "저장"}
             </Button>
           </DialogFooter>
         </DialogContent>

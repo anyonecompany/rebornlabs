@@ -3,7 +3,10 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "REBORN LABS Admin",
+  title: {
+    default: "REBORN LABS",
+    template: "%s · REBORN LABS",
+  },
   description: "리본랩스 어드민 시스템",
 };
 

@@ -117,6 +117,12 @@ export default function VehicleDetailPage() {
     fetchVehicle();
   }, [fetchVehicle]);
 
+  useEffect(() => {
+    if (vehicle) {
+      document.title = `${vehicle.vehicle_code} ${vehicle.make} ${vehicle.model} - REBORN LABS`;
+    }
+  }, [vehicle]);
+
   const handleDelete = async () => {
     try {
       const res = await apiFetch(`/api/vehicles/${id}`, { method: "DELETE" });
@@ -329,6 +335,8 @@ export default function VehicleDetailPage() {
                   alt={`차량 사진 ${galleryIndex + 1}`}
                   fill
                   className="object-contain"
+                  loading="lazy"
+                  decoding="async"
                 />
                 {photos.length > 1 && (
                   <>
@@ -359,14 +367,14 @@ export default function VehicleDetailPage() {
               </div>
 
               {photos.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-3 overflow-x-auto pb-1">
                   {photos.map((url, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setGalleryIndex(idx)}
                       className={[
-                        "relative shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-colors",
+                        "relative shrink-0 w-20 h-16 rounded overflow-hidden border-2 transition-colors",
                         idx === galleryIndex
                           ? "border-primary"
                           : "border-border hover:border-primary/50",
@@ -377,6 +385,8 @@ export default function VehicleDetailPage() {
                         alt={`썸네일 ${idx + 1}`}
                         fill
                         className="object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}

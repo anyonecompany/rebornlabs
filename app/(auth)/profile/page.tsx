@@ -174,7 +174,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <Button type="submit" disabled={saving}>
-                {saving ? "저장 중..." : "저장"}
+                {saving ? "처리 중..." : "저장"}
               </Button>
             </form>
           </CardContent>

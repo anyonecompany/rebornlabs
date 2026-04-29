@@ -36,3 +36,13 @@ supabase/seed.sql
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# 운영 참고 문서 (커밋 금지 — 별도 보관)
+*.docx
+*.pdf
+*.xlsx
+
+# 로컬 백업 / QA 스크립트
+.backups/
+.claude/
+scripts/seed-qa.mjs

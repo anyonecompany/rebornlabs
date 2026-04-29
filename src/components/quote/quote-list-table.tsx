@@ -42,6 +42,7 @@ interface Props {
   loading: boolean;
   showDealer: boolean;
   onRowClick: (quote: QuoteRow) => void;
+  emptyMessage?: string;
 }
 
 function ViewCountCell({
@@ -112,10 +113,10 @@ function ExpiresCell({
   );
 }
 
-export function QuoteListTable({ quotes, loading, showDealer, onRowClick }: Props) {
+export function QuoteListTable({ quotes, loading, showDealer, onRowClick, emptyMessage = "표시할 견적서가 없습니다." }: Props) {
   if (loading) return <LoadingState variant="table" />;
   if (quotes.length === 0) {
-    return <EmptyState title="표시할 견적서가 없습니다." />;
+    return <EmptyState title={emptyMessage} />;
   }
 
   return (

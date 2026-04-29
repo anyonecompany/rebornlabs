@@ -542,7 +542,7 @@ export default function VehicleNewPage() {
             취소
           </Button>
           <Button type="submit" disabled={saving || uploading}>
-            {saving ? "등록 중..." : "차량 등록"}
+            {saving ? "처리 중..." : "차량 등록"}
           </Button>
         </div>
       </form>

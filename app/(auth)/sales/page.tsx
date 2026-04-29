@@ -19,6 +19,7 @@ import { apiFetch } from "@/src/lib/api-client";
 import { formatKRW, formatDate } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { useUrlState } from "@/src/lib/use-url-state";
+import { rememberReturnUrl } from "@/src/lib/return-url";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -227,6 +228,7 @@ function SalesPageInner() {
         emptyMessage="등록된 판매가 없습니다."
         onRowClick={(row) => {
           const sale = row as unknown as SaleRow;
+          rememberReturnUrl("sales");
           router.push(`/sales/${sale.id}`);
         }}
       />

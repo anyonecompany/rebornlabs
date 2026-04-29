@@ -8,6 +8,7 @@ import {
   getContractArticles,
   type ContractType,
 } from "@/src/lib/contract-articles";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 
 // ---------------------------------------------------------------------------
 // 타입 정의
@@ -327,10 +328,17 @@ export default function SignPage() {
   const idBackValid = idBack.trim().length === 7;
   const canSubmit = agreed && !!signatureDataUrl && idFrontValid && idBackValid && !submitting;
 
+  // 입력 도중 페이지 이탈 경고 — 주민번호/서명 중 하나라도 입력했으면 dirty
+  const isDirty =
+    idFront.length > 0 || idBack.length > 0 || signatureDataUrl !== null;
+
   // ── 렌더 분기 ──────────────────────────────────────────────────────────
 
   return (
     <>
+      {/* 이탈 경고 — 입력 도중(주민번호/서명) 새로고침·탭 닫기 시 브라우저 확인 다이얼로그 표시 */}
+      <UnsavedChangesGuard isDirty={isDirty && !submitted} />
+
       {/* 서명 패드 오버레이 */}
       {padOpen && (
         <InlineSignaturePad
