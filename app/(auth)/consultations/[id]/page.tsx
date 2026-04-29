@@ -448,7 +448,11 @@ export default function ConsultationDetailPage() {
     }
   }, [id, selectedVehicleId, consultation, router]);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   // 예산 편집 모달 열기 — 현재 값을 폼에 프리필
   const openBudgetModal = useCallback(() => {
