@@ -6,17 +6,44 @@ import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 // ─── CORS 헬퍼 ────────────────────────────────────────────────
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+/**
+ * 허용 Origin 목록.
+ * ALLOWED_ORIGINS 환경변수(콤마 구분)가 없으면 NEXT_PUBLIC_APP_URL 단일 도메인으로 폴백.
+ * 둘 다 미설정이면 same-origin만 허용 (헤더 없음).
+ */
+function getAllowedOrigins(): string[] {
+  const raw = process.env.ALLOWED_ORIGINS ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return raw
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+}
 
-function corsResponse(body: unknown, init?: ResponseInit) {
+function buildCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const allowed = getAllowedOrigins();
+  if (allowed.length === 0) {
+    // 운영 도메인 미설정 — same-origin만 허용 (헤더 미포함)
+    return {
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+  }
+  const origin =
+    requestOrigin && allowed.includes(requestOrigin) ? requestOrigin : allowed[0]!;
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin",
+  };
+}
+
+function corsResponse(body: unknown, request: NextRequest, init?: ResponseInit) {
+  const corsHeaders = buildCorsHeaders(request.headers.get("origin"));
   return NextResponse.json(body, {
     ...init,
     headers: {
-      ...CORS_HEADERS,
+      ...corsHeaders,
       ...(init?.headers ?? {}),
     },
   });
@@ -33,8 +60,9 @@ type RouteContext = { params: Promise<{ token: string }> };
 
 // ─── OPTIONS — CORS preflight ─────────────────────────────────
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+export async function OPTIONS(request: NextRequest) {
+  const corsHeaders = buildCorsHeaders(request.headers.get("origin"));
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
 // ─── GET /api/contracts/sign/[token] — 공개 계약서 조회 ───────
@@ -47,7 +75,7 @@ export async function OPTIONS() {
  * - status === 'signed'면 { signed: true, signedAt } 반환
  * - 주민등록번호는 반환하지 않음 (보안)
  */
-export async function GET(_request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { token } = await context.params;
     const serviceClient = createServiceClient();
@@ -63,6 +91,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (error || !contract) {
       return corsResponse(
         { error: "계약서를 찾을 수 없습니다." },
+        request,
         { status: 404 },
       );
     }
@@ -82,7 +111,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           status: contract.status,
           contract_type: contract.contract_type ?? "accident",
         },
-      });
+      }, request);
     }
 
     return corsResponse({
@@ -96,10 +125,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         status: contract.status,
         contract_type: contract.contract_type ?? "accident",
       },
-    });
+    }, request);
   } catch {
     return corsResponse(
       { error: "서버 오류가 발생했습니다." },
+      request,
       { status: 500 },
     );
   }
@@ -129,6 +159,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } catch {
       return corsResponse(
         { error: "요청 데이터 형식이 올바르지 않습니다." },
+        request,
         { status: 400 },
       );
     }
@@ -140,6 +171,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           error:
             parsed.error.errors[0]?.message ?? "입력 데이터가 올바르지 않습니다.",
         },
+        request,
         { status: 400 },
       );
     }
@@ -160,6 +192,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (contractError || !contract) {
       return corsResponse(
         { error: "계약서를 찾을 수 없습니다." },
+        request,
         { status: 404 },
       );
     }
@@ -167,7 +200,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (contract.status === "signed") {
       return corsResponse(
         { error: "이미 서명 완료된 계약서입니다." },
-        { status: 400 },
+        request,
+        { status: 409 },
+      );
+    }
+
+    // P0-2: 원자적 status 전이 — UPDATE WHERE status = 'sent'
+    // 동시 요청이 두 개 들어와도 한 요청만 성공, 나머지는 data=null → 409 반환
+    const signedAt = new Date().toISOString();
+    const { data: claimedContract, error: claimError } = await serviceClient
+      .from("contracts")
+      .update({
+        status: "signed",
+        signed_at: signedAt,
+        ...(idNumber !== undefined && { customer_id_number: idNumber }),
+      })
+      .eq("id", contract.id)
+      .eq("status", "sent") // ★ 조건부: 아직 'sent' 상태인 경우만 업데이트
+      .select("id")
+      .single();
+
+    if (claimError || !claimedContract) {
+      return corsResponse(
+        { error: "이미 서명된 계약서입니다." },
+        request,
+        { status: 409 },
       );
     }
 
@@ -187,14 +244,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (signatureUploadError) {
       return corsResponse(
         { error: "서명 이미지 저장에 실패했습니다." },
+        request,
         { status: 500 },
       );
     }
 
-    const { data: signatureUrlData } = await serviceClient.storage
-      .from("signatures")
-      .createSignedUrl(signaturePath, 86400); // 24시간
-    const signatureUrl = signatureUrlData?.signedUrl ?? null;
+    // DB에는 storage path만 저장. 조회 시점마다 새 signed URL을 발급하여 만료 문제를 방지.
+    const signatureUrl = signaturePath;
 
     // 서버 사이드 PDF 생성 (jsPDF)
     const vehicleInfo = contract.vehicle_info as Record<string, unknown> ?? {};
@@ -226,10 +282,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .upload(pdfPath, pdfBuffer, { contentType: "application/pdf", upsert: true });
 
       if (!pdfUpErr) {
-        const { data: pdfUrlData } = await serviceClient.storage
-          .from("contracts")
-          .createSignedUrl(pdfPath, 86400);
-        pdfUrl = pdfUrlData?.signedUrl ?? null;
+        // DB에는 storage path만 저장. 조회/이메일 발송 시점마다 새 signed URL을 발급.
+        pdfUrl = pdfPath;
       }
     } catch (pdfErr) {
       console.error("[contract-sign] PDF 생성 실패:", pdfErr instanceof Error ? pdfErr.message : pdfErr);
@@ -249,7 +303,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .from("documents")
         .insert({
           uploaded_by: createdBy,
-          category: "contract" as const,
+          category: "contract_template" as const,
           file_name: docTitle,
           file_url: pdfUrl,
         })
@@ -269,23 +323,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
         });
     }
 
-    // contracts UPDATE
+    // signature_url / pdf_url 보완 업데이트 (status 전이는 이미 원자적으로 완료됨)
     const { error: updateError } = await serviceClient
       .from("contracts")
       .update({
-        status: "signed",
-        signed_at: new Date().toISOString(),
         signature_url: signatureUrl,
         pdf_url: pdfUrl,
-        ...(idNumber !== undefined && { customer_id_number: idNumber }),
       })
       .eq("id", contract.id);
 
     if (updateError) {
-      return corsResponse(
-        { error: "계약서 상태 업데이트에 실패했습니다." },
-        { status: 500 },
-      );
+      // 서명 상태 전이는 이미 성공 — URL 저장 실패는 경고만 기록하고 성공 응답
+      console.error("[contract-sign] URL 업데이트 실패:", updateError.message);
     }
 
     // GAS 웹훅 — 딜러/경영진 알림 + 고객 완료 이메일 (fire-and-forget, Bearer + 5s 타임아웃)
@@ -327,11 +376,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    return corsResponse({ message: "서명이 완료되었습니다." });
+    return corsResponse({ message: "서명이 완료되었습니다." }, request);
   } catch (err) {
     console.error("[contract-sign] 오류:", err);
     return corsResponse(
       { error: "서버 오류가 발생했습니다." },
+      request,
       { status: 500 },
     );
   }

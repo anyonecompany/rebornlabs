@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -43,22 +43,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ALLOWED_MIME_TYPES = new Set([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-      "image/heic",
-      "image/heif",
-      "application/pdf",
-    ]);
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
-      return NextResponse.json(
-        { error: "이미지 또는 PDF 파일만 업로드 가능합니다." },
-        { status: 400 },
-      );
-    }
-
     // 파일 크기 확인 (10MB 제한)
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
@@ -91,12 +75,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: publicUrlData } = await serviceClient.storage
-      .from("receipts")
-      .createSignedUrl(storagePath, 3600);
-
+    // storage path를 반환 — 조회 시점마다 새 signed URL을 발급하므로
+    // 만료 문제가 없음. 클라이언트는 fileUrl 대신 storagePath를 expenses에 저장해야 함.
+    // 하위 호환: fileUrl은 path 값으로 채워 기존 클라이언트도 동작하도록 유지.
     return NextResponse.json(
-      { fileUrl: publicUrlData?.signedUrl ?? "" },
+      { fileUrl: storagePath, storagePath },
       { status: 200 },
     );
   } catch (err) {

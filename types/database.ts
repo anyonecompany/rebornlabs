@@ -13,8 +13,7 @@ export type VehicleStatus =
   | "available"
   | "consulting"
   | "sold"
-  | "deleted"
-  | "vehicle_waiting";
+  | "deleted";
 
 export type ConsultationStatus =
   | "new"
@@ -23,7 +22,11 @@ export type ConsultationStatus =
   | "rejected"
   | "sold";
 
-export type DocumentCategory = "business_registration" | "contract" | "other";
+export type DocumentCategory =
+  | "business_registration"
+  | "contract"
+  | "contract_template"
+  | "other";
 
 export interface Database {
   __InternalSupabase: {

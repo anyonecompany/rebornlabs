@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { toKstEndOfDay } from "@/lib/kst";
 
 // ─── 스키마 ───────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 2. 새 expires_at 계산
+    // 2. 새 expires_at 계산 (KST 23:59:59 기준으로 정규화)
     let newExpiresAt: string | null;
     if (addDays === null) {
       newExpiresAt = null;
@@ -88,9 +89,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const baseMs = quote.expires_at
         ? Math.max(new Date(quote.expires_at).getTime(), now)
         : now;
-      newExpiresAt = new Date(
-        baseMs + addDays * 24 * 60 * 60 * 1000,
-      ).toISOString();
+      // KST 자정(23:59:59.999) 기준으로 정규화 — 사용자가 "3일 연장"할 때
+      // 현재 시각 기준이 아닌 KST 해당 날 마지막 순간까지 유효하도록 처리
+      newExpiresAt = toKstEndOfDay(baseMs, addDays);
     }
 
     // 3. 업데이트

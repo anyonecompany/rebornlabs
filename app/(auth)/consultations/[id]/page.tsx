@@ -34,6 +34,7 @@ import { getReturnUrl } from "@/src/lib/return-url";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef } from "@/src/lib/source-ref";
 import type { ConsultationStatus, UserRole } from "@/types/database";
@@ -98,7 +99,14 @@ interface AvailableVehicle {
 interface DealerOption {
   id: string;
   name: string;
+  role?: "dealer" | "team_leader" | "director";
 }
+
+const ROLE_LABEL: Record<NonNullable<DealerOption["role"]>, string> = {
+  director: "본부장",
+  team_leader: "팀장",
+  dealer: "딜러",
+};
 
 interface MarketingCompanyOption {
   id: string;
@@ -197,7 +205,7 @@ export default function ConsultationDetailPage() {
       const data = await res.json();
       const c: Consultation = data.data;
       setConsultation(c);
-      setRelatedConsultations(data.relatedConsultations ?? []);
+      setRelatedConsultations(data.history ?? []);
       setLogs(data.logs ?? []);
       // 배정 초기값 세팅
       setSelectedDealerId(c.assigned_dealer_id ?? "");
@@ -268,15 +276,8 @@ export default function ConsultationDetailPage() {
         return;
       }
       toast.success("딜러가 배정되었습니다.");
-      setConsultation((prev) =>
-        prev
-          ? {
-              ...prev,
-              assigned_dealer_id: selectedDealerId,
-              marketing_company: marketingCompany || null,
-            }
-          : prev,
-      );
+      // 낙관적 업데이트 후 서버 재조회로 race condition 방지
+      await fetchDetail();
     } catch {
       toast.error("딜러 배정 중 오류가 발생했습니다.");
     } finally {
@@ -545,6 +546,9 @@ export default function ConsultationDetailPage() {
     (d) => d.id === consultation.assigned_dealer_id,
   )?.name;
 
+  // 메모/통화기록 입력 중 이탈 경고 플래그
+  const isFormDirty = logContent.trim().length > 0;
+
   return (
     <div>
       <div className="mb-4">
@@ -580,8 +584,10 @@ export default function ConsultationDetailPage() {
                   </span>
                 )}
               </div>
-              {/* 상태 변경 (admin/staff + 배정 딜러, sold 제외) */}
-              {consultation.status !== "sold" &&
+              {/* 상태 변경 (admin/staff 전용, sold 제외).
+                  dealer는 consultation_logs 경유 status_snapshot으로만 상태 변경 가능. */}
+              {isPrivileged &&
+                consultation.status !== "sold" &&
                 allowedTransitions.length > 0 && (
                   <Select
                     disabled={changingStatus}
@@ -777,7 +783,9 @@ export default function ConsultationDetailPage() {
                     <SelectContent>
                       {dealers.map((d) => (
                         <SelectItem key={d.id} value={d.id}>
-                          {d.name}
+                          {d.role && d.role !== "dealer"
+                            ? `${d.name} (${ROLE_LABEL[d.role]})`
+                            : d.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1084,6 +1092,9 @@ export default function ConsultationDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 통화기록 입력 중 이탈 경고 */}
+      <UnsavedChangesGuard isDirty={isFormDirty} />
     </div>
   );
 }

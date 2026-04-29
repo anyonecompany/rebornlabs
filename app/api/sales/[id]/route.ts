@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -110,18 +110,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
       signatureUrl = urlData?.signedUrl ?? null;
     }
 
-    // 계약서 파일 목록 (signed URL — 비공개 버킷)
+    // 계약서 파일 목록 (signed URL — 비공개 버킷, Promise.all 병렬화)
     const contractFilesList = contractsResult.data ?? [];
-    const contractFiles: (FileInfo & { url: string })[] = [];
-    for (const file of contractFilesList) {
-      const { data: urlData } = await serviceClient.storage
-        .from("contracts")
-        .createSignedUrl(`${id}/${file.name}`, 3600);
-      contractFiles.push({
-        ...file,
-        url: urlData?.signedUrl ?? "",
-      });
-    }
+    const contractFiles: (FileInfo & { url: string })[] = await Promise.all(
+      contractFilesList.map(async (file) => {
+        const { data: urlData } = await serviceClient.storage
+          .from("contracts")
+          .createSignedUrl(`${id}/${file.name}`, 3600);
+        return { ...file, url: urlData?.signedUrl ?? "" };
+      }),
+    );
 
     return NextResponse.json({
       data: sale,

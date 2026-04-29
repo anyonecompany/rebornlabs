@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { verifyTurnstile } from "@/src/lib/captcha";
 import { isRefCode, resolveCompanyName } from "@/src/lib/source-ref";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
@@ -21,30 +22,53 @@ const SubmitSchema = z.object({
   utm_campaign: z.string().max(100).optional(),
   utm_content: z.string().max(200).optional(),
   website: z.string().optional(), // honeypot 필드
+  // Cloudflare Turnstile CAPTCHA 토큰 (클라이언트 위젯이 삽입, 후속 PR)
+  captchaToken: z.string().optional(),
 });
 
-// ─── CAPTCHA 검증 stub ─────────────────────────────────────
+// ─── CORS 헬퍼 ────────────────────────────────────────────────
 
-async function validateCaptcha(_token?: string): Promise<boolean> {
-  // TODO: CAPTCHA 제공업체 연동 (예: hCaptcha, Turnstile)
-  return true;
+/**
+ * 허용 Origin 목록.
+ * ALLOWED_ORIGINS 환경변수(콤마 구분)가 없으면 NEXT_PUBLIC_APP_URL 단일 도메인으로 폴백.
+ * 둘 다 미설정이면 same-origin만 허용 (헤더 없음).
+ */
+function getAllowedOrigins(): string[] {
+  const raw = process.env.ALLOWED_ORIGINS ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return raw
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
 }
 
-// ─── CORS ──────────────────────────────────────────────────
+function buildCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  const allowed = getAllowedOrigins();
+  if (allowed.length === 0) {
+    // 운영 도메인 미설정 — same-origin만 허용 (헤더 미포함)
+    return {
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+  }
+  const origin =
+    requestOrigin && allowed.includes(requestOrigin) ? requestOrigin : allowed[0]!;
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin",
+  };
+}
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-function corsJson(body: unknown, init?: { status?: number }) {
-  return NextResponse.json(body, { ...init, headers: CORS });
+function corsJson(body: unknown, request: NextRequest, init?: { status?: number }) {
+  const corsHeaders = buildCorsHeaders(request.headers.get("origin"));
+  return NextResponse.json(body, { ...init, headers: corsHeaders });
 }
 
 /** OPTIONS preflight */
-export function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS });
+export function OPTIONS(request: NextRequest) {
+  const corsHeaders = buildCorsHeaders(request.headers.get("origin"));
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
 // ─── POST /api/consultations/submit — 상담 접수 (공개 API) ───
@@ -54,13 +78,14 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return corsJson({ error: "요청 데이터 형식이 올바르지 않습니다." }, { status: 400 });
+    return corsJson({ error: "요청 데이터 형식이 올바르지 않습니다." }, request, { status: 400 });
   }
 
   const parsed = SubmitSchema.safeParse(body);
   if (!parsed.success) {
     return corsJson(
       { error: parsed.error.errors[0]?.message ?? "입력 데이터가 올바르지 않습니다." },
+      request,
       { status: 400 },
     );
   }
@@ -77,11 +102,12 @@ export async function POST(request: NextRequest) {
     utm_campaign,
     utm_content,
     website,
+    captchaToken,
   } = parsed.data;
 
   // 1. honeypot
   if (website && website.trim() !== "") {
-    return corsJson({ message: "상담 접수가 완료되었습니다." });
+    return corsJson({ message: "상담 접수가 완료되었습니다." }, request);
   }
 
   // 2. IP 추출
@@ -90,9 +116,15 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "0.0.0.0";
 
+  // 3. CAPTCHA 검증 (Cloudflare Turnstile)
+  const captchaValid = await verifyTurnstile(captchaToken, ip);
+  if (!captchaValid) {
+    return corsJson({ error: "CAPTCHA 검증에 실패했습니다." }, request, { status: 400 });
+  }
+
   const serviceClient = createServiceClient();
 
-  // 3. IP rate limit
+  // 4. IP rate limit
   const { count, error: rateError } = await serviceClient
     .from("rate_limits")
     .select("*", { count: "exact", head: true })
@@ -101,11 +133,11 @@ export async function POST(request: NextRequest) {
     .gte("requested_at", new Date(Date.now() - 60 * 1000).toISOString());
 
   if (rateError) {
-    return corsJson({ error: "서버 오류가 발생했습니다." }, { status: 500 });
+    return corsJson({ error: "서버 오류가 발생했습니다." }, request, { status: 500 });
   }
 
   if ((count ?? 0) >= 5) {
-    return corsJson({ error: "너무 많은 요청입니다. 잠시 후 다시 시도해주세요." }, { status: 429 });
+    return corsJson({ error: "너무 많은 요청입니다. 잠시 후 다시 시도해주세요." }, request, { status: 429 });
   }
 
   await serviceClient.from("rate_limits").insert({
@@ -113,12 +145,6 @@ export async function POST(request: NextRequest) {
     endpoint: "consultation_submit",
     requested_at: new Date().toISOString(),
   });
-
-  // 4. CAPTCHA stub
-  const captchaValid = await validateCaptcha();
-  if (!captchaValid) {
-    return corsJson({ error: "CAPTCHA 검증에 실패했습니다." }, { status: 400 });
-  }
 
   // 5. DB 저장
   const { data: consultationId, error: insertError } = await serviceClient.rpc(
@@ -133,7 +159,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (insertError) {
-    return corsJson({ error: "상담 접수 중 오류가 발생했습니다." }, { status: 500 });
+    return corsJson({ error: "상담 접수 중 오류가 발생했습니다." }, request, { status: 500 });
   }
 
   // 5-a. 보증금/월납입료 + UTM 추가 필드 — RPC가 받지 않으므로 UPDATE로 별도 저장
@@ -199,5 +225,5 @@ export async function POST(request: NextRequest) {
     { label: "consultations/submit" },
   );
 
-  return corsJson({ message: "상담 접수가 완료되었습니다." });
+  return corsJson({ message: "상담 접수가 완료되었습니다." }, request);
 }

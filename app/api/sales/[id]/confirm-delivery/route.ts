@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import {
   calculateCommissions,
   type CommissionRecipientRole,
@@ -57,7 +57,74 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     const serviceClient = createServiceClient();
     const confirmedAt = new Date().toISOString();
 
-    // 1. 조건부 UPDATE — 아직 미확인 상태일 때만 성공
+    // 0. 판매 존재 및 소유권 확인 (UPDATE 전에 먼저 수행)
+    const { data: salePre, error: preErr } = await serviceClient
+      .from("sales")
+      .select("id, dealer_id, is_db_provided, cancelled_at, delivery_confirmed_at")
+      .eq("id", saleId)
+      .maybeSingle();
+
+    if (preErr || !salePre) {
+      return NextResponse.json(
+        { error: "판매 정보를 찾을 수 없습니다." },
+        { status: 404 },
+      );
+    }
+
+    // 역할별 소유권 검증
+    //   admin / staff       : 모든 판매 접근 허용
+    //   director / team_leader : 산하 dealer의 판매만 (get_subordinate_ids RPC)
+    //   dealer              : 본인 판매 건만
+    if (user.role === "dealer") {
+      if (salePre.dealer_id !== user.id) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    } else if (user.role === "director" || user.role === "team_leader") {
+      const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+      type SubResult = { get_subordinate_ids: string } | string;
+      const { data: subData, error: subError } = await serviceClient.rpc(
+        "get_subordinate_ids" as never,
+        { p_user_id: user.id } as never,
+      );
+      let subordinateIds: string[] = [];
+      if (!subError && subData) {
+        const rows = subData as unknown as SubResult[];
+        subordinateIds = rows.map((r) =>
+          typeof r === "string"
+            ? r
+            : (r as { get_subordinate_ids: string }).get_subordinate_ids,
+        );
+      }
+      const allowedIds =
+        subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID];
+      if (!allowedIds.includes(salePre.dealer_id)) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    }
+    // admin / staff: 별도 필터 없음 (모든 판매 접근 허용)
+
+    // 이미 출고 확인된 경우
+    if (salePre.delivery_confirmed_at !== null) {
+      return NextResponse.json(
+        { error: "이미 출고 확인된 판매입니다." },
+        { status: 409 },
+      );
+    }
+
+    if (salePre.cancelled_at) {
+      return NextResponse.json(
+        { error: "취소된 판매는 출고 확인할 수 없습니다." },
+        { status: 409 },
+      );
+    }
+
+    // 1. 조건부 UPDATE — 아직 미확인 상태일 때만 성공 (race condition 방어)
     const { data: sale, error: updateErr } = await serviceClient
       .from("sales")
       .update({
@@ -77,19 +144,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     }
 
     if (!sale) {
-      // 이미 확인됐거나, 존재하지 않음
-      const { data: existing } = await serviceClient
-        .from("sales")
-        .select("id, delivery_confirmed_at")
-        .eq("id", saleId)
-        .maybeSingle();
-
-      if (!existing) {
-        return NextResponse.json(
-          { error: "판매 정보를 찾을 수 없습니다." },
-          { status: 404 },
-        );
-      }
+      // race condition: 동시 요청으로 다른 처리가 먼저 완료됨
       return NextResponse.json(
         { error: "이미 출고 확인된 판매입니다." },
         { status: 409 },

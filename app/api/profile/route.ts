@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-import { AuthError, verifyUser, getAuthErrorMessage} from "@/lib/auth/verify";
+import { AuthError, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 
 interface ProfileUpdateRequest {
@@ -18,6 +19,26 @@ function extractToken(request: NextRequest): string | null {
   return request.cookies.get("sb-access-token")?.value ?? null;
 }
 
+/** anon key 클라이언트로 이메일+비밀번호 재인증 (currentPassword 검증) */
+async function reauthenticateWithPassword(
+  email: string,
+  password: string,
+): Promise<{ ok: boolean }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    throw new Error("Supabase 환경변수가 설정되지 않았습니다.");
+  }
+
+  const client = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  return { ok: !error };
+}
+
 export async function GET(request: NextRequest) {
   const token = extractToken(request);
   if (!token) {
@@ -25,7 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await verifyUser(token);
+    const user = await verifyUser(token, { allowMustChangePassword: true });
     const serviceClient = createServiceClient();
     const { data, error } = await serviceClient
       .from("profiles")
@@ -54,7 +75,7 @@ export async function PATCH(request: NextRequest) {
 
   let currentUser;
   try {
-    currentUser = await verifyUser(token);
+    currentUser = await verifyUser(token, { allowMustChangePassword: true });
   } catch (err) {
     if (err instanceof AuthError) {
       return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status: 401 });
@@ -75,7 +96,7 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { name, phone, newPassword } = body;
+  const { name, phone, currentPassword, newPassword } = body;
 
   try {
     const serviceClient = createServiceClient();
@@ -99,6 +120,42 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (newPassword) {
+      // currentPassword 검증 필수
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: "비밀번호 변경 시 현재 비밀번호를 입력해야 합니다." },
+          { status: 400 },
+        );
+      }
+
+      // 이메일 조회 (재인증용)
+      const { data: profileData, error: profileFetchError } = await serviceClient
+        .from("profiles")
+        .select("email")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (profileFetchError || !profileData?.email) {
+        return NextResponse.json(
+          { error: "사용자 정보를 불러올 수 없습니다." },
+          { status: 500 },
+        );
+      }
+
+      // signInWithPassword로 현재 비밀번호 재인증
+      const { ok: verified } = await reauthenticateWithPassword(
+        profileData.email,
+        currentPassword,
+      );
+
+      if (!verified) {
+        return NextResponse.json(
+          { error: "현재 비밀번호가 올바르지 않습니다." },
+          { status: 400 },
+        );
+      }
+
+      // 비밀번호 변경 (service_role admin API)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: passwordError } = await (serviceClient as any).auth.admin.updateUserById(
         currentUser.id,

@@ -38,12 +38,33 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const serviceClient = createServiceClient();
 
     // 1. quotes + vehicles + dealer profile JOIN
-    const { data: quote, error: quoteError } = await serviceClient
+    //    quoted_* 컬럼: 발행 시점 가격 snapshot (vehicles 가격 변경에 영향받지 않음)
+    //    주의: Supabase 자동생성 타입이 재생성되기 전까지 quoted_* 컬럼이 타입에 없으므로
+    //    로컬 타입으로 단언 처리 (DB 마이그레이션 적용 후 타입 재생성 시 제거 가능)
+    type QuoteRow = {
+      id: string;
+      token: string;
+      quote_number: string;
+      expires_at: string | null;
+      view_count: number | null;
+      first_viewed_at: string | null;
+      last_viewed_at: string | null;
+      created_at: string;
+      quoted_selling_price: number | null;
+      quoted_deposit: number | null;
+      quoted_monthly_payment: number | null;
+      vehicle: unknown;
+      dealer: unknown;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rawQuote, error: quoteError } = await (serviceClient as any)
       .from("quotes")
       .select(
         `
           id, token, quote_number, expires_at,
           view_count, first_viewed_at, last_viewed_at, created_at,
+          quoted_selling_price, quoted_deposit, quoted_monthly_payment,
           vehicle:vehicles!inner (
             id, vehicle_code, make, model, year, mileage,
             selling_price, deposit, monthly_payment, photos,
@@ -57,12 +78,14 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       .eq("token", token)
       .maybeSingle();
 
+    const quote = rawQuote as QuoteRow | null;
+
     if (quoteError || !quote) {
       return corsJson({ error: "견적서를 찾을 수 없습니다." }, { status: 404 });
     }
 
     // 차량 소프트 삭제 시에도 접근 차단
-    const vehicle = (Array.isArray(quote.vehicle) ? quote.vehicle[0] : quote.vehicle) as
+    const vehicle = (Array.isArray(quote.vehicle) ? (quote.vehicle as unknown[])[0] : quote.vehicle) as
       | {
           id: string;
           vehicle_code: string;
@@ -81,11 +104,20 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         }
       | null;
 
+    // 가격 우선순위: snapshot(발행 시점) > vehicles 현재값 (기존 견적 호환)
+    const frozenSellingPrice = quote.quoted_selling_price ?? vehicle?.selling_price ?? 0;
+    const frozenDeposit = quote.quoted_deposit !== undefined
+      ? quote.quoted_deposit
+      : (vehicle?.deposit ?? null);
+    const frozenMonthlyPayment = quote.quoted_monthly_payment !== undefined
+      ? quote.quoted_monthly_payment
+      : (vehicle?.monthly_payment ?? null);
+
     if (!vehicle || vehicle.deleted_at) {
       return corsJson({ error: "차량 정보가 더 이상 제공되지 않습니다." }, { status: 404 });
     }
 
-    const dealer = (Array.isArray(quote.dealer) ? quote.dealer[0] : quote.dealer) as
+    const dealer = (Array.isArray(quote.dealer) ? (quote.dealer as unknown[])[0] : quote.dealer) as
       | { id: string; name: string; phone: string | null }
       | null;
 
@@ -97,15 +129,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (isExpired) {
       return corsJson(
         {
-          error: "expired",
-          message: "견적서 유효기간이 만료되었습니다.",
-          quote: {
-            quoteNumber: quote.quote_number,
-            expiresAt: quote.expires_at,
-          },
-          dealer: dealer
-            ? { name: dealer.name, phone: dealer.phone }
-            : null,
+          expired: true,
+          expiresAt: quote.expires_at,
+          quoteNumber: quote.quote_number,
+          dealerName: dealer?.name ?? null,
+          dealerPhone: dealer?.phone ?? null,
         },
         { status: 410 },
       );
@@ -140,9 +168,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         mileage: vehicle.mileage,
         color: vehicle.color,
         vin: vehicle.vin,
-        sellingPrice: vehicle.selling_price,
-        deposit: vehicle.deposit,
-        monthlyPayment: vehicle.monthly_payment,
+        // snapshot 우선 사용 — 발행 후 차량 가격 변경에 영향받지 않음
+        sellingPrice: frozenSellingPrice,
+        deposit: frozenDeposit,
+        monthlyPayment: frozenMonthlyPayment,
         images: (vehicle.photos ?? []).map((url, idx) => ({ url, order: idx })),
         primaryImageUrl: vehicle.photos?.[0] ?? null,
         status: vehicle.status,

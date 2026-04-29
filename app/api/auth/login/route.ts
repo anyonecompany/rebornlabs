@@ -12,6 +12,41 @@ interface LoginRequest {
 }
 
 export async function POST(request: NextRequest) {
+  // IP rate limit — 5분에 10회
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "0.0.0.0";
+
+  const rateLimitClient = createServiceClient();
+  const windowStart = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { count: attemptCount, error: rateError } = await rateLimitClient
+    .from("rate_limits")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("endpoint", "auth_login")
+    .gte("requested_at", windowStart);
+
+  if (rateError) {
+    return NextResponse.json(
+      { error: "서버 오류가 발생했습니다." },
+      { status: 500 },
+    );
+  }
+
+  if ((attemptCount ?? 0) >= 10) {
+    return NextResponse.json(
+      { error: "너무 많은 로그인 시도입니다. 5분 후 다시 시도해주세요." },
+      { status: 429 },
+    );
+  }
+
+  await rateLimitClient.from("rate_limits").insert({
+    ip_address: ip,
+    endpoint: "auth_login",
+    requested_at: new Date().toISOString(),
+  });
+
   let body: LoginRequest;
   try {
     body = await request.json();

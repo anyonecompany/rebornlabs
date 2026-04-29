@@ -1,11 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 
-/**
- * 시스템에서 사용하는 역할 타입 (서버/API 레이어).
- *
- * types/database.ts 의 UserRole 과 동일한 실제 역할 + 서버 전용 "none" 추가.
- * director/team_leader 는 20260420_org_structure.sql 에서 ENUM 에 추가됨.
- */
+/** 시스템에서 사용하는 역할 타입 */
 export type UserRole =
   | "admin"
   | "director"
@@ -32,7 +27,8 @@ export type AuthErrorCode =
   | "NO_PROFILE"
   | "INACTIVE"
   | "PENDING_APPROVAL"
-  | "MUST_CHANGE_PASSWORD";
+  | "MUST_CHANGE_PASSWORD"
+  | "FORBIDDEN";
 
 export class AuthError extends Error {
   constructor(
@@ -45,6 +41,44 @@ export class AuthError extends Error {
 }
 
 /**
+ * AuthError 코드를 클라이언트용 마스킹 메시지로 변환한다.
+ *
+ * 내부 역할명·DB 구조가 포함된 err.message를 직접 반환하지 말고
+ * 이 함수를 통해 사용자 친화 메시지만 노출한다.
+ *
+ * @param code - AuthError.code
+ */
+export function getAuthErrorMessage(code: AuthErrorCode): string {
+  switch (code) {
+    case "NO_TOKEN":
+      return "로그인이 필요합니다.";
+    case "INVALID_TOKEN":
+      return "인증 정보가 유효하지 않습니다. 다시 로그인해 주세요.";
+    case "NO_PROFILE":
+      return "사용자 정보를 찾을 수 없습니다. 관리자에게 문의하세요.";
+    case "INACTIVE":
+      return "접근 권한이 없습니다. 관리자에게 문의하세요.";
+    case "PENDING_APPROVAL":
+      return "계정 승인 대기 중입니다. 관리자의 승인을 기다려주세요.";
+    case "MUST_CHANGE_PASSWORD":
+      return "비밀번호 변경이 필요합니다.";
+    case "FORBIDDEN":
+      return "이 작업을 수행할 권한이 없습니다.";
+    default:
+      return "인증 오류가 발생했습니다.";
+  }
+}
+
+/** verifyUser 옵션 */
+export interface VerifyUserOptions {
+  /**
+   * true로 설정하면 must_change_password=true여도 에러를 던지지 않는다.
+   * 비밀번호 변경 API(profile PATCH/GET) 등 허용된 라우트에서만 사용한다.
+   */
+  allowMustChangePassword?: boolean;
+}
+
+/**
  * 인증 토큰을 검증하고 사용자 프로필을 반환한다.
  *
  * 검증 순서:
@@ -52,14 +86,16 @@ export class AuthError extends Error {
  *   2. profiles 레코드 존재
  *   3. is_active = true
  *   4. role != 'pending' (승인 대기가 아닌지)
- *
- * must_change_password는 에러를 던지지 않고 결과에 포함한다.
- * 호출자가 비밀번호 변경 페이지로 리다이렉트할지 결정한다.
+ *   5. must_change_password = false (allowMustChangePassword 옵션 미설정 시)
  *
  * @param accessToken - Supabase Auth access token (Bearer 토큰)
+ * @param options - 선택적 옵션
  * @throws {AuthError} 검증 실패 시
  */
-export async function verifyUser(accessToken: string): Promise<VerifiedUser> {
+export async function verifyUser(
+  accessToken: string,
+  options?: VerifyUserOptions,
+): Promise<VerifiedUser> {
   if (!accessToken) {
     throw new AuthError("NO_TOKEN", "인증 토큰이 없습니다.");
   }
@@ -109,6 +145,14 @@ export async function verifyUser(accessToken: string): Promise<VerifiedUser> {
     );
   }
 
+  // 5. 비밀번호 변경 강제 확인
+  if (profile.must_change_password && !options?.allowMustChangePassword) {
+    throw new AuthError(
+      "MUST_CHANGE_PASSWORD",
+      "비밀번호 변경이 필요합니다.",
+    );
+  }
+
   return {
     id: profile.id,
     email: profile.email,
@@ -142,8 +186,8 @@ export function requireRole(
 ): void {
   if (!hasRole(user, allowedRoles)) {
     throw new AuthError(
-      "INACTIVE",
-      `이 작업에는 ${allowedRoles.join(" 또는 ")} 역할이 필요합니다.`,
+      "FORBIDDEN",
+      "이 작업을 수행할 권한이 없습니다.",
     );
   }
 }

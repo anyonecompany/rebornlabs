@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -21,6 +22,9 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
+  const isForced = searchParams.get("force") === "true";
+
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -108,6 +112,10 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      // 강제 변경 완료 시 페이지 새로고침 (리다이렉트 해제)
+      if (isForced) {
+        window.location.href = "/profile";
+      }
     } catch {
       toast.error("비밀번호 변경 중 오류가 발생했습니다.");
     } finally {
@@ -128,9 +136,16 @@ export default function ProfilePage() {
     <div>
       <PageHeader title="내 프로필" />
 
+      {/* 강제 비밀번호 변경 안내 배너 */}
+      {isForced && (
+        <div className="mb-6 max-w-xl mx-auto rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+          초기 비밀번호를 변경해야 서비스를 이용할 수 있습니다. 아래에서 비밀번호를 변경해 주세요.
+        </div>
+      )}
+
       <div className="space-y-6 max-w-xl mx-auto">
-        {/* 프로필 정보 */}
-        <Card>
+        {/* 프로필 정보 — 강제 변경 모드에서는 비활성화 */}
+        <Card className={isForced ? "opacity-40 pointer-events-none" : ""}>
           <CardHeader>
             <CardTitle className="text-base">기본 정보</CardTitle>
           </CardHeader>
@@ -142,7 +157,7 @@ export default function ProfilePage() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || isForced}
                 />
               </div>
               <div className="space-y-2">
@@ -152,7 +167,7 @@ export default function ProfilePage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="010-0000-0000"
-                  disabled={saving}
+                  disabled={saving || isForced}
                 />
               </div>
               <div className="space-y-2">
@@ -173,7 +188,7 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving || isForced}>
                 {saving ? "처리 중..." : "저장"}
               </Button>
             </form>

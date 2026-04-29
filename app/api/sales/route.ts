@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -10,6 +10,7 @@ const CreateSaleSchema = z.object({
   consultation_id: z.string().uuid("올바른 UUID 형식이 아닙니다.").nullable().optional(),
   vehicle_id: z.string().uuid("차량 ID는 올바른 UUID 형식이어야 합니다."),
   dealer_id: z.string().uuid("딜러 ID는 올바른 UUID 형식이어야 합니다."),
+  quote_id: z.string().uuid("견적서 ID는 올바른 UUID 형식이어야 합니다.").optional(), // P0-1: 만료 검증용
   is_db_provided: z.boolean({
     required_error: "DB 제공 여부는 필수입니다.",
     invalid_type_error: "DB 제공 여부는 boolean 값이어야 합니다.",
@@ -232,7 +233,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { consultation_id, vehicle_id, dealer_id, is_db_provided } =
+    const { consultation_id, vehicle_id, dealer_id, quote_id, is_db_provided } =
       parsed.data;
 
     // dealer: dealer_id는 반드시 본인
@@ -252,6 +253,47 @@ export async function POST(request: NextRequest) {
     }
 
     const serviceClient = createServiceClient();
+
+    // P0-1: 견적서 만료 검증
+    if (quote_id) {
+      const { data: quote, error: quoteError } = await serviceClient
+        .from("quotes")
+        .select("id, expires_at")
+        .eq("id", quote_id)
+        .single();
+
+      if (quoteError || !quote) {
+        return NextResponse.json(
+          { error: "견적서를 찾을 수 없습니다." },
+          { status: 404 },
+        );
+      }
+
+      if (quote.expires_at !== null && new Date(quote.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: "견적서가 만료되었습니다. 새 견적서를 발행해 주세요." },
+          { status: 400 },
+        );
+      }
+    }
+
+    // P0-3: 동일 차량에 대한 활성 판매 중복 등록 차단
+    // complete_sale RPC가 vehicle.status='sold' 행 잠금으로 보호하지만,
+    // 사용자 친화적 메시지 제공을 위해 핸들러에서 선행 조회
+    const { data: existingSale, error: existingSaleError } = await serviceClient
+      .from("sales")
+      .select("id")
+      .eq("vehicle_id", vehicle_id)
+      .is("cancelled_at", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (!existingSaleError && existingSale) {
+      return NextResponse.json(
+        { error: "해당 차량은 이미 판매 등록된 차량입니다." },
+        { status: 409 },
+      );
+    }
 
     // consultation_id가 있을 때 검증
     if (consultation_id) {
@@ -298,8 +340,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (rpcError) {
+      console.error("[sales] complete_sale RPC 실패:", rpcError.message);
       return NextResponse.json(
-        { error: rpcError.message },
+        { error: "판매 등록 처리 중 오류가 발생했습니다." },
         { status: 400 },
       );
     }

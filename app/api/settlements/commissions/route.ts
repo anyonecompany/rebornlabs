@@ -4,7 +4,7 @@ import {
   createAuthedClient,
   createServiceClient,
 } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 

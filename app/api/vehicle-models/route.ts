@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── 스키마 ───────────────────────────────────────────────────
 
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query = query.or(
-        `brand.ilike.%${search}%,model.ilike.%${search}%,trim.ilike.%${search}%`,
+        `brand.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,trim.ilike.%${escapeLike(search)}%`,
       );
     }
 

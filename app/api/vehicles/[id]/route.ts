@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -43,25 +43,16 @@ const UpdateVehicleSchema = z
       .optional(),
     photos: z.array(z.string().url()).optional(),
     status: z
-      .enum(["available", "consulting", "vehicle_waiting", "sold"])
+      .enum(["available", "consulting", "sold", "deleted"])
       .optional(),
     plate_number: z.string().nullable().optional(),
     vin: z.string().nullable().optional(),
     color: z.string().nullable().optional(),
   })
-  .strict()
-  .superRefine((data, ctx) => {
-    // 둘 다 포함된 경우에만 cross-field 검증 (부분 업데이트 지원)
-    if (data.selling_price !== undefined && data.purchase_price !== undefined) {
-      if (data.selling_price < data.purchase_price) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "판매가는 매입가 이상이어야 합니다.",
-          path: ["selling_price"],
-        });
-      }
-    }
-  });
+  .strict();
+
+// 복원 전용 스키마 (admin only: { restore: true })
+const RestoreVehicleSchema = z.object({ restore: z.literal(true) }).strict();
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -106,11 +97,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
       }
       vehicle = data as Record<string, unknown>;
     } else {
+      // admin/staff: 소프트 삭제된 차량도 조회 가능 (복원 기능을 위해)
       const { data, error } = await serviceClient
         .from("vehicles")
         .select("*")
         .eq("id", id)
-        .is("deleted_at", null)
         .single();
       if (error || !data) {
         return NextResponse.json(
@@ -191,19 +182,45 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    if (existing.deleted_at !== null) {
-      return NextResponse.json(
-        { error: "삭제된 차량은 수정할 수 없습니다." },
-        { status: 400 },
-      );
-    }
-
     let body: unknown;
     try {
       body = await request.json();
     } catch {
       return NextResponse.json(
         { error: "요청 데이터 형식이 올바르지 않습니다." },
+        { status: 400 },
+      );
+    }
+
+    // 복원 요청 처리 (admin only)
+    const restoreParsed = RestoreVehicleSchema.safeParse(body);
+    if (restoreParsed.success) {
+      requireRole(user, ["admin"]);
+      if (existing.deleted_at === null) {
+        return NextResponse.json(
+          { error: "삭제되지 않은 차량은 복원할 수 없습니다." },
+          { status: 400 },
+        );
+      }
+      const { data: restored, error: restoreError } = await serviceClient
+        .from("vehicles")
+        .update({ deleted_at: null, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (restoreError) {
+        return NextResponse.json(
+          { error: "차량 복원에 실패했습니다." },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ data: restored });
+    }
+
+    if (existing.deleted_at !== null) {
+      return NextResponse.json(
+        { error: "삭제된 차량은 수정할 수 없습니다." },
         { status: 400 },
       );
     }

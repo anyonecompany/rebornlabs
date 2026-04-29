@@ -2,44 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
-const CreateVehicleSchema = z
-  .object({
-    make: z.string().min(1, "제조사는 필수입니다."),
-    model: z.string().min(1, "모델명은 필수입니다."),
-    year: z
-      .number()
-      .int()
-      .min(1900, "연식은 1900년 이후여야 합니다.")
-      .max(2100, "연식은 2100년 이하여야 합니다."),
-    mileage: z.number().int().min(0, "주행거리는 0 이상이어야 합니다.").optional(),
-    purchase_price: z
-      .number()
-      .int()
-      .min(0, "매입가는 0 이상이어야 합니다."),
-    selling_price: z.number().int().min(0, "판매가는 0 이상이어야 합니다."),
-    deposit: z
-      .number()
-      .int()
-      .min(0, "보증금은 0 이상이어야 합니다.")
-      .optional(),
-    monthly_payment: z
-      .number()
-      .int()
-      .min(0, "월납입료는 0 이상이어야 합니다.")
-      .optional(),
-    photos: z.array(z.string().url()).optional().default([]),
-    plate_number: z.string().nullable().optional(),
-    vin: z.string().nullable().optional(),
-    color: z.string().nullable().optional(),
-  })
-  .refine((data) => data.selling_price >= data.purchase_price, {
-    message: "판매가는 매입가 이상이어야 합니다.",
-    path: ["selling_price"],
-  });
+const CreateVehicleSchema = z.object({
+  make: z.string().min(1, "제조사는 필수입니다."),
+  model: z.string().min(1, "모델명은 필수입니다."),
+  year: z
+    .number()
+    .int()
+    .min(1900, "연식은 1900년 이후여야 합니다.")
+    .max(2100, "연식은 2100년 이하여야 합니다."),
+  mileage: z.number().int().min(0, "주행거리는 0 이상이어야 합니다.").optional(),
+  purchase_price: z
+    .number()
+    .int()
+    .min(0, "매입가는 0 이상이어야 합니다."),
+  selling_price: z.number().int().min(0, "판매가는 0 이상이어야 합니다."),
+  deposit: z
+    .number()
+    .int()
+    .min(0, "보증금은 0 이상이어야 합니다.")
+    .optional(),
+  monthly_payment: z
+    .number()
+    .int()
+    .min(0, "월납입료는 0 이상이어야 합니다.")
+    .optional(),
+  photos: z.array(z.string().url()).optional().default([]),
+  plate_number: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+});
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -101,6 +97,9 @@ export async function GET(request: NextRequest) {
     const cursor = searchParams.get("cursor"); // "created_at__id" 형식
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
+    // TODO: 차량 1000대 초과 시 페이로드 폭증 우려.
+    //       photos JSONB가 큰 경우 응답 크기가 급증할 수 있으므로,
+    //       규모 확장 시 무한 스크롤/lazy load(커서 기반 20건 단위) 도입 검토.
     const PAGE_SIZE = 1000;
 
     const serviceClient = createServiceClient();
@@ -119,11 +118,11 @@ export async function GET(request: NextRequest) {
 
       if (search) {
         query = query.or(
-          `make.ilike.%${search}%,model.ilike.%${search}%,vehicle_code.ilike.%${search}%`,
+          `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
         );
       }
       if (status) {
-        query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted" | "vehicle_waiting");
+        query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted");
       }
       if (cursor) {
         const [cursorDate, cursorId] = cursor.split("__");
@@ -153,21 +152,29 @@ export async function GET(request: NextRequest) {
     }
 
     // admin/staff
+    // status=deleted 필터 시: soft-delete된 차량을 보여줌 (deleted_at IS NOT NULL)
+    // 그 외: 삭제되지 않은 차량만 조회
+    const isDeletedFilter = status === "deleted";
     let query = serviceClient
       .from("vehicles")
       .select("*")
-      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(PAGE_SIZE + 1);
 
+    if (isDeletedFilter) {
+      query = query.not("deleted_at", "is", null);
+    } else {
+      query = query.is("deleted_at", null);
+    }
+
     if (search) {
       query = query.or(
-        `make.ilike.%${search}%,model.ilike.%${search}%,vehicle_code.ilike.%${search}%`,
+        `make.ilike.%${escapeLike(search)}%,model.ilike.%${escapeLike(search)}%,vehicle_code.ilike.%${escapeLike(search)}%`,
       );
     }
-    if (status) {
-      query = query.eq("status", status as "available" | "consulting" | "sold" | "deleted" | "vehicle_waiting");
+    if (status && !isDeletedFilter) {
+      query = query.eq("status", status as "available" | "consulting" | "sold");
     }
     if (cursor) {
       const [cursorDate, cursorId] = cursor.split("__");

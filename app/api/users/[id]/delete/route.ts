@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { maskEmail } from "@/src/lib/mask-pii";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -51,6 +52,22 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // 마지막 활성 admin 삭제 차단
+    if (target.role === "admin") {
+      const { count: adminCount } = await serviceClient
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin")
+        .eq("is_active", true);
+
+      if ((adminCount ?? 0) <= 1) {
+        return NextResponse.json(
+          { error: "최소 1명의 admin이 필요합니다." },
+          { status: 400 },
+        );
+      }
+    }
+
     // 활성 상담 연결 확인 (assigned_dealer_id)
     const { count: activeConsultations } = await serviceClient
       .from("consultations")
@@ -79,20 +96,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // profiles 삭제 (FK가 SET NULL이므로 관련 데이터 유지)
-    const { error: profileErr } = await serviceClient
-      .from("profiles")
-      .delete()
-      .eq("id", userId);
-
-    if (profileErr) {
-      return NextResponse.json(
-        { error: "프로필 삭제에 실패했습니다." },
-        { status: 500 },
-      );
-    }
-
-    // auth.users 삭제
+    // auth.users 삭제 (원자성 보장: CASCADE로 profiles 자동 삭제됨)
+    // profiles.id → auth.users(id) ON DELETE CASCADE 이므로
+    // auth.users 삭제 성공 시 profiles도 DB가 원자적으로 제거한다.
+    // auth.users 삭제 실패 시 양쪽 모두 살아있어 재시도 가능하다.
     const { error: authErr } = await serviceClient.auth.admin.deleteUser(userId);
     if (authErr) {
       return NextResponse.json(
@@ -101,13 +108,17 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 감사 로그
+    // 감사 로그 (email 추적성 유지, name은 첫 글자만 노출)
+    const maskedName =
+      target.name.length > 1
+        ? `${target.name.slice(0, 1)}${"*".repeat(target.name.length - 1)}`
+        : target.name;
     await serviceClient.from("audit_logs").insert({
       actor_id: user.id,
       action: "user_deleted",
       target_type: "profile",
       target_id: userId,
-      metadata: { email: target.email, name: target.name, role: target.role },
+      metadata: { email: maskEmail(target.email), name: maskedName, role: target.role },
     });
 
     return NextResponse.json({ success: true });

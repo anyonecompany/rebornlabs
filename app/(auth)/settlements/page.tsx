@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Calculator, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Calculator, DollarSign, Download, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/data-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,8 @@ import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import CommissionsTab from "@/src/components/settlements/commissions-tab";
 import { formatKRW } from "@/src/lib/format";
+import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/src/lib/csv";
 
 // ---------------------------------------------------------------------------
 // 유틸 (날짜 범위 — 정산 페이지 전용)
@@ -211,40 +213,64 @@ function DealerSettlementTab() {
     },
   ];
 
+  const handleDownloadCsv = () => {
+    if (rows.length === 0) {
+      toast.error("다운로드할 데이터가 없습니다.");
+      return;
+    }
+    const csvRows = rows.map((r) => ({
+      딜러명: r.dealer_name,
+      총판매건수: r.total_count,
+      DB제공건수: r.db_provided_count,
+      자체판매건수: r.self_count,
+      총수당: r.total_dealer_fee,
+    }));
+    downloadCsv(`딜러정산_${startDate}_${endDate}.csv`, csvRows);
+  };
+
   return (
     <div className="space-y-4">
-      {/* 필터 */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={startDate}
-            max={today()}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-40"
-          />
-          <span className="text-muted-foreground text-sm shrink-0">~</span>
-          <Input
-            type="date"
-            value={endDate}
-            max={today()}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-40"
-          />
+      {/* 필터 + CSV 다운로드 */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+            <span className="text-muted-foreground text-sm shrink-0">~</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <Select value={dealerId} onValueChange={setDealerId}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="딜러 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 딜러</SelectItem>
+              {dealers.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={dealerId} onValueChange={setDealerId}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="딜러 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 딜러</SelectItem>
-            {dealers.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownloadCsv}
+          disabled={rows.length === 0 || loading}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          CSV 다운로드
+        </Button>
       </div>
 
       {/* stale 오버레이: 데이터가 있는 상태에서 재조회 중 */}
@@ -352,40 +378,62 @@ function MarketingSettlementTab() {
     },
   ];
 
+  const handleDownloadCsv = () => {
+    if (rows.length === 0) {
+      toast.error("다운로드할 데이터가 없습니다.");
+      return;
+    }
+    const csvRows = rows.map((r) => ({
+      업체명: r.marketing_company ?? "미지정",
+      DB제공판매건수: r.count,
+      총수수료: r.total_marketing_fee,
+    }));
+    downloadCsv(`마케팅정산_${startDate}_${endDate}.csv`, csvRows);
+  };
+
   return (
     <div className="space-y-4">
-      {/* 필터 */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            value={startDate}
-            max={today()}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-40"
-          />
-          <span className="text-muted-foreground text-sm shrink-0">~</span>
-          <Input
-            type="date"
-            value={endDate}
-            max={today()}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-40"
-          />
+      {/* 필터 + CSV 다운로드 */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+            <span className="text-muted-foreground text-sm shrink-0">~</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <Select value={company} onValueChange={setCompany}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="업체 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 업체</SelectItem>
+              {marketingCompanies.map((c) => (
+                <SelectItem key={c.id} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={company} onValueChange={setCompany}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="업체 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">전체 업체</SelectItem>
-            {marketingCompanies.map((c) => (
-              <SelectItem key={c.id} value={c.name}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownloadCsv}
+          disabled={rows.length === 0 || loading}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          CSV 다운로드
+        </Button>
       </div>
 
       {/* stale 오버레이: 데이터가 있는 상태에서 재조회 중 */}

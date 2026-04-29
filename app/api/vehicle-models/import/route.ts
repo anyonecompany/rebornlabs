@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -202,19 +202,45 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient();
 
     // upsert: UNIQUE(brand, model, trim) 기준
-    const { error: upsertError } = await serviceClient
+    // 전체 배치 upsert 시도 → 실패 시 행별 개별 upsert로 폴백하여 실패 행 특정
+    interface FailedRow { row: ParsedRow; error: string }
+    let successCount = 0;
+    const failedRows: FailedRow[] = [];
+
+    const { error: batchError } = await serviceClient
       .from("vehicle_models")
       .upsert(rows, { onConflict: "brand,model,trim" });
 
-    if (upsertError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "업서트 중 오류가 발생했습니다.",
-          detail: upsertError.message,
-        },
-        { status: 500 },
-      );
+    if (batchError) {
+      // 배치 실패 시 행별 개별 upsert로 재시도하여 실패 행 특정
+      for (const row of rows) {
+        const { error: rowError } = await serviceClient
+          .from("vehicle_models")
+          .upsert(row, { onConflict: "brand,model,trim" });
+        if (rowError) {
+          failedRows.push({ row, error: rowError.message });
+        } else {
+          successCount++;
+        }
+      }
+
+      if (successCount === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "모든 행 업서트에 실패했습니다.",
+            failed: failedRows.map((f) => ({
+              brand: f.row.brand,
+              model: f.row.model,
+              trim: f.row.trim,
+              error: f.error,
+            })),
+          },
+          { status: 500 },
+        );
+      }
+    } else {
+      successCount = rows.length;
     }
 
     // 감사 로그
@@ -224,20 +250,30 @@ export async function POST(request: NextRequest) {
       target_type: "vehicle_models",
       target_id: null,
       metadata: {
-        count: rows.length,
+        count: successCount,
+        failed_count: failedRows.length,
         parse_errors_count: errors.length,
       },
     });
 
-    // 브랜드별 카운트 응답 (참고용)
+    // 브랜드별 카운트 응답 (참고용) — 성공 행 기준
+    const successRows = failedRows.length > 0
+      ? rows.filter((r) => !failedRows.some((f) => f.row === r))
+      : rows;
     const byBrand: Record<string, number> = {};
-    for (const r of rows) {
+    for (const r of successRows) {
       byBrand[r.brand] = (byBrand[r.brand] ?? 0) + 1;
     }
 
     return NextResponse.json({
       success: true,
-      count: rows.length,
+      count: successCount,
+      failed: failedRows.map((f) => ({
+        brand: f.row.brand,
+        model: f.row.model,
+        trim: f.row.trim,
+        error: f.error,
+      })),
       byBrand,
       parseErrors: errors,
     });

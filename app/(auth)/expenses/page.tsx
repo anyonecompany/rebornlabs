@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Plus,
@@ -574,6 +574,12 @@ export default function ExpensesPage() {
   const isAdmin = userRole === "admin";
   const isPrivileged = userRole === "admin" || userRole === "staff";
 
+  /** 현재 페이지 합계 (로드된 expenses 기준) */
+  const pageTotal = useMemo(
+    () => expenses.reduce((sum, row) => sum + (row.amount ?? 0), 0),
+    [expenses],
+  );
+
   const columns = [
     { key: "expense_date", header: "지출일자" },
     {
@@ -699,6 +705,18 @@ export default function ExpensesPage() {
           <p className="text-xs text-muted-foreground text-center mt-2">새로고침 중...</p>
         )}
       </div>
+
+      {/* 현재 페이지 합계 */}
+      {!loading && expenses.length > 0 && (
+        <div className="mt-3 flex justify-end">
+          <span className="text-sm text-muted-foreground">
+            현재 페이지 합계:{" "}
+            <span className="font-semibold text-foreground">
+              {formatKRW(pageTotal)}
+            </span>
+          </span>
+        </div>
+      )}
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (

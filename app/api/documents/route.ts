@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import type { DocumentCategory } from "@/types/database";
 
 // ─── 유효 카테고리 상수 ────────────────────────────────────────
 
 const VALID_CATEGORIES: DocumentCategory[] = [
   "business_registration",
-  "contract",
+  "contract_template",
   "other",
 ];
 

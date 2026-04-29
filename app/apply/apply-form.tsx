@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { formatPhoneInput } from "@/src/lib/format-phone";
 
 interface UtmState {
   source: string;
@@ -16,13 +17,6 @@ const KAKAO_URL =
   process.env.NEXT_PUBLIC_KAKAO_CHAT_URL ?? "https://open.kakao.com/o/sjk1AUoi";
 const INSTAGRAM_URL =
   process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://instagram.com/reborn_labs_";
-
-function formatPhoneInput(raw: string): string {
-  const digits = raw.replace(/[^0-9]/g, "").slice(0, 11);
-  if (digits.length < 4) return digits;
-  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-}
 
 function parseMoneyInput(raw: string): string {
   return raw.replace(/[^0-9]/g, "").slice(0, 6);
@@ -46,6 +40,10 @@ export default function ApplyForm() {
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [agreed, setAgreed] = useState(false);
+
+  // IME 컴포지션 추적 (한글 입력 시 중간 상태 setState 방지)
+  const composingName = useRef(false);
+  const composingMessage = useRef(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -176,7 +174,12 @@ export default function ApplyForm() {
           inputMode="text"
           placeholder="홍길동"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onCompositionStart={() => { composingName.current = true; }}
+          onCompositionEnd={(e) => {
+            composingName.current = false;
+            setName(e.currentTarget.value);
+          }}
+          onChange={(e) => { if (!composingName.current) setName(e.target.value); }}
           maxLength={50}
           autoComplete="name"
         />
@@ -244,7 +247,12 @@ export default function ApplyForm() {
           rows={3}
           placeholder="궁금한 점을 자유롭게 작성해 주세요"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onCompositionStart={() => { composingMessage.current = true; }}
+          onCompositionEnd={(e) => {
+            composingMessage.current = false;
+            setMessage(e.currentTarget.value);
+          }}
+          onChange={(e) => { if (!composingMessage.current) setMessage(e.target.value); }}
           maxLength={1000}
         />
       </Field>

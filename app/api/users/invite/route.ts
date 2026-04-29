@@ -2,8 +2,9 @@ import crypto from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { AuthError, requireRole, verifyUser, getAuthErrorMessage} from "@/lib/auth/verify";
+import { AuthError, requireRole, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
+import { maskEmail } from "@/src/lib/mask-pii";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
 
 interface InviteRequest {
@@ -114,14 +115,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 감사 로그 기록
+  // 감사 로그 기록 (email 추적성 유지, name은 첫 글자만 노출)
   const currentUser = await verifyUser(token!);
+  const maskedName =
+    name.length > 1 ? `${name.slice(0, 1)}${"*".repeat(name.length - 1)}` : name;
   await supabase.from("audit_logs").insert({
     actor_id: currentUser.id,
     action: "user_invited",
     target_type: "profile",
     target_id: authData.user.id,
-    metadata: { email, name, role },
+    metadata: { email: maskEmail(email), name: maskedName, role },
   });
 
   // GAS로 초대 이메일 발송 (fire-and-forget, Bearer 인증 + 5s 타임아웃)

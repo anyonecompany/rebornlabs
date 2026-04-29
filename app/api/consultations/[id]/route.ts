@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
+
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
   return authHeader.replace(/^Bearer\s+/i, "");
+}
+
+/**
+ * director/team_leader의 산하 dealer UUID 목록 조회.
+ * 실패 또는 0명이면 [ZERO_UUID]로 폴백 → 0건 매칭 (fail-closed).
+ */
+async function getSubordinateIds(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<string[]> {
+  type SubResult = { get_subordinate_ids: string } | string;
+  const { data: subData, error: subError } = await serviceClient.rpc(
+    "get_subordinate_ids" as never,
+    { p_user_id: userId } as never,
+  );
+  if (!subError && subData) {
+    const rows = subData as unknown as SubResult[];
+    const ids = rows.map((r) =>
+      typeof r === "string"
+        ? r
+        : (r as { get_subordinate_ids: string }).get_subordinate_ids,
+    );
+    if (ids.length > 0) return ids;
+  }
+  return [ZERO_UUID];
 }
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -17,9 +44,14 @@ type RouteContext = { params: Promise<{ id: string }> };
 /**
  * 상담 상세 조회.
  *
+ * 권한 매트릭스:
+ *   - admin/staff:           모든 상담
+ *   - director/team_leader:  get_subordinate_ids에 포함된 dealer의 상담만
+ *   - dealer:                assigned_dealer_id === user.id
+ *
  * 반환값:
  *   - data: 상담 기본 정보
- *   - relatedConsultations: 같은 전화번호 다른 상담 목록
+ *   - history: 같은 전화번호 다른 상담 목록 (권한 매트릭스 동일 적용)
  *   - dealer: 배정 딜러 정보 (id, name) | null
  *   - logs: 상담 기록 목록 (최신순)
  */
@@ -30,6 +62,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const user = await verifyUser(token);
 
     const serviceClient = createServiceClient();
+
+    // ── 산하 dealer 목록 (manager 역할만 미리 조회) ──────────────
+    let subordinateIds: string[] | null = null;
+    if (user.role === "director" || user.role === "team_leader") {
+      subordinateIds = await getSubordinateIds(serviceClient, user.id);
+    }
 
     // 상담 기본 정보 조회
     const { data: consultation, error: consultError } = await serviceClient
@@ -45,24 +83,48 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // dealer인 경우 본인 배정 상담인지 확인
-    if (
-      user.role === "dealer" &&
-      consultation.assigned_dealer_id !== user.id
-    ) {
-      return NextResponse.json(
-        { error: "접근 권한이 없습니다." },
-        { status: 403 },
-      );
+    // ── 역할별 접근 권한 검증 ─────────────────────────────────────
+    if (user.role === "dealer") {
+      if (consultation.assigned_dealer_id !== user.id) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    } else if (user.role === "director" || user.role === "team_leader") {
+      // subordinateIds에 assigned_dealer_id가 없으면 403
+      const allowedIds = subordinateIds ?? [ZERO_UUID];
+      if (
+        consultation.assigned_dealer_id === null ||
+        !allowedIds.includes(consultation.assigned_dealer_id)
+      ) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
     }
+    // admin/staff: 추가 필터 없음
 
-    // 동일 고객 다른 상담 건 조회 (같은 phone, 본인 제외)
-    const { data: relatedConsultations } = await serviceClient
+    // ── 동일 고객 이력 조회 (같은 phone, 본인 제외) ──────────────
+    // 권한 매트릭스 동일 적용 — dealer는 본인 상담만, manager는 산하 상담만.
+    let historyQuery = serviceClient
       .from("consultations")
-      .select("id, customer_name, phone, status, created_at, source_ref")
+      .select("id, customer_name, phone, status, created_at, source_ref, assigned_dealer_id")
       .eq("phone", consultation.phone)
       .neq("id", id)
       .order("created_at", { ascending: false });
+
+    if (user.role === "dealer") {
+      historyQuery = historyQuery.eq("assigned_dealer_id", user.id);
+    } else if (user.role === "director" || user.role === "team_leader") {
+      historyQuery = historyQuery.in(
+        "assigned_dealer_id",
+        subordinateIds ?? [ZERO_UUID],
+      );
+    }
+
+    const { data: history } = await historyQuery;
 
     // 배정 딜러 정보 조회
     let dealer: { id: string; name: string } | null = null;
@@ -102,7 +164,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       data: consultation,
-      relatedConsultations: relatedConsultations ?? [],
+      history: history ?? [],
       dealer,
       logs: logsWithName,
     });
