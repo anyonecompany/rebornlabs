@@ -93,7 +93,7 @@ export function DataTable({
                 className={[
                   "data-table-row transition-colors",
                   onRowClick
-                    ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                     : "",
                 ]
                   .filter(Boolean)

@@ -244,8 +244,9 @@ function SidebarContent({
           onClick={onLogout}
           className="w-7 h-7 shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent"
           title="로그아웃"
+          aria-label="로그아웃"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4" aria-hidden="true" />
         </Button>
       </div>
     </div>

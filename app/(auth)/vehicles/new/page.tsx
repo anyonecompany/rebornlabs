@@ -261,7 +261,7 @@ export default function VehicleNewPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>
+                <Label htmlFor="year">
                   연식 <span className="text-red-400">*</span>
                 </Label>
                 <Select
@@ -269,7 +269,7 @@ export default function VehicleNewPage() {
                   onValueChange={(v) => setForm((p) => ({ ...p, year: v }))}
                   disabled={saving}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="year">
                     <SelectValue placeholder="연식 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -295,6 +295,8 @@ export default function VehicleNewPage() {
                     required
                     disabled={saving}
                     className="pr-8"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     km
@@ -356,6 +358,8 @@ export default function VehicleNewPage() {
                     placeholder="15,000,000"
                     disabled={saving}
                     className="pr-6"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     원
@@ -373,6 +377,8 @@ export default function VehicleNewPage() {
                     placeholder="18,000,000"
                     disabled={saving}
                     className="pr-6"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     원
@@ -390,6 +396,8 @@ export default function VehicleNewPage() {
                     placeholder="3,000,000"
                     disabled={saving}
                     className="pr-6"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     원
@@ -407,6 +415,8 @@ export default function VehicleNewPage() {
                     placeholder="500,000"
                     disabled={saving}
                     className="pr-6"
+                    inputMode="numeric"
+                    pattern="[0-9,]*"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     원
@@ -464,7 +474,7 @@ export default function VehicleNewPage() {
                   >
                     <Image
                       src={img.previewUrl}
-                      alt={`차량 사진 ${idx + 1}`}
+                      alt={`업로드 차량 사진 ${idx + 1}번째`}
                       fill
                       className="object-cover"
                     />

@@ -332,7 +332,7 @@ export default function VehicleDetailPage() {
               <div className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted mb-3">
                 <Image
                   src={photos[galleryIndex]}
-                  alt={`차량 사진 ${galleryIndex + 1}`}
+                  alt={`${vehicle.make} ${vehicle.model} 차량 사진 ${galleryIndex + 1}`}
                   fill
                   className="object-contain"
                   loading="lazy"
@@ -346,9 +346,10 @@ export default function VehicleDetailPage() {
                         setGalleryIndex((i) => Math.max(0, i - 1))
                       }
                       disabled={galleryIndex === 0}
+                      aria-label="이전 사진"
                       className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 hover:bg-background transition-colors disabled:opacity-30"
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -358,9 +359,10 @@ export default function VehicleDetailPage() {
                         )
                       }
                       disabled={galleryIndex === photos.length - 1}
+                      aria-label="다음 사진"
                       className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 hover:bg-background transition-colors disabled:opacity-30"
                     >
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </>
                 )}
@@ -382,7 +384,7 @@ export default function VehicleDetailPage() {
                     >
                       <Image
                         src={url}
-                        alt={`썸네일 ${idx + 1}`}
+                        alt={`${vehicle.make} ${vehicle.model} 썸네일 ${idx + 1}`}
                         fill
                         className="object-cover"
                         loading="lazy"

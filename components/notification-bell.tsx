@@ -60,7 +60,10 @@ export function NotificationBell({ role }: Props) {
         ].join(" ")}
       />
       {has && (
-        <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+        <span
+          aria-hidden="true"
+          className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white"
+        >
           {count > 99 ? "99+" : count}
         </span>
       )}
