@@ -9,10 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/loading-state";
 import { EmptyState } from "@/components/empty-state";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination } from "@/components/pagination";
 
 type RenderFn = (value: unknown, row: Record<string, unknown>) => React.ReactNode;
 
@@ -114,37 +113,13 @@ export function DataTable({
       </div>
 
       {/* 페이지네이션 */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {page * pageSize + 1}–
-            {Math.min((page + 1) * pageSize, data.length)} / {data.length}개
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="px-2">
-              {page + 1} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page === totalPages - 1}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        currentPage={page + 1}
+        totalPages={totalPages}
+        onPageChange={(next) => setPage(next - 1)}
+        totalItems={data.length}
+        pageSize={pageSize}
+      />
     </div>
   );
 }

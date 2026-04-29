@@ -3,10 +3,11 @@
 import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Search, Car, List, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Car, List, LayoutGrid } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { DataTable } from "@/components/data-table";
+import { Pagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -129,7 +130,7 @@ function VehiclesPageInner() {
         const src = photos?.[0];
         return src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="rounded-md object-cover w-24 h-[72px] shrink-0" />
+          <img src={src} alt="" loading="lazy" decoding="async" className="rounded-md object-cover w-24 h-[72px] shrink-0" />
         ) : (
           <div className="w-24 h-[72px] rounded-md bg-muted flex items-center justify-center shrink-0"><Car className="w-6 h-6 text-muted-foreground" /></div>
         );
@@ -253,91 +254,114 @@ function VehiclesPageInner() {
         </div>
       </div>
 
-      {viewMode === "list" ? (
-        <DataTable
-          columns={columns}
-          data={filtered as unknown as Record<string, unknown>[]}
-          loading={loading}
-          emptyMessage="등록된 차량이 없습니다."
-          onRowClick={(row) => {
-            rememberReturnUrl("vehicles");
-            router.push(`/vehicles/${(row as unknown as VehicleRow).id}`);
-          }}
-        />
-      ) : (
-        /* 썸네일 그리드 뷰 */
-        loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="aspect-video bg-muted rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-12">등록된 차량이 없습니다.</p>
-        ) : (() => {
-          const gridTotalPages = Math.ceil(filtered.length / GRID_PAGE_SIZE);
-          const gridItems = filtered.slice(gridPage * GRID_PAGE_SIZE, (gridPage + 1) * GRID_PAGE_SIZE);
+      {/* 빈 상태 분기: 검색/필터 활성 여부 */}
+      {(() => {
+        const hasFilters = !!search || statusFilter !== "all";
+        const emptyMessage = hasFilters
+          ? "검색 결과가 없습니다. 검색어 또는 상태 필터를 변경해 보세요."
+          : "등록된 차량이 없습니다.";
+
+        if (viewMode === "list") {
           return (
-          <div className="space-y-3">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {gridItems.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => {
-                  rememberReturnUrl("vehicles");
-                  router.push(`/vehicles/${v.id}`);
-                }}
-                className="text-left rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
-              >
-                {/* 사진 */}
-                <div className="relative aspect-video bg-muted">
-                  {v.photos?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={v.photos[0]}
-                      alt={`${v.make} ${v.model}`}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Car className="h-10 w-10 text-muted-foreground/40" />
+            <DataTable
+              columns={columns}
+              data={filtered as unknown as Record<string, unknown>[]}
+              loading={loading}
+              emptyMessage={emptyMessage}
+              onRowClick={(row) => {
+                rememberReturnUrl("vehicles");
+                router.push(`/vehicles/${(row as unknown as VehicleRow).id}`);
+              }}
+            />
+          );
+        }
+
+        /* 썸네일 그리드 뷰 */
+        if (loading && vehicles.length === 0) {
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="aspect-video bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+          );
+        }
+
+        if (filtered.length === 0) {
+          return (
+            <div className="flex flex-col items-center gap-3 py-16">
+              <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+              {!hasFilters && isPrivileged && (
+                <Button variant="outline" size="sm" onClick={() => router.push("/vehicles/new")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  차량 등록
+                </Button>
+              )}
+            </div>
+          );
+        }
+
+        const gridTotalPages = Math.ceil(filtered.length / GRID_PAGE_SIZE);
+        const gridItems = filtered.slice(gridPage * GRID_PAGE_SIZE, (gridPage + 1) * GRID_PAGE_SIZE);
+
+        return (
+          <div className="space-y-4">
+            {/* stale 데이터 시각화 */}
+            <div className={loading && vehicles.length > 0 ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                {gridItems.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      rememberReturnUrl("vehicles");
+                      router.push(`/vehicles/${v.id}`);
+                    }}
+                    className="text-left rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors"
+                  >
+                    {/* 사진 */}
+                    <div className="relative aspect-video bg-muted">
+                      {v.photos?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={v.photos[0]}
+                          alt={`${v.make} ${v.model}`}
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Car className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <StatusBadge type="vehicle" value={v.status} />
+                      </div>
                     </div>
-                  )}
-                  <div className="absolute top-2 right-2">
-                    <StatusBadge type="vehicle" value={v.status} />
-                  </div>
-                </div>
-                {/* 정보 */}
-                <div className="p-3 space-y-1">
-                  <p className="text-xs text-muted-foreground font-mono">{v.vehicle_code}</p>
-                  <p className="text-sm font-medium truncate">{v.make} {v.model}</p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{v.year}년 · {formatMileage(v.mileage)}</span>
-                    {v.monthly_payment ? <span className="font-medium text-foreground">월 {formatKRW(v.monthly_payment)}</span> : null}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {gridTotalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{gridPage * GRID_PAGE_SIZE + 1}–{Math.min((gridPage + 1) * GRID_PAGE_SIZE, filtered.length)} / {filtered.length}대</span>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="이전 페이지" onClick={() => setGridPage(Math.max(0, gridPage - 1))} disabled={gridPage === 0}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="px-2">{gridPage + 1} / {gridTotalPages}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" aria-label="다음 페이지" onClick={() => setGridPage(Math.min(gridTotalPages - 1, gridPage + 1))} disabled={gridPage === gridTotalPages - 1}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                    {/* 정보 */}
+                    <div className="p-3 space-y-1">
+                      <p className="text-xs text-muted-foreground font-mono">{v.vehicle_code}</p>
+                      <p className="text-sm font-medium truncate">{v.make} {v.model}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{v.year}년 · {formatMileage(v.mileage)}</span>
+                        {v.monthly_payment ? <span className="font-medium text-foreground">월 {formatKRW(v.monthly_payment)}</span> : null}
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+            <Pagination
+              currentPage={gridPage + 1}
+              totalPages={gridTotalPages}
+              onPageChange={(next) => setGridPage(next - 1)}
+              totalItems={filtered.length}
+              pageSize={GRID_PAGE_SIZE}
+            />
           </div>
-          );
-        })()
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -140,6 +140,7 @@ function DealerSettlementTab() {
   const [endDate, setEndDate] = useState(today());
   const [dealerId, setDealerId] = useState<string>("all");
   const [dealers, setDealers] = useState<DealerOption[]>([]);
+  const [initialized, setInitialized] = useState(false);
 
   // 딜러 목록 로드
   useEffect(() => {
@@ -169,12 +170,22 @@ function DealerSettlementTab() {
       toast.error("딜러 정산 데이터를 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   }, [startDate, endDate, dealerId]);
 
   useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  // 필터 활성 여부: 날짜가 기본값(이번달 1일~오늘)이 아니거나 딜러가 선택된 경우
+  const isFiltered =
+    startDate !== firstDayOfMonth() ||
+    endDate !== today() ||
+    dealerId !== "all";
+
+  // stale: 이미 데이터가 로드된 상태에서 재조회 중
+  const isStale = loading && initialized;
 
   const columns = [
     { key: "dealer_name", header: "딜러명" },
@@ -234,12 +245,26 @@ function DealerSettlementTab() {
         </Select>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={rows as unknown as Record<string, unknown>[]}
-        loading={loading}
-        emptyMessage="해당 기간의 딜러 정산 데이터가 없습니다."
-      />
+      {/* stale 오버레이: 데이터가 있는 상태에서 재조회 중 */}
+      <div className={`relative transition-opacity ${isStale ? "opacity-50 pointer-events-none" : ""}`}>
+        {isStale && (
+          <div className="absolute inset-0 flex items-start justify-center pt-4 z-10">
+            <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border border-border">
+              새로고침 중...
+            </span>
+          </div>
+        )}
+        <DataTable
+          columns={columns}
+          data={rows as unknown as Record<string, unknown>[]}
+          loading={!initialized && loading}
+          emptyMessage={
+            isFiltered
+              ? "검색 결과가 없습니다."
+              : "해당 기간의 딜러 정산 데이터가 없습니다."
+          }
+        />
+      </div>
     </div>
   );
 }
@@ -260,6 +285,7 @@ function MarketingSettlementTab() {
   const [endDate, setEndDate] = useState(today());
   const [company, setCompany] = useState<string>("all");
   const [marketingCompanies, setMarketingCompanies] = useState<MarketingCompanyOption[]>([]);
+  const [initialized, setInitialized] = useState(false);
 
   // 마케팅업체 목록 로드
   useEffect(() => {
@@ -289,12 +315,22 @@ function MarketingSettlementTab() {
       toast.error("마케팅 정산 데이터를 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   }, [startDate, endDate, company]);
 
   useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  // 필터 활성 여부
+  const isFiltered =
+    startDate !== firstDayOfMonth() ||
+    endDate !== today() ||
+    company !== "all";
+
+  // stale: 이미 데이터가 로드된 상태에서 재조회 중
+  const isStale = loading && initialized;
 
   const columns = [
     {
@@ -348,12 +384,26 @@ function MarketingSettlementTab() {
         </Select>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={rows as unknown as Record<string, unknown>[]}
-        loading={loading}
-        emptyMessage="해당 기간의 마케팅 정산 데이터가 없습니다."
-      />
+      {/* stale 오버레이: 데이터가 있는 상태에서 재조회 중 */}
+      <div className={`relative transition-opacity ${isStale ? "opacity-50 pointer-events-none" : ""}`}>
+        {isStale && (
+          <div className="absolute inset-0 flex items-start justify-center pt-4 z-10">
+            <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border border-border">
+              새로고침 중...
+            </span>
+          </div>
+        )}
+        <DataTable
+          columns={columns}
+          data={rows as unknown as Record<string, unknown>[]}
+          loading={!initialized && loading}
+          emptyMessage={
+            isFiltered
+              ? "검색 결과가 없습니다."
+              : "해당 기간의 마케팅 정산 데이터가 없습니다."
+          }
+        />
+      </div>
     </div>
   );
 }

@@ -39,6 +39,7 @@ import { FileUpload } from "@/components/file-upload";
 import { apiFetch } from "@/src/lib/api-client";
 import { useUserRole } from "@/src/lib/use-user-role";
 import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
+import { getReturnUrl } from "@/src/lib/return-url";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import type { UserRole } from "@/types/database";
@@ -225,16 +226,23 @@ export default function SaleDetailPage() {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error ?? "판매 정보를 불러오지 못했습니다.");
-        router.push("/sales");
+        router.push(getReturnUrl("sales", "/sales"));
         return;
       }
       const data: SaleDetail = await res.json();
       setDetail(data);
 
+      // D1: 동적 타이틀
+      if (data.vehicle?.vehicle_code) {
+        document.title = `판매 #${data.vehicle.vehicle_code} - REBORN LABS`;
+      } else {
+        document.title = "판매 상세 - REBORN LABS";
+      }
+
       // actor 이름은 API 응답의 dealer 정보에서 확인
     } catch {
       toast.error("판매 정보를 불러오는 중 오류가 발생했습니다.");
-      router.push("/sales");
+      router.push(getReturnUrl("sales", "/sales"));
     } finally {
       setLoading(false);
     }
@@ -936,6 +944,8 @@ export default function SaleDetailPage() {
                           src={freshSignatureUrl}
                           alt="고객 서명"
                           className="h-16 object-contain"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="h-16 flex items-center justify-center text-xs text-muted-foreground">
@@ -966,7 +976,7 @@ export default function SaleDetailPage() {
                         toast.info("PDF 생성 중...");
                         const res = await apiFetch(`/api/contracts/${electronicContract.id}/regenerate-pdf`, { method: "POST" });
                         const d = await res.json();
-                        if (!res.ok) { toast.error(d.error ?? "PDF 생성 실패"); return; }
+                        if (!res.ok) { toast.error(d.error ?? "PDF를 생성하지 못했습니다."); return; }
                         toast.success("PDF가 생성되었습니다.");
                         if (d.url) window.open(d.url, "_blank");
                         await fetchDetail();

@@ -26,6 +26,7 @@ function QuotesPageInner() {
   const { role } = useUserRole();
   const [quotes, setQuotes] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useUrlState<Status>("status", "all");
   const [search, setSearch] = useUrlState<string>("search", "");
@@ -72,8 +73,15 @@ function QuotesPageInner() {
       toast.error("견적 목록을 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+      setInitialized(true);
     }
   }, [status, search, page]);
+
+  // 필터 활성 여부: 검색어가 있거나 상태 탭이 전체가 아닌 경우
+  const isFiltered = search.trim() !== "" || status !== "all";
+
+  // stale: 첫 로드 이후 재조회 중
+  const isStale = loading && initialized;
 
   useEffect(() => {
     fetchQuotes();
@@ -176,12 +184,23 @@ function QuotesPageInner() {
         </div>
       </div>
 
-      <QuoteListTable
-        quotes={quotes}
-        loading={loading}
-        showDealer={showDealer}
-        onRowClick={handleRowClick}
-      />
+      {/* stale 오버레이: 데이터가 있는 상태에서 재조회 중 */}
+      <div className={`relative transition-opacity ${isStale ? "opacity-50 pointer-events-none" : ""}`}>
+        {isStale && (
+          <div className="absolute inset-0 flex items-start justify-center pt-4 z-10">
+            <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border border-border">
+              새로고침 중...
+            </span>
+          </div>
+        )}
+        <QuoteListTable
+          quotes={quotes}
+          loading={!initialized && loading}
+          showDealer={showDealer}
+          onRowClick={handleRowClick}
+          emptyMessage={isFiltered ? "검색 결과가 없습니다." : "등록된 견적서가 없습니다."}
+        />
+      </div>
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">

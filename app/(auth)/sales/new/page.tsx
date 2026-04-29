@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/src/lib/api-client";
 import { formatKRW } from "@/src/lib/format";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import type { UserRole } from "@/types/database";
 
 // ---------------------------------------------------------------------------
@@ -149,8 +150,17 @@ export default function NewSalePage() {
 
   const selectedVehicle = vehicles.find((v) => v.id === selectedVehicleId);
 
+  // C2: dirty 체크 — 초기값 대비 입력값 변경 여부
+  const initialVehicleId = searchParams.get("vehicle_id") ?? "";
+  const isDirty =
+    (selectedVehicleId !== initialVehicleId && selectedVehicleId !== "") ||
+    selectedDealerId !== "" ||
+    dealerFee !== String(SELF_SALE_DEALER_FEE) ||
+    marketingFee !== String(SELF_SALE_MARKETING_FEE);
+
   return (
     <div>
+      <UnsavedChangesGuard isDirty={isDirty} />
       <div className="mb-4">
         <BackLink href="/sales">판매 목록으로</BackLink>
       </div>
@@ -171,7 +181,7 @@ export default function NewSalePage() {
                 onValueChange={setSelectedVehicleId}
                 disabled={loadingVehicles}
               >
-                <SelectTrigger>
+                <SelectTrigger className={loadingVehicles ? "opacity-50 cursor-wait" : ""}>
                   <SelectValue
                     placeholder={
                       loadingVehicles ? "로딩 중..." : "출고가능 차량 선택"
@@ -287,7 +297,11 @@ export default function NewSalePage() {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={() => router.push("/sales")}
+            onClick={() => {
+              if (!isDirty || window.confirm("저장하지 않은 입력이 있습니다. 닫으시겠습니까?")) {
+                router.push("/sales");
+              }
+            }}
             disabled={submitting}
           >
             취소
@@ -296,7 +310,7 @@ export default function NewSalePage() {
             onClick={handleSubmit}
             disabled={submitting || !selectedVehicleId || !selectedDealerId}
           >
-            {submitting ? "등록 중..." : "판매 등록"}
+            {submitting ? "처리 중..." : "판매 등록"}
           </Button>
         </div>
       </div>

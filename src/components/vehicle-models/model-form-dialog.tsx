@@ -51,6 +51,23 @@ export function ModelFormDialog({
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const isDirty = editing
+    ? brand !== editing.brand ||
+      model !== editing.model ||
+      trim !== editing.trim ||
+      carPrice !== String(editing.carPrice) ||
+      monthlyPayment !==
+        (editing.monthlyPayment != null ? String(editing.monthlyPayment) : "") ||
+      maxDeposit !== String(editing.maxDeposit) ||
+      displayOrder !== String(editing.displayOrder) ||
+      isActive !== editing.isActive
+    : brand !== "" ||
+      model !== "" ||
+      trim !== "" ||
+      carPrice !== "" ||
+      monthlyPayment !== "" ||
+      maxDeposit !== "";
+
   useEffect(() => {
     if (editing) {
       setBrand(editing.brand);
@@ -138,8 +155,19 @@ export function ModelFormDialog({
     }
   };
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next && isDirty) {
+      if (
+        !window.confirm("저장하지 않은 입력이 있습니다. 닫으시겠습니까?")
+      ) {
+        return;
+      }
+    }
+    onOpenChange(next);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -251,7 +279,7 @@ export function ModelFormDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={submitting}
             >
               취소

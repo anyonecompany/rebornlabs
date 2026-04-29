@@ -200,10 +200,11 @@ function RegisterExpenseDialog({
   };
 
   const handleClose = () => {
-    if (!submitting) {
-      reset();
-      onOpenChange(false);
-    }
+    if (submitting) return;
+    const isDirty = amount !== "" || purpose.trim() !== "" || receipts.length > 0;
+    if (isDirty && !window.confirm("저장하지 않은 입력이 있습니다. 닫으시겠습니까?")) return;
+    reset();
+    onOpenChange(false);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,7 +465,7 @@ function RegisterExpenseDialog({
             onClick={handleSubmit}
             disabled={submitting || !allUploaded}
           >
-            {submitting ? "등록 중..." : "등록"}
+            {submitting ? "처리 중..." : "등록"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -682,12 +683,21 @@ export default function ExpensesPage() {
         </Select>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={expenses as unknown as Record<string, unknown>[]}
-        loading={loading}
-        emptyMessage="등록된 지출 내역이 없습니다."
-      />
+      <div className={loading && expenses.length > 0 ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <DataTable
+          columns={columns}
+          data={expenses as unknown as Record<string, unknown>[]}
+          loading={loading && expenses.length === 0}
+          emptyMessage={
+            userFilter !== "all"
+              ? "검색 결과가 없습니다."
+              : "등록된 지출 내역이 없습니다."
+          }
+        />
+        {loading && expenses.length > 0 && (
+          <p className="text-xs text-muted-foreground text-center mt-2">새로고침 중...</p>
+        )}
+      </div>
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (

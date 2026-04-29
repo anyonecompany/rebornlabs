@@ -108,10 +108,11 @@ function UploadDocumentDialog({
   };
 
   const handleClose = () => {
-    if (!submitting) {
-      reset();
-      onOpenChange(false);
-    }
+    if (submitting) return;
+    const isDirty = selectedFile !== null || fileTitle.trim() !== "" || category !== "other";
+    if (isDirty && !window.confirm("저장하지 않은 입력이 있습니다. 닫으시겠습니까?")) return;
+    reset();
+    onOpenChange(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,12 +442,21 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      <DataTable
-        columns={columns}
-        data={documents as unknown as Record<string, unknown>[]}
-        loading={loading}
-        emptyMessage="등록된 문서가 없습니다."
-      />
+      <div className={loading && documents.length > 0 ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <DataTable
+          columns={columns}
+          data={documents as unknown as Record<string, unknown>[]}
+          loading={loading && documents.length === 0}
+          emptyMessage={
+            categoryFilter !== "all"
+              ? "검색 결과가 없습니다."
+              : "등록된 문서가 없습니다."
+          }
+        />
+        {loading && documents.length > 0 && (
+          <p className="text-xs text-muted-foreground text-center mt-2">새로고침 중...</p>
+        )}
+      </div>
 
       {/* 페이지네이션 */}
       {totalPages > 1 && (
