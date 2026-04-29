@@ -41,7 +41,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { apiFetch } from "@/src/lib/api-client";
+import { maskEmail } from "@/src/lib/mask-pii";
 import { useUserRole } from "@/src/lib/use-user-role";
+import { formatPhoneInput } from "@/src/lib/format-phone";
 import type { UserRole } from "@/types/database";
 
 interface UserRow {
@@ -412,6 +414,7 @@ export default function UsersPage() {
   const { role: currentUserRole } = useUserRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // 초대 Dialog
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -632,10 +635,34 @@ export default function UsersPage() {
     }
   };
 
+  // 검색 필터 (이름·이메일·전화번호) — 서버 검색이 아닌 클라이언트 필터
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const filteredUsers = trimmedQuery
+    ? users.filter((u) => {
+        const nameMatch = u.name.toLowerCase().includes(trimmedQuery);
+        const emailMatch = u.email.toLowerCase().includes(trimmedQuery);
+        const phoneMatch = u.phone
+          ? u.phone.replace(/\D/g, "").includes(trimmedQuery.replace(/\D/g, ""))
+          : false;
+        return nameMatch || emailMatch || phoneMatch;
+      })
+    : users;
+
   // 테이블 컬럼
   const columns = [
     { key: "name", header: "이름" },
-    { key: "email", header: "이메일" },
+    {
+      key: "email",
+      header: "이메일",
+      render: (value: unknown) => (
+        <span
+          title="사용자 상세에서 전체 이메일 확인"
+          className="font-mono text-xs"
+        >
+          {maskEmail(String(value ?? ""))}
+        </span>
+      ),
+    },
     {
       key: "role",
       header: "역할",
@@ -731,11 +758,26 @@ export default function UsersPage() {
         </Button>
       </PageHeader>
 
+      {/* 검색 바 */}
+      <div className="mb-4">
+        <Input
+          placeholder="이름·이메일·전화번호 검색"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-sm"
+          aria-label="사용자 검색"
+        />
+      </div>
+
       <DataTable
         columns={columns}
-        data={users as unknown as Record<string, unknown>[]}
+        data={filteredUsers as unknown as Record<string, unknown>[]}
         loading={loading}
-        emptyMessage="등록된 사용자가 없습니다."
+        emptyMessage={
+          trimmedQuery
+            ? `"${trimmedQuery}"에 해당하는 사용자가 없습니다.`
+            : "등록된 사용자가 없습니다."
+        }
       />
 
       {/* 마케팅업체 관리 (admin만) */}
@@ -765,7 +807,7 @@ export default function UsersPage() {
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="name@rebornlabs.kr"
+                  placeholder="이메일을 입력하세요"
                   required
                   disabled={inviteLoading}
                 />
@@ -805,8 +847,12 @@ export default function UsersPage() {
                 <Label htmlFor="invite-phone">전화번호 (선택)</Label>
                 <Input
                   id="invite-phone"
+                  type="tel"
+                  inputMode="numeric"
                   value={invitePhone}
-                  onChange={(e) => setInvitePhone(e.target.value)}
+                  onChange={(e) =>
+                    setInvitePhone(formatPhoneInput(e.target.value))
+                  }
                   placeholder="010-0000-0000"
                   disabled={inviteLoading}
                 />
