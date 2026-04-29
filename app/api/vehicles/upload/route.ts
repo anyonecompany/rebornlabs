@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -34,6 +34,22 @@ export async function POST(request: NextRequest) {
     if (!file || !(file instanceof Blob)) {
       return NextResponse.json({ error: "이미지 파일(file)이 필요합니다." }, { status: 400 });
     }
+
+    const ALLOWED_MIME_TYPES = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+    ]);
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { error: "이미지 파일만 업로드 가능합니다." },
+        { status: 400 },
+      );
+    }
+
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ error: "이미지는 5MB 이하여야 합니다." }, { status: 400 });
     }
@@ -74,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
