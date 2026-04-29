@@ -96,7 +96,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@rebornlabs.kr"
+                  placeholder="이메일을 입력하세요"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
@@ -156,7 +156,7 @@ export default function LoginPage() {
                 <Input
                   id="reset-email"
                   type="email"
-                  placeholder="name@rebornlabs.kr"
+                  placeholder="이메일을 입력하세요"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   disabled={resetLoading}

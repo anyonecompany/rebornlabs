@@ -1232,7 +1232,7 @@ export default function SaleDetailPage() {
                 </Label>
                 <Input
                   type="email"
-                  placeholder="example@email.com"
+                  placeholder="이메일을 입력하세요"
                   value={contractForm.customer_email}
                   onChange={(e) =>
                     setContractForm((prev) => ({
