@@ -83,8 +83,12 @@ function QuotesPageInner() {
   // stale: 첫 로드 이후 재조회 중
   const isStale = loading && initialized;
 
+  // 300ms debounce — status/search/page가 연속으로 바뀔 때 마지막 값으로만 fetch
   useEffect(() => {
-    fetchQuotes();
+    const id = setTimeout(() => {
+      fetchQuotes();
+    }, 300);
+    return () => clearTimeout(id);
   }, [fetchQuotes]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
