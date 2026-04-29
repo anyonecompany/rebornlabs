@@ -43,15 +43,12 @@ function getAllowedOrigins(): string[] {
 
 function buildCorsHeaders(requestOrigin: string | null): Record<string, string> {
   const allowed = getAllowedOrigins();
-  if (allowed.length === 0) {
-    // 운영 도메인 미설정 — same-origin만 허용 (헤더 미포함)
-    return {
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
-  }
+  // 화이트리스트 매칭 시 해당 origin echo, 그 외/미설정 시 * 로 폴백 (공개 API).
+  // 후속: ALLOWED_ORIGINS 환경변수 설정 시 자동으로 화이트리스트만 허용으로 전환.
   const origin =
-    requestOrigin && allowed.includes(requestOrigin) ? requestOrigin : allowed[0]!;
+    requestOrigin && allowed.length > 0 && allowed.includes(requestOrigin)
+      ? requestOrigin
+      : "*";
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
