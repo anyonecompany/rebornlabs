@@ -232,7 +232,7 @@ export default function VehicleDetailPage() {
       <PageHeader title={`${vehicle.make} ${vehicle.model}`}>
         <div className="flex items-center gap-2">
           {/* 어드민에 로그인한 모든 사용자(pending 제외)에게 견적서 발행 노출 */}
-          {userRole && userRole !== "pending" && userRole !== "none" && (
+          {userRole && userRole !== "pending" && (
             <Button
               variant="outline"
               size="sm"
