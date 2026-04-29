@@ -603,7 +603,11 @@ export default function SaleDetailPage() {
     }
   }, [detail, id, fetchDetail]);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   if (loading) {
     return (

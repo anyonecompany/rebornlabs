@@ -92,7 +92,11 @@ function SalesPageInner() {
     fetchSales();
   }, [fetchSales]);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   const columns = [
     {

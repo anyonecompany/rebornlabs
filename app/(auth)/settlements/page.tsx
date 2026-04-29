@@ -469,7 +469,11 @@ export default function SettlementsPage() {
   const [summary, setSummary] = useState<SettlementSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   // admin/staff 전용: 판매액 기반 월 요약(sales 테이블)
   useEffect(() => {

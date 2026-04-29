@@ -12,11 +12,10 @@ const DEALER_BLOCKED = [
   "/audit-logs",
 ];
 const STAFF_BLOCKED = ["/users", "/team-structure", "/audit-logs"];
-// director / team_leader — 관리직. 조직 데이터(상담·판매·계약·견적·차량·정산)는 접근 허용.
-// 경영 전용 기능(/expenses, /documents, /users, /team-structure, /audit-logs, /vehicle-models) 차단.
+// director / team_leader — 관리직. 조직 데이터(상담·판매·계약·견적·차량·정산·지출·문서)는 접근 허용.
+// 본사 전용 관리 기능(/users, /team-structure, /audit-logs, /vehicle-models)만 차단.
+// expenses/documents는 매니저도 영업 비용·자료 활용 필요 → 차단 해제 (등록·조회 가능, 삭제는 admin only).
 const MANAGER_BLOCKED = [
-  "/expenses",
-  "/documents",
   "/users",
   "/team-structure",
   "/audit-logs",
