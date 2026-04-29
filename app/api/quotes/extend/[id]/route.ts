@@ -72,7 +72,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const isOwner = quote.dealer_id === user.id;
-    const isPrivileged = role === "admin" || role === "staff";
+    const isPrivileged =
+      role === "admin" ||
+      role === "staff" ||
+      role === "director" ||
+      role === "team_leader";
     if (!isPrivileged && !isOwner) {
       return NextResponse.json(
         { error: "이 견적서의 만료를 연장할 권한이 없습니다." },

@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     let body: unknown;
     try {

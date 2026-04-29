@@ -103,13 +103,17 @@ export default function NewSalePage() {
     fetchVehicles();
   }, [fetchVehicles]);
 
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
+
   useEffect(() => {
-    if (userRole === "admin" || userRole === "staff") {
+    if (isPrivileged) {
       fetchDealers();
     }
-  }, [userRole, fetchDealers]);
-
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  }, [isPrivileged, fetchDealers]);
 
   const handleSubmit = async () => {
     if (!selectedVehicleId) {

@@ -194,7 +194,11 @@ export default function VehicleDetailPage() {
     }
   };
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   // 딜러는 본인 체크리스트만 표시
   const visibleChecklists = isPrivileged
@@ -229,6 +233,8 @@ export default function VehicleDetailPage() {
         <div className="flex items-center gap-2">
           {(userRole === "admin" ||
             userRole === "staff" ||
+            userRole === "director" ||
+            userRole === "team_leader" ||
             userRole === "dealer") && (
             <Button
               variant="outline"
