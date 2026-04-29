@@ -25,13 +25,17 @@ import type { UserRole, ConsultationStatus } from "@/types/database";
 
 interface DashboardStats {
   available_vehicles: number;
-  new_consultations: number;
-  month_sales: number;
-  month_dealer_fees: number;
-  month_marketing_fees: number;
+  new_consultations?: number;
+  month_sales?: number;
+  month_dealer_fees?: number;
+  month_marketing_fees?: number;
   // 딜러 전용
   my_active_consultations?: number;
   my_month_sales?: number;
+  // 본부장/팀장 전용 (산하 dealer 범위)
+  team_active_consultations?: number;
+  team_month_sales?: number;
+  team_month_dealer_fees?: number;
 }
 
 interface RecentConsultation {
@@ -232,6 +236,91 @@ function StaffDashboard({ stats, recent }: StaffDashboardProps) {
 }
 
 // ---------------------------------------------------------------------------
+// 본부장/팀장 대시보드 (산하 dealer 범위)
+// ---------------------------------------------------------------------------
+
+interface ManagerDashboardProps {
+  stats: DashboardStats;
+  consultations: DealerConsultation[];
+}
+
+function ManagerDashboard({ stats, consultations }: ManagerDashboardProps) {
+  const router = useRouter();
+
+  const statCards = [
+    {
+      label: "출고가능 차량",
+      value: `${stats.available_vehicles ?? 0}대`,
+      icon: Car,
+      href: "/vehicles",
+    },
+    {
+      label: "산하 활성 상담",
+      value: `${stats.team_active_consultations ?? 0}건`,
+      icon: MessageSquare,
+      href: "/consultations",
+    },
+    {
+      label: "산하 이번 달 판매",
+      value: `${stats.team_month_sales ?? 0}건`,
+      icon: TrendingUp,
+      href: "/sales",
+    },
+    {
+      label: "산하 수당 합계",
+      value: formatKRW(stats.team_month_dealer_fees),
+      icon: DollarSign,
+    },
+  ];
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {statCards.map(({ label, value, icon, href }) => (
+          <StatCard key={label} label={label} value={value} icon={icon} href={href} />
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">산하 상담</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {consultations.length === 0 ? (
+            <EmptyState compact icon={MessageSquare} title="산하 상담이 없습니다" />
+          ) : (
+            consultations.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => router.push(`/consultations/${c.id}`)}
+                className="w-full flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium truncate block">
+                    {c.customer_name}
+                  </span>
+                  <span className="text-muted-foreground text-xs truncate block">
+                    {c.interested_vehicle ?? "차종 미정"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {CONSULTATION_STATUS_LABELS[c.status]}
+                  </span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatRelativeTime(c.created_at)}
+                  </span>
+                </div>
+              </button>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 딜러 대시보드
 // ---------------------------------------------------------------------------
 
@@ -346,9 +435,10 @@ export default function DashboardPage() {
           setStats(d.data ?? d);
         }
 
-        const isPrivileged = userRole === "admin" || userRole === "staff";
+        const isStaff = userRole === "admin" || userRole === "staff";
+        const isManager = userRole === "director" || userRole === "team_leader";
 
-        if (isPrivileged) {
+        if (isStaff) {
           // 경영진/직원: 최근 상담 + 판매
           const recentRes = await apiFetch("/api/dashboard/recent");
           if (recentRes.ok) {
@@ -359,6 +449,13 @@ export default function DashboardPage() {
               consultations: d.recentConsultations ?? d.consultations ?? [],
               sales: d.recentSales ?? d.sales ?? [],
             });
+          }
+        } else if (isManager) {
+          // 본부장/팀장: 산하 dealer 상담 (consultations API가 manager scope 자동 적용)
+          const cRes = await apiFetch("/api/consultations?limit=20");
+          if (cRes.ok) {
+            const d = await cRes.json();
+            setDealerConsultations(d.data ?? []);
           }
         } else {
           // 딜러: 내 배정 상담 (본인 기준 최신 순)
@@ -378,11 +475,12 @@ export default function DashboardPage() {
     loadData();
   }, [userRole]);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isStaff = userRole === "admin" || userRole === "staff";
+  const isManager = userRole === "director" || userRole === "team_leader";
 
   // 로딩 중이거나 아직 stats가 없을 때 스켈레톤 카드 표시
   if (loading || !stats) {
-    const count = isPrivileged ? 5 : 3;
+    const count = isStaff ? 5 : isManager ? 4 : 3;
     return (
       <div>
         <PageHeader
@@ -390,7 +488,7 @@ export default function DashboardPage() {
           description="리본랩스 운영 현황을 한눈에 확인합니다."
         />
         <div
-          className={`grid grid-cols-1 sm:grid-cols-2 ${isPrivileged ? "lg:grid-cols-3" : "sm:grid-cols-3"} gap-4 mb-6`}
+          className={`grid grid-cols-1 sm:grid-cols-2 ${isStaff ? "lg:grid-cols-3" : isManager ? "lg:grid-cols-4" : "sm:grid-cols-3"} gap-4 mb-6`}
         >
           {Array.from({ length: count }).map((_, i) => (
             <Card key={i}>
@@ -414,8 +512,10 @@ export default function DashboardPage() {
         description="리본랩스 운영 현황을 한눈에 확인합니다."
       />
 
-      {isPrivileged ? (
+      {isStaff ? (
         <StaffDashboard stats={stats} recent={recent} />
+      ) : isManager ? (
+        <ManagerDashboard stats={stats} consultations={dealerConsultations} />
       ) : (
         <DealerDashboard stats={stats} consultations={dealerConsultations} />
       )}
