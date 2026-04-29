@@ -15,8 +15,8 @@ function extractToken(request: NextRequest): string {
 /**
  * 배정 가능한 딜러 목록 조회 (admin/staff 전용).
  *
- * dealers_name_view에서 id, name만 반환한다.
- * 민감 정보(email, phone, is_active)는 뷰에서 제외됨.
+ * dealer/team_leader/director 역할 모두 배정 대상에 포함한다.
+ * 응답에 role 필드를 함께 반환하여 UI에서 역할 표시 가능.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // dealers_name_view는 user_role() 함수에 의존하여 service_role에서 빈 결과 반환
-    // profiles 테이블에서 직접 조회 (service_role → RLS 우회)
+    // dealer + team_leader + director 모두 영업 라인이므로 배정 가능
     const { data, error } = await serviceClient
       .from("profiles")
-      .select("id, name")
-      .eq("role", "dealer")
+      .select("id, name, role")
+      .in("role", ["dealer", "team_leader", "director"])
       .eq("is_active", true)
+      .order("role", { ascending: true })
       .order("name", { ascending: true });
 
     if (error) {

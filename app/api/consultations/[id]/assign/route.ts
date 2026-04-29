@@ -99,18 +99,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: "배정이 해제되었습니다." });
     }
 
-    // 딜러 존재 확인 (profiles 직접 조회 — dealers_name_view는 user_role() 의존)
+    // 배정 대상 존재 확인 — dealer/team_leader/director 모두 영업 라인이므로 배정 가능
     const { data: dealer, error: dealerError } = await serviceClient
       .from("profiles")
-      .select("id, name")
+      .select("id, name, role")
       .eq("id", dealer_id)
-      .eq("role", "dealer")
+      .in("role", ["dealer", "team_leader", "director"])
       .eq("is_active", true)
       .single();
 
     if (dealerError || !dealer) {
       return NextResponse.json(
-        { error: "유효하지 않은 딜러입니다." },
+        { error: "유효하지 않은 배정 대상입니다." },
         { status: 400 },
       );
     }

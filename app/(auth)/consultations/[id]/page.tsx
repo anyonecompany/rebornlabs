@@ -99,7 +99,14 @@ interface AvailableVehicle {
 interface DealerOption {
   id: string;
   name: string;
+  role?: "dealer" | "team_leader" | "director";
 }
+
+const ROLE_LABEL: Record<NonNullable<DealerOption["role"]>, string> = {
+  director: "본부장",
+  team_leader: "팀장",
+  dealer: "딜러",
+};
 
 interface MarketingCompanyOption {
   id: string;
@@ -776,7 +783,9 @@ export default function ConsultationDetailPage() {
                     <SelectContent>
                       {dealers.map((d) => (
                         <SelectItem key={d.id} value={d.id}>
-                          {d.name}
+                          {d.role && d.role !== "dealer"
+                            ? `${d.name} (${ROLE_LABEL[d.role]})`
+                            : d.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
