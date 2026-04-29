@@ -34,6 +34,7 @@ import { getReturnUrl } from "@/src/lib/return-url";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { formatPhone } from "@/src/lib/format-phone";
 import { formatSourceRef } from "@/src/lib/source-ref";
 import type { ConsultationStatus, UserRole } from "@/types/database";
@@ -268,15 +269,8 @@ export default function ConsultationDetailPage() {
         return;
       }
       toast.success("딜러가 배정되었습니다.");
-      setConsultation((prev) =>
-        prev
-          ? {
-              ...prev,
-              assigned_dealer_id: selectedDealerId,
-              marketing_company: marketingCompany || null,
-            }
-          : prev,
-      );
+      // 낙관적 업데이트 후 서버 재조회로 race condition 방지
+      await fetchDetail();
     } catch {
       toast.error("딜러 배정 중 오류가 발생했습니다.");
     } finally {
@@ -544,6 +538,9 @@ export default function ConsultationDetailPage() {
   const assignedDealerName = dealers.find(
     (d) => d.id === consultation.assigned_dealer_id,
   )?.name;
+
+  // 메모/통화기록 입력 중 이탈 경고 플래그
+  const isFormDirty = logContent.trim().length > 0;
 
   return (
     <div>
@@ -1084,6 +1081,9 @@ export default function ConsultationDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 통화기록 입력 중 이탈 경고 */}
+      <UnsavedChangesGuard isDirty={isFormDirty} />
     </div>
   );
 }

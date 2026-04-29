@@ -25,8 +25,15 @@ const SubmitSchema = z.object({
 
 // ─── CAPTCHA 검증 stub ─────────────────────────────────────
 
-async function validateCaptcha(_token?: string): Promise<boolean> {
-  // TODO: CAPTCHA 제공업체 연동 (예: hCaptcha, Turnstile)
+function validateCaptcha(_token?: string): boolean {
+  const enabled = process.env.ENABLE_CAPTCHA === "true";
+  if (!enabled) {
+    console.warn(
+      "[captcha] DISABLED — honeypot+rate-limit only. Set ENABLE_CAPTCHA=true with provider integration to enable.",
+    );
+    return true;
+  }
+  // 실제 제공업체 검증 로직은 후속 PR (Cloudflare Turnstile 등)
   return true;
 }
 
@@ -115,7 +122,7 @@ export async function POST(request: NextRequest) {
   });
 
   // 4. CAPTCHA stub
-  const captchaValid = await validateCaptcha();
+  const captchaValid = validateCaptcha();
   if (!captchaValid) {
     return corsJson({ error: "CAPTCHA 검증에 실패했습니다." }, { status: 400 });
   }
