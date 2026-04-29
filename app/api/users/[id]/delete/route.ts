@@ -51,6 +51,22 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // 마지막 활성 admin 삭제 차단
+    if (target.role === "admin") {
+      const { count: adminCount } = await serviceClient
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin")
+        .eq("is_active", true);
+
+      if ((adminCount ?? 0) <= 1) {
+        return NextResponse.json(
+          { error: "최소 1명의 admin이 필요합니다." },
+          { status: 400 },
+        );
+      }
+    }
+
     // 활성 상담 연결 확인 (assigned_dealer_id)
     const { count: activeConsultations } = await serviceClient
       .from("consultations")

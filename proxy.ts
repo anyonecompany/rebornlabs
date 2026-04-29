@@ -132,6 +132,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 
+  // ── 4a. 비밀번호 강제 변경 체크 ──
+  // must_change_password가 true이면 /profile 외의 경로는 /profile?force=true로 리다이렉트
+  if (profile.must_change_password && pathname !== "/profile") {
+    return NextResponse.redirect(new URL("/profile?force=true", request.url));
+  }
+
   const role = profile.role as UserRole;
 
   if (role === "dealer" && isBlocked(pathname, DEALER_BLOCKED)) {
