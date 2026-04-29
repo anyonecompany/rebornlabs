@@ -124,11 +124,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         );
       }
     } else if (user.role === "director" || user.role === "team_leader") {
+      // manager 가시 범위: 산하 dealer 배정 + 미배정. 그 외는 403.
       const subordinateIds = await getSubordinateIds(serviceClient, user.id);
-      if (
-        consultation.assigned_dealer_id === null ||
-        !subordinateIds.includes(consultation.assigned_dealer_id)
-      ) {
+      const isAssignedToSubordinate =
+        consultation.assigned_dealer_id !== null &&
+        subordinateIds.includes(consultation.assigned_dealer_id);
+      const isUnassigned = consultation.assigned_dealer_id === null;
+      if (!isAssignedToSubordinate && !isUnassigned) {
         return NextResponse.json(
           { error: "접근 권한이 없습니다." },
           { status: 403 },

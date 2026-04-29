@@ -87,9 +87,11 @@ export async function GET(request: NextRequest) {
             : (r as { get_subordinate_ids: string }).get_subordinate_ids,
         );
       }
-      query = query.in(
-        "assigned_dealer_id",
-        subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID],
+      // manager 가시 범위: 산하 dealer 배정 상담 + 미배정 상담
+      // (운영 정책 — 매니저는 본인/산하가 처리하지 않은 신규 유입(미배정)도 본다)
+      const ids = subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID];
+      query = query.or(
+        `assigned_dealer_id.in.(${ids.join(",")}),assigned_dealer_id.is.null`,
       );
     }
 

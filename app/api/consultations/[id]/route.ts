@@ -92,12 +92,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         );
       }
     } else if (user.role === "director" || user.role === "team_leader") {
-      // subordinateIds에 assigned_dealer_id가 없으면 403
+      // manager 가시 범위: 산하 dealer 배정 + 미배정. 그 외는 403.
       const allowedIds = subordinateIds ?? [ZERO_UUID];
-      if (
-        consultation.assigned_dealer_id === null ||
-        !allowedIds.includes(consultation.assigned_dealer_id)
-      ) {
+      const isAssignedToSubordinate =
+        consultation.assigned_dealer_id !== null &&
+        allowedIds.includes(consultation.assigned_dealer_id);
+      const isUnassigned = consultation.assigned_dealer_id === null;
+      if (!isAssignedToSubordinate && !isUnassigned) {
         return NextResponse.json(
           { error: "접근 권한이 없습니다." },
           { status: 403 },
@@ -118,9 +119,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (user.role === "dealer") {
       historyQuery = historyQuery.eq("assigned_dealer_id", user.id);
     } else if (user.role === "director" || user.role === "team_leader") {
-      historyQuery = historyQuery.in(
-        "assigned_dealer_id",
-        subordinateIds ?? [ZERO_UUID],
+      // manager: 산하 + 미배정 상담 history 노출
+      const ids = subordinateIds ?? [ZERO_UUID];
+      historyQuery = historyQuery.or(
+        `assigned_dealer_id.in.(${ids.join(",")}),assigned_dealer_id.is.null`,
       );
     }
 
