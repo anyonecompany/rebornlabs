@@ -66,9 +66,9 @@ export function formatDate(
     const mm = String(d.getMinutes()).padStart(2, "0");
     if (format === "datetime-seconds") {
       const ss = String(d.getSeconds()).padStart(2, "0");
-      return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
+      return `${yyyy}.${MM}.${dd} ${HH}:${mm}:${ss}`;
     }
-    return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
+    return `${yyyy}.${MM}.${dd} ${HH}:${mm}`;
   }
 
   if (format === "compact") {

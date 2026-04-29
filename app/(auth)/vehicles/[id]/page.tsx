@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/src/lib/api-client";
 import { getReturnUrl } from "@/src/lib/return-url";
-import { formatKRW, formatDate as formatDateBase } from "@/src/lib/format";
+import { formatKRW, formatMileage, formatDate as formatDateBase } from "@/src/lib/format";
 
 const formatDate = (iso: string) => formatDateBase(iso, "datetime");
 import { useUserRole } from "@/src/lib/use-user-role";
@@ -291,7 +291,7 @@ export default function VehicleDetailPage() {
               <InfoItem label="연식" value={`${vehicle.year}년`} />
               <InfoItem
                 label="주행거리"
-                value={`${vehicle.mileage.toLocaleString("ko-KR")}km`}
+                value={formatMileage(vehicle.mileage)}
               />
               {vehicle.plate_number && <InfoItem label="차량번호" value={vehicle.plate_number} />}
               {vehicle.vin && <InfoItem label="차대번호" value={vehicle.vin} />}

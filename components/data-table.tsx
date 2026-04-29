@@ -54,14 +54,15 @@ export function DataTable({
   const totalPages = Math.ceil(data.length / pageSize);
   const pageData = data.slice(page * pageSize, (page + 1) * pageSize);
 
-  if (loading) return <LoadingState variant="table" />;
+  // 초기 로딩(데이터 없음) 시에만 LoadingState 전체 교체 — 필터 재조회 시는 stale 데이터를 dimmed 처리
+  if (loading && data.length === 0) return <LoadingState variant="table" />;
 
-  if (data.length === 0) {
+  if (!loading && data.length === 0) {
     return <EmptyState title={emptyMessage} />;
   }
 
   return (
-    <div className="space-y-3">
+    <div className={`space-y-3 transition-opacity duration-150 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
       <div className="rounded-lg border border-border overflow-x-auto">
         <Table className="min-w-[900px]">
           <TableHeader className="sticky top-0 bg-background z-10">
