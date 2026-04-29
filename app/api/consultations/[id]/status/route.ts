@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "dealer"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader", "dealer"]);
 
     let body: unknown;
     try {
@@ -149,7 +149,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (updateError) {
       // DB 트리거가 전이 규칙을 강제하므로, 트리거 에러도 사용자 친화적으로
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
+      console.error("[consultations/status] 상태 변경 실패:", updateError.message);
+      return NextResponse.json(
+        { error: "상태 변경에 실패했습니다. 허용되지 않는 전이일 수 있습니다." },
+        { status: 400 },
+      );
     }
 
     return NextResponse.json({ message: "상태가 변경되었습니다." });
