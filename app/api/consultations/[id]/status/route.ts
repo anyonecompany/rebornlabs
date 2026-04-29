@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "dealer"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     let body: unknown;
     try {
@@ -103,14 +103,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         { error: "상담을 찾을 수 없습니다." },
         { status: 404 },
-      );
-    }
-
-    // 딜러: 본인 배정 상담만 변경 가능
-    if (user.role === "dealer" && consultation.assigned_dealer_id !== user.id) {
-      return NextResponse.json(
-        { error: "본인이 담당하는 상담만 상태를 변경할 수 있습니다." },
-        { status: 403 },
       );
     }
 

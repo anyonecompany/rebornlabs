@@ -198,7 +198,7 @@ export default function ConsultationDetailPage() {
       const data = await res.json();
       const c: Consultation = data.data;
       setConsultation(c);
-      setRelatedConsultations(data.relatedConsultations ?? []);
+      setRelatedConsultations(data.history ?? []);
       setLogs(data.logs ?? []);
       // 배정 초기값 세팅
       setSelectedDealerId(c.assigned_dealer_id ?? "");
@@ -577,8 +577,10 @@ export default function ConsultationDetailPage() {
                   </span>
                 )}
               </div>
-              {/* 상태 변경 (admin/staff + 배정 딜러, sold 제외) */}
-              {consultation.status !== "sold" &&
+              {/* 상태 변경 (admin/staff 전용, sold 제외).
+                  dealer는 consultation_logs 경유 status_snapshot으로만 상태 변경 가능. */}
+              {isPrivileged &&
+                consultation.status !== "sold" &&
                 allowedTransitions.length > 0 && (
                   <Select
                     disabled={changingStatus}
