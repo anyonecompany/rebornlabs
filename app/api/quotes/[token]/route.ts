@@ -129,15 +129,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (isExpired) {
       return corsJson(
         {
-          error: "expired",
-          message: "견적서 유효기간이 만료되었습니다.",
-          quote: {
-            quoteNumber: quote.quote_number,
-            expiresAt: quote.expires_at,
-          },
-          dealer: dealer
-            ? { name: dealer.name, phone: dealer.phone }
-            : null,
+          expired: true,
+          expiresAt: quote.expires_at,
+          quoteNumber: quote.quote_number,
+          dealerName: dealer?.name ?? null,
+          dealerPhone: dealer?.phone ?? null,
         },
         { status: 410 },
       );
