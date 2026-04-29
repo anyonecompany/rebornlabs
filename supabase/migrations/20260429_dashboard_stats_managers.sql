@@ -54,7 +54,8 @@ BEGIN
 
   ELSIF p_role IN ('director', 'team_leader') THEN
     -- 본부장/팀장: 산하 dealer 범위 통계
-    SELECT array_agg(subordinate_id) INTO v_subordinate_ids
+    -- get_subordinate_ids는 SETOF uuid 반환 → 익명 컬럼명이 함수명과 동일
+    SELECT array_agg(get_subordinate_ids) INTO v_subordinate_ids
     FROM get_subordinate_ids(p_user_id);
 
     -- 산하가 0명이면 빈 배열로 대체 (NULL 회피)
