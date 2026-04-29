@@ -164,7 +164,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     const serviceClient = createServiceClient();
 
@@ -286,7 +286,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     const serviceClient = createServiceClient();
 

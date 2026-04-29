@@ -119,7 +119,11 @@ function VehiclesPageInner() {
     });
   }, [vehicles, search, statusFilter]);
 
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   // 기본 컬럼
   const baseColumns = [

@@ -38,8 +38,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    // admin/staff만 허용 (dealer 차단)
-    requireRole(user, ["admin", "staff"]);
+    // 영업 라인 매니저까지 허용 (dealer 차단)
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     let body: unknown;
     try {

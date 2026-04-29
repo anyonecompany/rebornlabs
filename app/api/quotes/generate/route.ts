@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    if (!["admin", "staff", "dealer"].includes(user.role)) {
+    if (!["admin", "staff", "director", "team_leader", "dealer"].includes(user.role)) {
       return NextResponse.json(
         { error: "견적서 생성 권한이 없습니다." },
         { status: 403 },
