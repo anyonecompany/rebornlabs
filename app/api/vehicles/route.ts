@@ -2,39 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
-const CreateVehicleSchema = z.object({
-  make: z.string().min(1, "제조사는 필수입니다."),
-  model: z.string().min(1, "모델명은 필수입니다."),
-  year: z
-    .number()
-    .int()
-    .min(1900, "연식은 1900년 이후여야 합니다.")
-    .max(2100, "연식은 2100년 이하여야 합니다."),
-  mileage: z.number().int().min(0, "주행거리는 0 이상이어야 합니다.").optional(),
-  purchase_price: z
-    .number()
-    .int()
-    .min(0, "매입가는 0 이상이어야 합니다."),
-  selling_price: z.number().int().min(0, "판매가는 0 이상이어야 합니다."),
-  deposit: z
-    .number()
-    .int()
-    .min(0, "보증금은 0 이상이어야 합니다.")
-    .optional(),
-  monthly_payment: z
-    .number()
-    .int()
-    .min(0, "월납입료는 0 이상이어야 합니다.")
-    .optional(),
-  photos: z.array(z.string().url()).optional().default([]),
-  plate_number: z.string().nullable().optional(),
-  vin: z.string().nullable().optional(),
-  color: z.string().nullable().optional(),
-});
+const CreateVehicleSchema = z
+  .object({
+    make: z.string().min(1, "제조사는 필수입니다."),
+    model: z.string().min(1, "모델명은 필수입니다."),
+    year: z
+      .number()
+      .int()
+      .min(1900, "연식은 1900년 이후여야 합니다.")
+      .max(2100, "연식은 2100년 이하여야 합니다."),
+    mileage: z.number().int().min(0, "주행거리는 0 이상이어야 합니다.").optional(),
+    purchase_price: z
+      .number()
+      .int()
+      .min(0, "매입가는 0 이상이어야 합니다."),
+    selling_price: z.number().int().min(0, "판매가는 0 이상이어야 합니다."),
+    deposit: z
+      .number()
+      .int()
+      .min(0, "보증금은 0 이상이어야 합니다.")
+      .optional(),
+    monthly_payment: z
+      .number()
+      .int()
+      .min(0, "월납입료는 0 이상이어야 합니다.")
+      .optional(),
+    photos: z.array(z.string().url()).optional().default([]),
+    plate_number: z.string().nullable().optional(),
+    vin: z.string().nullable().optional(),
+    color: z.string().nullable().optional(),
+  })
+  .refine((data) => data.selling_price >= data.purchase_price, {
+    message: "판매가는 매입가 이상이어야 합니다.",
+    path: ["selling_price"],
+  });
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -193,7 +198,7 @@ export async function GET(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -273,7 +278,7 @@ export async function POST(request: NextRequest) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },

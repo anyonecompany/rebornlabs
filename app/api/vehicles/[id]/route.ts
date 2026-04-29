@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError } from "@/lib/auth/verify";
+import { verifyUser, requireRole, AuthError, getAuthErrorMessage} from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -49,7 +49,19 @@ const UpdateVehicleSchema = z
     vin: z.string().nullable().optional(),
     color: z.string().nullable().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    // 둘 다 포함된 경우에만 cross-field 검증 (부분 업데이트 지원)
+    if (data.selling_price !== undefined && data.purchase_price !== undefined) {
+      if (data.selling_price < data.purchase_price) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "판매가는 매입가 이상이어야 합니다.",
+          path: ["selling_price"],
+        });
+      }
+    }
+  });
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -141,7 +153,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -234,7 +246,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
@@ -331,7 +343,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (err instanceof AuthError) {
       const status =
         err.code === "NO_TOKEN" || err.code === "INVALID_TOKEN" ? 401 : 403;
-      return NextResponse.json({ error: err.message }, { status });
+      return NextResponse.json({ error: getAuthErrorMessage(err.code) }, { status });
     }
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
