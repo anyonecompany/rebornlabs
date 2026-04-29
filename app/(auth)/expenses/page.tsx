@@ -572,7 +572,11 @@ export default function ExpensesPage() {
   };
 
   const isAdmin = userRole === "admin";
-  const isPrivileged = userRole === "admin" || userRole === "staff";
+  const isPrivileged =
+    userRole === "admin" ||
+    userRole === "staff" ||
+    userRole === "director" ||
+    userRole === "team_leader";
 
   /** 현재 페이지 합계 (로드된 expenses 기준) */
   const pageTotal = useMemo(

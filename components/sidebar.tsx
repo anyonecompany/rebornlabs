@@ -69,7 +69,8 @@ const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
     item.href !== "/audit-logs",
 );
 
-// director / team_leader — 조직 데이터 + 정산 조회. 경영 전용 기능(지출/문서/사용자/조직/감사/차량모델) 제외.
+// director / team_leader — 영업 라인 관리직. 본사 전용(사용자/조직/감사/차량모델)만 제외.
+// 지출결의·문서함은 매니저도 영업 비용·자료 활용을 위해 노출.
 const MANAGER_MENU: NavItem[] = [
   { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
   { label: "차량 관리", href: "/vehicles", icon: Car, group: "운영" },
@@ -78,6 +79,8 @@ const MANAGER_MENU: NavItem[] = [
   { label: "판매 관리", href: "/sales", icon: CreditCard, group: "영업" },
   { label: "견적서 관리", href: "/quotes", icon: FileText, group: "영업" },
   { label: "정산", href: "/settlements", icon: Calculator, group: "재무" },
+  { label: "지출결의", href: "/expenses", icon: Receipt, group: "재무" },
+  { label: "문서함", href: "/documents", icon: FolderOpen, group: "재무" },
 ];
 
 const DEALER_MENU: NavItem[] = [

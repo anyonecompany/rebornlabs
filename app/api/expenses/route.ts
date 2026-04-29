@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get("cursor"); // 레거시 호환
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireRole(user, ["admin", "staff", "director", "team_leader"]);
 
     let body: unknown;
     try {
