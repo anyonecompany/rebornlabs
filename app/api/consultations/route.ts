@@ -48,11 +48,9 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // count는 estimated로 변경 — 정확도 약간 손실, COUNT(*) 풀 스캔 비용 제거.
-    // (목록 컬럼 슬림화는 컬럼 사용처 확정 후 별도 PR)
     let query = serviceClient
       .from("consultations")
-      .select("*", { count: "estimated" })
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
       .order("id", { ascending: false });
 
