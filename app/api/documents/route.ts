@@ -47,10 +47,9 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // count: estimated — COUNT(*) 풀 스캔 비용 제거
     let query = serviceClient
       .from("documents")
-      .select("*", { count: "estimated" })
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
       .order("id", { ascending: false });
 
