@@ -50,6 +50,22 @@ function extractToken(request: NextRequest): string {
  * - signed URL (/storage/v1/object/sign/vehicles/...) → path 추출 → getPublicUrl
  * - 이미 public URL (/storage/v1/object/public/vehicles/...) → 그대로
  */
+/**
+ * 목록 응답의 photos 배열을 첫 1장(썸네일)로 슬라이싱한다.
+ *
+ * 카드 그리드는 첫 사진만 사용하므로 응답 페이로드를 1/N로 줄여
+ * Planning + 직렬화 + 네트워크 부담을 단축한다. 상세 GET 라우트는 풀 photos를
+ * 그대로 반환하므로 디테일에서 전체 사진 갤러리는 정상 동작한다.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sliceFirstPhoto(items: any[]) {
+  for (const item of items) {
+    if (Array.isArray(item.photos) && item.photos.length > 1) {
+      item.photos = [item.photos[0]];
+    }
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function resolvePhotoUrls(sc: any, items: any[]) {
   for (const item of items) {
@@ -143,6 +159,8 @@ export async function GET(request: NextRequest) {
 
       const hasMore = (data?.length ?? 0) > PAGE_SIZE;
       const items = hasMore ? data!.slice(0, PAGE_SIZE) : (data ?? []);
+      // 목록은 썸네일 1장만 — URL 변환 비용 + 페이로드 동시 단축
+      sliceFirstPhoto(items);
       resolvePhotoUrls(serviceClient, items);
       const lastItem = items[items.length - 1];
       const nextCursor =
@@ -155,9 +173,13 @@ export async function GET(request: NextRequest) {
     // status=deleted 필터 시: soft-delete된 차량을 보여줌 (deleted_at IS NOT NULL)
     // 그 외: 삭제되지 않은 차량만 조회
     const isDeletedFilter = status === "deleted";
+    // 목록용 슬림 컬럼셋 — purchase_price/margin 등 admin도 목록 카드에서 안 쓰는 컬럼은 응답 슬림화
+    // (상세 GET /api/vehicles/[id] 는 별도이므로 거기서 풀 컬럼 노출)
+    const ADMIN_LIST_COLUMNS =
+      "id, vehicle_code, make, model, year, mileage, selling_price, deposit, monthly_payment, status, photos, plate_number, created_at, updated_at, deleted_at, purchase_price, margin";
     let query = serviceClient
       .from("vehicles")
-      .select("*")
+      .select(ADMIN_LIST_COLUMNS)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(PAGE_SIZE + 1);
