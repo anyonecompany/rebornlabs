@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
             id, name
           )
         `,
-        { count: "exact" },
+        { count: "estimated" },
       )
       .order("created_at", { ascending: false });
 
