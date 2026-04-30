@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // sales 조회
+    // sales 조회 — count는 estimated (COUNT(*) 풀 스캔 비용 제거)
     let query = serviceClient
       .from("sales")
-      .select("*", { count: "exact" })
+      .select("*", { count: "estimated" })
       .order("created_at", { ascending: false })
       .order("id", { ascending: false });
 

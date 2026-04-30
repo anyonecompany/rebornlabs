@@ -131,9 +131,10 @@ export async function GET(request: NextRequest) {
     );
 
     // 목록 조회 (page 번호 기본, cursor 레거시 호환)
+    // count: estimated — COUNT(*) 풀 스캔 비용 제거
     let listQuery = serviceClient
       .from("expenses")
-      .select("*", { count: "exact" })
+      .select("*", { count: "estimated" })
       .gte("expense_date", startDate)
       .lt("expense_date", nextMonth)
       .order("expense_date", { ascending: false })
