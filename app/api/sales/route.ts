@@ -104,14 +104,17 @@ export async function GET(request: NextRequest) {
     const items = cursor && hasMore ? sales!.slice(0, pageSize) : (sales ?? []);
 
     if (items.length === 0) {
-      return NextResponse.json({
-        data: [],
-        total,
-        page,
-        pageSize,
-        totalPages,
-        nextCursor: null,
-      });
+      return NextResponse.json(
+        {
+          data: [],
+          total,
+          page,
+          pageSize,
+          totalPages,
+          nextCursor: null,
+        },
+        { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+      );
     }
 
     // vehicle, dealer, consultation 정보 병렬 조회 후 merge
@@ -174,14 +177,17 @@ export async function GET(request: NextRequest) {
         ? `${lastItem.created_at}__${lastItem.id}`
         : null;
 
-    return NextResponse.json({
-      data: merged,
-      total,
-      page,
-      pageSize,
-      totalPages,
-      nextCursor, // 레거시 호환
-    });
+    return NextResponse.json(
+      {
+        data: merged,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor, // 레거시 호환
+      },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+    );
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

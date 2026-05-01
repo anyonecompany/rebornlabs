@@ -166,7 +166,10 @@ export async function GET(request: NextRequest) {
       const nextCursor =
         hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
 
-      return NextResponse.json({ data: items, nextCursor });
+      return NextResponse.json(
+        { data: items, nextCursor },
+        { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+      );
     }
 
     // admin/staff
@@ -222,7 +225,10 @@ export async function GET(request: NextRequest) {
     const nextCursor =
       hasMore && lastItem ? `${lastItem.created_at}__${lastItem.id}` : null;
 
-    return NextResponse.json({ data: items, nextCursor });
+    return NextResponse.json(
+      { data: items, nextCursor },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+    );
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
