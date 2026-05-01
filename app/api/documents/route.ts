@@ -124,14 +124,17 @@ export async function GET(request: NextRequest) {
         ? `${lastItem.created_at}__${lastItem.id}`
         : null;
 
-    return NextResponse.json({
-      data: merged,
-      total,
-      page,
-      pageSize,
-      totalPages,
-      nextCursor,
-    });
+    return NextResponse.json(
+      {
+        data: merged,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor,
+      },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+    );
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

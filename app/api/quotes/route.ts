@@ -211,13 +211,16 @@ export async function GET(request: NextRequest) {
     const total = count ?? quotes.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-    return NextResponse.json({
-      quotes,
-      total,
-      page,
-      pageSize,
-      totalPages,
-    });
+    return NextResponse.json(
+      {
+        quotes,
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+    );
   } catch (err) {
     if (err instanceof AuthError) {
       const status =

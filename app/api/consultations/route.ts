@@ -189,14 +189,17 @@ export async function GET(request: NextRequest) {
         : null,
     }));
 
-    return NextResponse.json({
-      data: itemsWithDealer,
-      total,
-      page,
-      pageSize,
-      totalPages,
-      nextCursor, // 레거시 호환
-    });
+    return NextResponse.json(
+      {
+        data: itemsWithDealer,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        nextCursor, // 레거시 호환
+      },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=60" } },
+    );
   } catch (err) {
     if (err instanceof AuthError) {
       const status =
