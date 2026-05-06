@@ -6,6 +6,7 @@ import { verifyTurnstile } from "@/src/lib/captcha";
 import { isRefCode, resolveCompanyName } from "@/src/lib/source-ref";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
 import { sendAlimtalk } from "@/lib/alimtalk/send";
+import { maskCustomerName } from "@/lib/alimtalk/templates";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -229,6 +230,7 @@ export async function POST(request: NextRequest) {
   notifyAdminsAsync({
     consultationId: consultationId as string | null,
     customerName: name,
+    vehicle: vehicle ?? null,
     serviceClient,
   });
 
@@ -237,11 +239,13 @@ export async function POST(request: NextRequest) {
 
 /**
  * 운영자(들)에게 신규 상담 알림톡 발송. fire-and-forget.
+ * 폼 제출 직후 그 상담의 정보(고객명/차량)를 즉시 발송 → 박우빈 같은 응대 누락 차단.
  * ADMIN_PHONE_NUMBERS 콤마 구분 다수 지정 가능. 미설정 시 silent skip.
  */
 function notifyAdminsAsync(input: {
   consultationId: string | null;
   customerName: string;
+  vehicle: string | null;
   serviceClient: ReturnType<typeof createServiceClient>;
 }): void {
   const raw = process.env.ADMIN_PHONE_NUMBERS ?? process.env.ADMIN_PHONE_NUMBER ?? "";
@@ -252,23 +256,12 @@ function notifyAdminsAsync(input: {
   if (phones.length === 0) return;
 
   const adminLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations`;
+  const masked = maskCustomerName(input.customerName);
+  const vehicleText = input.vehicle?.trim() || "관심 차량 미지정";
 
   void (async () => {
-    // 24시간 신규 카운트 — 알림톡 #{count} 변수
-    let count = 1;
-    try {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count: c } = await input.serviceClient
-        .from("consultations")
-        .select("*", { count: "exact", head: true })
-        .gte("created_at", since);
-      if (typeof c === "number" && c > 0) count = c;
-    } catch {
-      // 카운트 실패해도 알림은 발송 (count=1 폴백)
-    }
-
     // SMS 폴백 본문 — 90자 이내 LMS 변환 회피. 사전심사 통과 전까지 이걸로 발송됨.
-    const fmessage = `[리본랩스] 신규 상담 ${count}건 접수. 어드민에서 응대해주세요. ${adminLink}`;
+    const fmessage = `[리본랩스] ${masked}님 ${vehicleText} 상담 접수. 응대 ${adminLink}`;
 
     await Promise.all(
       phones.map((to) =>
@@ -276,13 +269,14 @@ function notifyAdminsAsync(input: {
           template: "consultation.new_to_admin",
           to,
           variables: {
-            "#{count}": String(count),
+            "#{customer_name}": masked,
+            "#{vehicle}": vehicleText,
             "#{admin_link}": adminLink,
           },
           fmessage,
           auditContext: {
             consultation_id: input.consultationId,
-            customer_name_masked: input.customerName.slice(0, 1) + "*",
+            customer_name_masked: masked,
           },
         }, input.serviceClient),
       ),

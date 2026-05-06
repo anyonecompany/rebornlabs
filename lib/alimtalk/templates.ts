@@ -20,7 +20,8 @@ export type AlimtalkTemplateKey =
  */
 export interface TemplateVarsMap {
   "consultation.new_to_admin": {
-    "#{count}": string; // 신규 상담 건수
+    "#{customer_name}": string; // 고객명 마스킹 (홍*동)
+    "#{vehicle}": string; // 관심 차량 (또는 "미지정")
     "#{admin_link}": string; // 어드민 상담 목록 링크
   };
   "consultation.assigned_to_dealer": {
@@ -71,7 +72,7 @@ export function fillTemplate(template: string, vars: Record<string, string>): st
  */
 export const TEMPLATE_BODIES: Record<AlimtalkTemplateKey, string> = {
   "consultation.new_to_admin":
-    "[리본랩스] 신규 상담 알림\n\n오늘 누적 #{count}건의 신규 상담이 접수되었습니다.\n어드민에서 즉시 응대해 주세요.\n\n#{admin_link}",
+    "[리본랩스] 신규 상담 접수\n\n#{customer_name}님이 #{vehicle} 상담을 신청했습니다.\n어드민에서 즉시 응대해주세요.\n\n#{admin_link}",
   "consultation.assigned_to_dealer":
     "[리본랩스] 상담 배정 알림\n\n고객 #{customer_name}님 (#{vehicle}) 상담이 배정되었습니다.\n30분 내 응대 시작 버튼을 눌러주세요.\n\n#{ack_link}",
   "consultation.timeout_to_admin":
