@@ -5,23 +5,37 @@ import { sendAlimtalk } from "@/lib/alimtalk/send";
 import { maskCustomerName } from "@/lib/alimtalk/templates";
 
 /**
- * 30분 무응답 배정 자동 만료 + 알림 Cron.
+ * 30분 무응답 배정 자동 만료 Cron — **현재 비활성**.
  *
- * 호출 경로:
- *   Vercel Cron(1분 간격) → GET /api/cron/consultation-timeout
- *   Authorization: Bearer ${CRON_SECRET} 헤더가 일치할 때만 실행.
+ * 비활성 사유 (2026-05-06):
+ *   응대 흐름(dealer 화면 "응대 시작" 버튼 + acknowledge API + 알림톡)이
+ *   미완성 상태로 cron 만 가동되어 모든 수동 배정이 30분 후 풀리는 사고 발생.
+ *   응대 흐름이 도입(카카오 알림톡 정식 연동) 되는 시점에 함께 재활성화한다.
  *
- * 동작:
- *   1) expire_pending_assignments() RPC 호출 → 만료된 (assignment, consultation, dealer) 행 반환
- *      트리거가 자동으로 status='expired' 전환 + audit_logs 기록.
- *   2) 각 행에 대해 운영자(ADMIN_PHONE_NUMBERS)에게 timeout 알림톡 발송.
- *   3) 미응답 딜러에게 cancelled 알림톡 발송.
+ * 재활성화 체크리스트:
+ *   1) dealer 화면에 "응대 시작" UI + PATCH /api/consultation_assignments/[id]/acknowledge 추가
+ *   2) consultation_assignments INSERT 시 status='pending' 으로 되돌림 (assign route)
+ *   3) vercel.json 의 crons 배열에 다시 추가
+ *   4) 본 라우트의 410 short-circuit 제거
  *
- * 마이그레이션 009 미적용 시: RPC 호출 실패 → 0건 반환.
+ * 호출되더라도 410 Gone 으로 즉시 종료 — DB 작업·알림톡 모두 미수행.
  */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+export async function GET(_request: NextRequest) {
+  return NextResponse.json(
+    {
+      disabled: true,
+      reason: "30분 자동 만료 시스템은 응대 흐름 도입 전까지 비활성화됨",
+    },
+    { status: 410 },
+  );
+}
+
+// ─── 이하 기능 코드는 향후 재활성화를 위해 보존 (현재 미사용) ─────────────────
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface ExpiredRow {
   assignment_id: string;
@@ -29,7 +43,7 @@ interface ExpiredRow {
   dealer_id: string;
 }
 
-export async function GET(request: NextRequest) {
+async function _disabledHandler(request: NextRequest) {
   // 1. Vercel Cron 인증
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
