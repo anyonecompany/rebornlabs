@@ -35,14 +35,19 @@ async function notifyDealerAsync(input: {
 }): Promise<void> {
   if (!input.to) return;
   const ackLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations/${input.consultationId}`;
+  const masked = maskCustomerName(input.customerName);
+  const vehicle = input.vehicle ?? "관심 차량 미지정";
+  // SMS 폴백 본문 — 90자 이내. 사전심사 통과 전까지 이걸로 발송.
+  const fmessage = `[리본랩스] ${masked}님 (${vehicle}) 상담 배정. 30분 내 응대 ${ackLink}`;
   await sendAlimtalk({
     template: "consultation.assigned_to_dealer",
     to: input.to,
     variables: {
-      "#{customer_name}": maskCustomerName(input.customerName),
-      "#{vehicle}": input.vehicle ?? "관심 차량 미지정",
+      "#{customer_name}": masked,
+      "#{vehicle}": vehicle,
       "#{ack_link}": ackLink,
     },
+    fmessage,
     auditContext: {
       consultation_id: input.consultationId,
       assignment_id: input.assignmentId,

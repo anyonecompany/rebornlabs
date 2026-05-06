@@ -14,13 +14,15 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import {
   type AlimtalkPayload,
-  type SolapiSendResponse,
-  SolapiHttpError,
+  type AlimtalkSendResponse,
+  AligoHttpError,
   sendAlimtalkRaw,
 } from "./client";
 import {
   type AlimtalkTemplateKey,
   type TemplateVarsMap,
+  TEMPLATE_BODIES,
+  fillTemplate,
   resolveTemplateId,
 } from "./templates";
 
@@ -32,27 +34,37 @@ export interface SendAlimtalkInput<K extends AlimtalkTemplateKey> {
   variables: TemplateVarsMap[K];
   /** 감사 로그에 함께 기록할 컨텍스트 (consultation_id, assignment_id 등) */
   auditContext?: Record<string, unknown>;
+  /** SMS 폴백 시 본문 — 미지정 시 알림톡 본문(변수 치환 후) 그대로 사용 */
+  fmessage?: string;
 }
 
 export interface SendAlimtalkResult {
   ok: boolean;
   attempts: number;
-  response?: SolapiSendResponse;
+  response?: AlimtalkSendResponse;
   error?: string;
 }
 
 /**
  * 알림톡 전송 + 감사 로그 + 재시도.
  * 호출자가 try/catch 할 필요 없음 — 결과는 SendAlimtalkResult 로 반환.
+ *
+ * 알리고 specifics:
+ *   - tpl_code 미설정 또는 사전심사 미통과 → 알리고가 알림톡 거부, failover=Y 로 SMS 자동 발송
+ *   - HTTP 200 + code !== 0 도 status="sent" 로 처리 (SMS 폴백됨)
+ *   - 5xx/네트워크 에러만 재시도. 4xx 는 즉시 dead-letter.
  */
 export async function sendAlimtalk<K extends AlimtalkTemplateKey>(
   input: SendAlimtalkInput<K>,
   supabase?: SupabaseClient,
 ): Promise<SendAlimtalkResult> {
+  const variables = input.variables as Record<string, string>;
+  const message = fillTemplate(TEMPLATE_BODIES[input.template], variables);
   const payload: AlimtalkPayload = {
     to: input.to,
     templateId: resolveTemplateId(input.template),
-    variables: input.variables as Record<string, string>,
+    message,
+    fmessage: input.fmessage ?? message,
   };
 
   let lastError: string | undefined;
@@ -68,7 +80,7 @@ export async function sendAlimtalk<K extends AlimtalkTemplateKey>(
       lastError = error instanceof Error ? error.message : String(error);
 
       // 4xx 는 영구 에러 — 재시도 무의미
-      if (error instanceof SolapiHttpError && error.status >= 400 && error.status < 500) {
+      if (error instanceof AligoHttpError && error.status >= 400 && error.status < 500) {
         await logAuditEvent(supabase, "alimtalk.failed_permanent", input, {
           attempts: attempt,
           status: error.status,
