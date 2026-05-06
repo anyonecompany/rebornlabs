@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
   // 7. 운영자 알림톡 (fire-and-forget) — GAS 의존 격하의 영구 fix.
   //    ADMIN_PHONE_NUMBERS 미설정 시 전체 스킵.
-  //    카카오 알림톡 템플릿 미승인 상태에서는 ALIMTALK_SANDBOX_MODE=true 로 두면 mock 응답.
+  //    알리고 사전심사 미완료여도 failover=Y 로 SMS 자동 대체 발송.
   notifyAdminsAsync({
     consultationId: consultationId as string | null,
     customerName: name,
@@ -267,6 +267,9 @@ function notifyAdminsAsync(input: {
       // 카운트 실패해도 알림은 발송 (count=1 폴백)
     }
 
+    // SMS 폴백 본문 — 90자 이내 LMS 변환 회피. 사전심사 통과 전까지 이걸로 발송됨.
+    const fmessage = `[리본랩스] 신규 상담 ${count}건 접수. 어드민에서 응대해주세요. ${adminLink}`;
+
     await Promise.all(
       phones.map((to) =>
         sendAlimtalk({
@@ -276,6 +279,7 @@ function notifyAdminsAsync(input: {
             "#{count}": String(count),
             "#{admin_link}": adminLink,
           },
+          fmessage,
           auditContext: {
             consultation_id: input.consultationId,
             customer_name_masked: input.customerName.slice(0, 1) + "*",

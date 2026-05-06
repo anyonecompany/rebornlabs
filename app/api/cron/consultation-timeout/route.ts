@@ -78,20 +78,23 @@ export async function GET(request: NextRequest) {
     ]);
 
     const customerName = consultation?.customer_name ?? "고객";
+    const masked = maskCustomerName(customerName);
     const dealerName = dealer?.name ?? "딜러";
     const dealerPhone = dealer?.phone ?? null;
 
     // 운영자에게 timeout 알림
     for (const to of adminPhones) {
       const reassignLink = `${adminLink}/${row.consultation_id}`;
+      const fmessage = `[리본랩스] ${masked}님 상담 ${dealerName} 30분 무응답으로 취소. 재배정 ${reassignLink}`;
       const result = await sendAlimtalk({
         template: "consultation.timeout_to_admin",
         to,
         variables: {
-          "#{customer_name}": maskCustomerName(customerName),
+          "#{customer_name}": masked,
           "#{dealer_name}": dealerName,
           "#{reassign_link}": reassignLink,
         },
+        fmessage,
         auditContext: {
           consultation_id: row.consultation_id,
           assignment_id: row.assignment_id,
@@ -102,13 +105,16 @@ export async function GET(request: NextRequest) {
 
     // 딜러에게 cancelled 알림
     if (dealerPhone) {
+      const reason = "30분 무응답으로 자동 취소";
+      const fmessage = `[리본랩스] ${masked}님 상담 배정 취소 (사유: ${reason})`;
       const result = await sendAlimtalk({
         template: "consultation.cancelled_to_dealer",
         to: dealerPhone,
         variables: {
-          "#{customer_name}": maskCustomerName(customerName),
-          "#{reason}": "30분 무응답으로 자동 취소",
+          "#{customer_name}": masked,
+          "#{reason}": reason,
         },
+        fmessage,
         auditContext: {
           consultation_id: row.consultation_id,
           assignment_id: row.assignment_id,
