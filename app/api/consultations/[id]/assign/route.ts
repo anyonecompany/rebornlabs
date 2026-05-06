@@ -182,9 +182,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     // consultation_assignments 이력 INSERT (best-effort) — 마이그레이션 009 적용된 환경에서만 동작.
     // 트리거가 자동으로 active pending cancelled + assigned_dealer_id 동기화 처리.
+    //
+    // 관리자 수동 배정은 즉시 'acknowledged' 로 INSERT — 책임이 이미 확정된 상태이므로
+    // 30분 무응답 만료(consultation-timeout cron)의 대상이 아니다. (#30 cron 은 향후
+    // 자동/외부 배정 흐름이 도입될 때 'pending' 상태로 INSERT 하는 경로에서 사용)
     let assignmentId: string | null = null;
     try {
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const acknowledgedAt = new Date().toISOString();
       const { data: ass, error: assErr } = await serviceClient
         .from("consultation_assignments")
         .insert({
@@ -192,7 +197,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           dealer_id,
           assigned_by: user.id,
           expires_at: expiresAt,
-          status: "pending",
+          status: "acknowledged",
+          acknowledged_at: acknowledgedAt,
         })
         .select("id")
         .single();
