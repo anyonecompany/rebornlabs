@@ -34,18 +34,19 @@ async function notifyDealerAsync(input: {
   assignmentId: string | null;
 }): Promise<void> {
   if (!input.to) return;
-  const ackLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations/${input.consultationId}`;
+  const consultLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations/${input.consultationId}`;
   const masked = maskCustomerName(input.customerName);
   const vehicle = input.vehicle ?? "관심 차량 미지정";
   // SMS 폴백 본문 — 90자 이내. 사전심사 통과 전까지 이걸로 발송.
-  const fmessage = `[리본랩스] ${masked}님 (${vehicle}) 상담 배정. 30분 내 응대 ${ackLink}`;
+  // 응대 흐름(30분 무응답 만료) 비활성 상태이므로 시간 압박 문구 제거.
+  const fmessage = `[리본랩스] ${masked}님 (${vehicle}) 상담 배정 ${consultLink}`;
   await sendAlimtalk({
     template: "consultation.assigned_to_dealer",
     to: input.to,
     variables: {
       "#{customer_name}": masked,
       "#{vehicle}": vehicle,
-      "#{ack_link}": ackLink,
+      "#{ack_link}": consultLink,
     },
     fmessage,
     auditContext: {
@@ -180,28 +181,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       metadata: { dealer_id, dealer_name: dealer.name, marketing_company: marketing_company ?? null },
     });
 
-    // consultation_assignments 이력 INSERT (best-effort) — 마이그레이션 009 적용된 환경에서만 동작.
-    // 트리거가 자동으로 active pending cancelled + assigned_dealer_id 동기화 처리.
-    let assignmentId: string | null = null;
-    try {
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      const { data: ass, error: assErr } = await serviceClient
-        .from("consultation_assignments")
-        .insert({
-          consultation_id: id,
-          dealer_id,
-          assigned_by: user.id,
-          expires_at: expiresAt,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-      if (!assErr && ass) {
-        assignmentId = (ass as { id: string }).id;
-      }
-    } catch {
-      // 마이그레이션 미적용 또는 RLS 거부 — 알림톡은 그대로 진행
-    }
+    // consultation_assignments 이력 INSERT 는 현재 비활성화 (2026-05-06).
+    //
+    // 비활성화 사유:
+    //   응대 흐름(dealer "응대 시작" 버튼 + acknowledge API + 30분 cron) 미완성 상태로
+    //   가동되어 모든 수동 배정이 30분 후 풀리는 사고 발생. 응대 흐름이 도입(카카오
+    //   알림톡 정식 연동) 되는 시점에 INSERT + cron(/api/cron/consultation-timeout)
+    //   + 트리거(sync_consultation_assigned_dealer)를 한 세트로 재활성화한다.
+    //
+    // 재활성화 체크리스트는 app/api/cron/consultation-timeout/route.ts 참고.
+    //
+    // 현재는 consultations.assigned_dealer_id 직접 UPDATE (위 154~165) 만으로
+    // 배정이 확정되며, 이력 테이블은 사용하지 않는다.
+    const assignmentId: string | null = null;
 
     // 딜러 알림톡 (fire-and-forget)
     void notifyDealerAsync({

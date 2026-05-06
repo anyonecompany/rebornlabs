@@ -4,10 +4,6 @@
     {
       "path": "/api/cron/gas-retry",
       "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/cron/consultation-timeout",
-      "schedule": "* * * * *"
     }
   ]
 }
