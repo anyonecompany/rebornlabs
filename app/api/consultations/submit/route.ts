@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { verifyTurnstile } from "@/src/lib/captcha";
 import { isRefCode, resolveCompanyName } from "@/src/lib/source-ref";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
+import { sendAlimtalk } from "@/lib/alimtalk/send";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -222,5 +223,65 @@ export async function POST(request: NextRequest) {
     { label: "consultations/submit" },
   );
 
+  // 7. 운영자 알림톡 (fire-and-forget) — GAS 의존 격하의 영구 fix.
+  //    ADMIN_PHONE_NUMBERS 미설정 시 전체 스킵.
+  //    카카오 알림톡 템플릿 미승인 상태에서는 ALIMTALK_SANDBOX_MODE=true 로 두면 mock 응답.
+  notifyAdminsAsync({
+    consultationId: consultationId as string | null,
+    customerName: name,
+    serviceClient,
+  });
+
   return corsJson({ message: "상담 접수가 완료되었습니다." }, request);
+}
+
+/**
+ * 운영자(들)에게 신규 상담 알림톡 발송. fire-and-forget.
+ * ADMIN_PHONE_NUMBERS 콤마 구분 다수 지정 가능. 미설정 시 silent skip.
+ */
+function notifyAdminsAsync(input: {
+  consultationId: string | null;
+  customerName: string;
+  serviceClient: ReturnType<typeof createServiceClient>;
+}): void {
+  const raw = process.env.ADMIN_PHONE_NUMBERS ?? process.env.ADMIN_PHONE_NUMBER ?? "";
+  const phones = raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (phones.length === 0) return;
+
+  const adminLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations`;
+
+  void (async () => {
+    // 24시간 신규 카운트 — 알림톡 #{count} 변수
+    let count = 1;
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: c } = await input.serviceClient
+        .from("consultations")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", since);
+      if (typeof c === "number" && c > 0) count = c;
+    } catch {
+      // 카운트 실패해도 알림은 발송 (count=1 폴백)
+    }
+
+    await Promise.all(
+      phones.map((to) =>
+        sendAlimtalk({
+          template: "consultation.new_to_admin",
+          to,
+          variables: {
+            "#{count}": String(count),
+            "#{admin_link}": adminLink,
+          },
+          auditContext: {
+            consultation_id: input.consultationId,
+            customer_name_masked: input.customerName.slice(0, 1) + "*",
+          },
+        }, input.serviceClient),
+      ),
+    );
+  })();
 }

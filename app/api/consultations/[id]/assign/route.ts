@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { sendAlimtalk } from "@/lib/alimtalk/send";
+import { maskCustomerName } from "@/lib/alimtalk/templates";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -19,6 +21,34 @@ function extractToken(request: NextRequest): string {
 }
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+/**
+ * 딜러에게 배정 알림톡 발송. fire-and-forget.
+ * dealer.phone 미설정이거나 templateId 미설정이면 silent skip (sandbox 모드 OK).
+ */
+async function notifyDealerAsync(input: {
+  to: string | null;
+  customerName: string;
+  vehicle: string | null;
+  consultationId: string;
+  assignmentId: string | null;
+}): Promise<void> {
+  if (!input.to) return;
+  const ackLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://rebornlabs-admin.vercel.app"}/consultations/${input.consultationId}`;
+  await sendAlimtalk({
+    template: "consultation.assigned_to_dealer",
+    to: input.to,
+    variables: {
+      "#{customer_name}": maskCustomerName(input.customerName),
+      "#{vehicle}": input.vehicle ?? "관심 차량 미지정",
+      "#{ack_link}": ackLink,
+    },
+    auditContext: {
+      consultation_id: input.consultationId,
+      assignment_id: input.assignmentId,
+    },
+  });
+}
 
 // ─── PATCH /api/consultations/[id]/assign — 딜러 배정 ────────
 
@@ -59,10 +89,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { dealer_id, marketing_company } = parsed.data;
     const serviceClient = createServiceClient();
 
-    // 상담 존재 확인
+    // 상담 존재 확인 — 알림톡 변수에 사용할 customer_name, interested_vehicle 도 함께
     const { data: consultation, error: consultError } = await serviceClient
       .from("consultations")
-      .select("id")
+      .select("id, customer_name, interested_vehicle")
       .eq("id", id)
       .single();
 
@@ -102,7 +132,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // 배정 대상 존재 확인 — dealer/team_leader/director 모두 영업 라인이므로 배정 가능
     const { data: dealer, error: dealerError } = await serviceClient
       .from("profiles")
-      .select("id, name, role")
+      .select("id, name, role, phone")
       .eq("id", dealer_id)
       .in("role", ["dealer", "team_leader", "director"])
       .eq("is_active", true)
@@ -143,6 +173,38 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       target_type: "consultation",
       target_id: id,
       metadata: { dealer_id, dealer_name: dealer.name, marketing_company: marketing_company ?? null },
+    });
+
+    // consultation_assignments 이력 INSERT (best-effort) — 마이그레이션 009 적용된 환경에서만 동작.
+    // 트리거가 자동으로 active pending cancelled + assigned_dealer_id 동기화 처리.
+    let assignmentId: string | null = null;
+    try {
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const { data: ass, error: assErr } = await serviceClient
+        .from("consultation_assignments")
+        .insert({
+          consultation_id: id,
+          dealer_id,
+          assigned_by: user.id,
+          expires_at: expiresAt,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+      if (!assErr && ass) {
+        assignmentId = (ass as { id: string }).id;
+      }
+    } catch {
+      // 마이그레이션 미적용 또는 RLS 거부 — 알림톡은 그대로 진행
+    }
+
+    // 딜러 알림톡 (fire-and-forget)
+    void notifyDealerAsync({
+      to: dealer.phone,
+      customerName: consultation.customer_name,
+      vehicle: consultation.interested_vehicle,
+      consultationId: id,
+      assignmentId,
     });
 
     return NextResponse.json({ message: "딜러가 배정되었습니다." });

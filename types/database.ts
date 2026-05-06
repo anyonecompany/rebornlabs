@@ -388,6 +388,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      consultation_assignments: {
+        Row: {
+          id: string;
+          consultation_id: string;
+          dealer_id: string;
+          assigned_by: string | null;
+          assigned_at: string;
+          acknowledged_at: string | null;
+          expires_at: string;
+          status: "pending" | "acknowledged" | "expired" | "cancelled";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          consultation_id: string;
+          dealer_id: string;
+          assigned_by?: string | null;
+          assigned_at?: string;
+          acknowledged_at?: string | null;
+          expires_at: string;
+          status?: "pending" | "acknowledged" | "expired" | "cancelled";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["consultation_assignments"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       vehicles_dealer_view: {
@@ -406,6 +436,14 @@ export interface Database {
       };
     };
     Functions: {
+      expire_pending_assignments: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          assignment_id: string;
+          consultation_id: string;
+          dealer_id: string;
+        }>;
+      };
       insert_consultation_from_gas: {
         Args: {
           p_customer_name: string;
