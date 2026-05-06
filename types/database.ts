@@ -265,6 +265,32 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      gas_failures: {
+        Row: {
+          id: string;
+          label: string;
+          payload: Record<string, unknown>;
+          retry_count: number;
+          status: "pending" | "succeeded" | "dead";
+          last_error: string | null;
+          created_at: string;
+          last_attempt_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          label: string;
+          payload: Record<string, unknown>;
+          retry_count?: number;
+          status?: "pending" | "succeeded" | "dead";
+          last_error?: string | null;
+          created_at?: string;
+          last_attempt_at?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["gas_failures"]["Insert"]>;
+        Relationships: [];
+      };
       marketing_companies: {
         Row: {
           id: string;
