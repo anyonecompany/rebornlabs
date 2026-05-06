@@ -325,6 +325,7 @@ export default function ConsultationDetailPage() {
     setSubmittingLog(true);
     try {
       const body: Record<string, string> = { content: logContent.trim() };
+      if (logStatus) body.status = logStatus;
 
       const res = await apiFetch(`/api/consultations/${id}/logs`, {
         method: "POST",
@@ -914,22 +915,44 @@ export default function ConsultationDetailPage() {
                 <p className="text-xs font-medium text-muted-foreground mb-3">
                   새 상담 기록
                 </p>
-                <div className="flex gap-3">
+                <div className="space-y-2">
                   <Textarea
                     placeholder="통화 내용을 입력하세요"
                     value={logContent}
                     onChange={(e) => setLogContent(e.target.value)}
                     rows={2}
-                    className="resize-none flex-1"
+                    className="resize-none w-full"
                   />
-                  <Button
-                    size="sm"
-                    className="shrink-0 self-end"
-                    onClick={handleSubmitLog}
-                    disabled={submittingLog || !logContent.trim()}
-                  >
-                    {submittingLog ? "처리 중..." : "등록"}
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    {logStatusOptions.length > 0 && (
+                      <Select
+                        value={logStatus}
+                        onValueChange={(v) =>
+                          setLogStatus(v as ConsultationStatus)
+                        }
+                        disabled={submittingLog}
+                      >
+                        <SelectTrigger className="w-40 h-8 text-xs">
+                          <SelectValue placeholder="상태 변경 (선택)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {logStatusOptions.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {STATUS_LABELS[s]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleSubmitLog}
+                      disabled={submittingLog || !logContent.trim()}
+                    >
+                      {submittingLog ? "처리 중..." : "등록"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
