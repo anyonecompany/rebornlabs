@@ -158,6 +158,19 @@ export async function POST(request: NextRequest) {
   );
 
   if (insertError) {
+    // 중복 차단 트리거(block_recent_duplicate_consultations) — 23505 + HINT 'duplicate_recent_consultation'
+    // 사용자에게는 200 류로 위장하지 않고 409 로 명확히 알림.
+    const isDuplicate =
+      insertError.code === "23505" ||
+      insertError.message?.includes("duplicate_recent_consultation") ||
+      insertError.message?.includes("중복 상담 차단");
+    if (isDuplicate) {
+      return corsJson(
+        { error: "이미 신청이 접수되었습니다. 곧 담당자가 연락드릴 예정입니다." },
+        request,
+        { status: 409 },
+      );
+    }
     return corsJson({ error: "상담 접수 중 오류가 발생했습니다." }, request, { status: 500 });
   }
 
