@@ -1212,7 +1212,7 @@ export default function RebornLabsLanding() {
             프리미엄 차량을,<br className="mobile-br" /> 새로운 방식으로.
           </h1>
           <p className="hero-desc">
-            완벽히 복원된 프리미엄 차량을 합리적인 비용으로.
+            엄선된 무사고 프리미엄 차량을 합리적인 비용으로.
             <br />
             36개월 이용 후 반납하는 새로운 카 라이프를 경험하세요.
           </p>
@@ -1235,7 +1235,7 @@ export default function RebornLabsLanding() {
               출발했습니다.
             </h2>
             <p className="about-sub">
-              사고복원 차량의 부정적 이미지를 바꾸기 위해 출발했습니다.
+              프리미엄 차량 소유의 진입장벽을 낮추는 반납형 모델을 제시합니다.
               <br />
               사람들의 카 라이프가 더 합리적이고 새로워질 수 있는 방법을 고민하고 있습니다.
             </p>
@@ -1296,36 +1296,34 @@ export default function RebornLabsLanding() {
               순환하는 비즈니스 모델
             </h2>
             <p className="structure-sub">
-              경미한 사고 차량을 저가 매입하고, 완전 복원 후
+              엄선된 무사고 프리미엄 차량을 합리적 비용으로 매입하고,
               <br />
-              반납형 상품으로 출고합니다. 반납된 차량은 재판매됩니다.
+              정밀 검수 후 반납형 상품으로 출고합니다. 반납된 차량은 재판매됩니다.
             </p>
           </div>
 
           <div className={`structure-timeline fade-up fade-up-d2 ${isVisible("structure") ? "visible" : ""}`}>
             <div className="structure-step">
               <p className="structure-step-num">Step 01</p>
-              <h3 className="structure-step-title">경미 사고 차량 매입</h3>
+              <h3 className="structure-step-title">무사고 프리미엄 차량 엄선 매입</h3>
               <p className="structure-step-desc">
-                침수, 엔진, 프레임 이상이 없는 경미한 사고 이력 차량만을 선별합니다.
-                보험 처리하기 어려운 수준의 공업 비용으로 처리된 차량을
-                시장가 대비 저렴하게 매입합니다.
+                국내 무사고 프리미엄 중고차를 직접 발굴하고, 사고 이력·침수·주행거리를
+                다중 검증한 차량만 매입합니다. 매입 단계에서부터 차량 품질을 보장합니다.
               </p>
             </div>
             <div className="structure-step">
               <p className="structure-step-num">Step 02</p>
-              <h3 className="structure-step-title">1등급 공업사 완전 복원</h3>
+              <h3 className="structure-step-title">정밀 검수 + 컨디셔닝</h3>
               <p className="structure-step-desc">
-                협력 1등급 공업사에서 외관, 내장, 기능 전반을 점검하고
-                완전히 복원합니다. 주행에 문제가 없는 상태로 출고되며,
-                복원 이력은 고객에게 투명하게 공개됩니다.
+                협력 1등급 공업사에서 외관, 내장, 기능 전반을 정밀 점검 후
+                컨디셔닝 작업을 거칩니다. 검수 이력은 고객에게 투명하게 공개됩니다.
               </p>
             </div>
             <div className="structure-step">
               <p className="structure-step-num">Step 03</p>
               <h3 className="structure-step-title">반납형 상품 출고</h3>
               <p className="structure-step-desc">
-                복원된 차량은 36개월 이용 후 반납하는 구조의 상품으로 출고됩니다.
+                검수 완료된 차량은 36개월 이용 후 반납하는 구조의 상품으로 출고됩니다.
                 할부 60개월 중 24개월분을 잔존가치로 설정하여
                 고객의 월 납입료를 최소화합니다.
               </p>
@@ -1344,7 +1342,7 @@ export default function RebornLabsLanding() {
               <h3 className="structure-step-title">회수 차량 재판매</h3>
               <p className="structure-step-desc">
                 반납된 차량은 잔존가치를 기반으로 재판매됩니다.
-                매입 → 복원 → 출고 → 반납 → 재판매로 이어지는
+                매입 → 검수 → 출고 → 반납 → 재판매로 이어지는
                 순환 구조가 REBORN LABS의 핵심 비즈니스 모델입니다.
               </p>
             </div>
@@ -1358,13 +1356,13 @@ export default function RebornLabsLanding() {
           <div className={`market-header fade-up ${isVisible("market") ? "visible" : ""}`}>
             <span className="grad-label">Market</span>
             <h2 className="market-heading">
-              폐쇄적 시장,
+              프리미엄 중고차,
               <br />
               최초의 반납형 구조
             </h2>
             <p className="market-desc">
-              연간 전손 및 분손 처리되는 사고차량 시장은 규모가 상당하지만,
-              업종 종사자 외에는 접근이 불가능한 폐쇄적 구조입니다.
+              국내 프리미엄 중고차 시장은 빠르게 성장하고 있지만,
+              합리적 비용으로 무사고 차량을 이용할 수 있는 선택지는 제한적입니다.
               REBORN LABS는 이 시장에 반납형 상품이라는
               새로운 구조를 최초로 도입합니다.
             </p>
@@ -1372,23 +1370,23 @@ export default function RebornLabsLanding() {
 
           <div className={`market-stats fade-up fade-up-d2 ${isVisible("market") ? "visible" : ""}`}>
             <div className="market-stat-card">
-              <p className="market-stat-eyebrow">연간 사고차량 규모</p>
+              <p className="market-stat-eyebrow">REBORN LABS 큐레이션</p>
               <p className="market-stat-number">
-                10<span className="market-stat-unit">만대</span>
+                2,560<span className="market-stat-unit">+</span>
               </p>
               <p className="market-stat-label">
-                매년 전손·분손 처리되는 국내 사고차량 규모.
-                이 중 상당수가 복원 가능한 상태로 폐기됩니다.
+                무사고 프리미엄 차량을 직접 매입·검수하여 누적 출고한 대수.
+                매입 단계부터 사고 이력·침수·주행거리를 다중 검증합니다.
               </p>
             </div>
             <div className="market-stat-card">
-              <p className="market-stat-eyebrow">즉시 활용 가능 차량</p>
+              <p className="market-stat-eyebrow">엄선 매입 기준</p>
               <p className="market-stat-number">
-                2<span className="market-stat-unit">만대</span>
+                100<span className="market-stat-unit">% 무사고</span>
               </p>
               <p className="market-stat-label">
-                침수·엔진·프레임 이상이 없는 경미 사고 차량.
-                전체의 20%, REBORN LABS의 매입 대상입니다.
+                사고 이력·프레임 손상이 있는 차량은 매입 대상에서 제외됩니다.
+                고객이 받는 모든 차량은 검증된 무사고 차량입니다.
               </p>
             </div>
             <div className="market-stat-card">
@@ -1397,7 +1395,7 @@ export default function RebornLabsLanding() {
                 0<span className="market-stat-unit">곳</span>
               </p>
               <p className="market-stat-label">
-                사고복원 차량을 반납형 상품으로 제공하는 곳은
+                무사고 프리미엄 차량을 반납형 상품으로 제공하는 곳은
                 현재 REBORN LABS가 유일합니다.
               </p>
             </div>
@@ -1406,17 +1404,17 @@ export default function RebornLabsLanding() {
           <div className={`market-bottom fade-up fade-up-d3 ${isVisible("market") ? "visible" : ""}`}>
             <div className="market-bottom-text">
               <h3 style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "-0.5px", marginBottom: "28px", color: "#fff", lineHeight: 1.4 }}>
-                닫혀 있던 시장을,<br className="mobile-br" /> 소비자에게 열다
+                프리미엄 차량의 진입장벽을,<br className="mobile-br" /> 절반으로
               </h3>
               <p>
-                사고차량 시장은 보험사, 경매업체, 매매상 등
-                업계 종사자들만 접근할 수 있는 폐쇄적 구조로 운영됩니다.
-                일반 소비자는 이 시장의 존재조차 알기 어렵습니다.
+                프리미엄 중고차 시장은 차량 개체별 편차가 크고,
+                무사고·정비 이력 검증을 일반 소비자가 직접 수행하기 어렵습니다.
+                결과적으로 합리적 비용으로 안심하고 이용할 수 있는 선택지가 부족합니다.
               </p>
               <br />
               <p>
-                REBORN LABS는 이 시장에서 엄선된 차량만 매입하여
-                완전히 복원한 뒤, 반납형 상품이라는 전에 없던 구조로
+                REBORN LABS는 무사고 프리미엄 차량만 엄선 매입하여
+                정밀 검수를 거친 뒤, 반납형 상품이라는 전에 없던 구조로
                 소비자에게 직접 제공합니다.
               </p>
             </div>
