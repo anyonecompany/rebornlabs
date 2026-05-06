@@ -1209,12 +1209,12 @@ export default function RebornLabsLanding() {
         <div className="hero-content">
           <p className="hero-sub">Reborn Labs</p>
           <h1 className="hero-title">
-            무사고 프리미엄 차량을,<br className="mobile-br" /> 월 50만원대부터.
+            프리미엄 차량을,<br className="mobile-br" /> 새로운 방식으로.
           </h1>
           <p className="hero-desc">
-            엄선된 무사고 차량을 신차 대비 절반의 비용으로.
+            엄선된 무사고 프리미엄 차량을 합리적인 비용으로.
             <br />
-            36개월 반납형 구조로 월 납입 부담 없이 시작하세요.
+            36개월 이용 후 반납하는 새로운 카 라이프를 경험하세요.
           </p>
           <button className="hero-cta" onClick={() => scrollTo("contact")}>
             상담 신청하기
@@ -1228,16 +1228,16 @@ export default function RebornLabsLanding() {
           <div className={`fade-up ${isVisible("about") ? "visible" : ""}`}>
             <span className="grad-label">About</span>
             <h2 className="about-heading">
-              프리미엄 카 라이프의
+              불편하고 비합리적인
               <br />
-              비용 부담은 절반으로,
+              중고차 시장을 혁신하기 위해
               <br />
-              사고 부담은 제로로.
+              출발했습니다.
             </h2>
             <p className="about-sub">
-              프리미엄 차량 진입의 두 장벽 — &lsquo;비용&rsquo;과 &lsquo;사고 리스크&rsquo;를 동시에 해결합니다.
+              프리미엄 차량 소유의 진입장벽을 낮추는 반납형 모델을 제시합니다.
               <br />
-              무사고 차량만 엄선 매입하고, 반납형 구조로 월 납입료를 신차 대비 절반 수준으로 낮춥니다.
+              사람들의 카 라이프가 더 합리적이고 새로워질 수 있는 방법을 고민하고 있습니다.
             </p>
           </div>
           <div className={`about-cards fade-up fade-up-d2 ${isVisible("about") ? "visible" : ""}`}>
@@ -1296,9 +1296,9 @@ export default function RebornLabsLanding() {
               순환하는 비즈니스 모델
             </h2>
             <p className="structure-sub">
-              무사고 차량을 직접 매입해 중간 마진을 줄이고,
+              엄선된 무사고 프리미엄 차량을 합리적 비용으로 매입하고,
               <br />
-              반납형 구조로 월 납입료를 신차 대비 절반 수준으로 낮춥니다.
+              정밀 검수 후 반납형 상품으로 출고합니다. 반납된 차량은 재판매됩니다.
             </p>
           </div>
 
@@ -1356,18 +1356,29 @@ export default function RebornLabsLanding() {
           <div className={`market-header fade-up ${isVisible("market") ? "visible" : ""}`}>
             <span className="grad-label">Market</span>
             <h2 className="market-heading">
-              무사고와 절반 비용,
+              프리미엄 중고차,
               <br />
-              둘 다 가져갑니다.
+              최초의 반납형 구조
             </h2>
             <p className="market-desc">
-              프리미엄 차량을 살 때 누구나 두 가지를 따집니다 — 사고 이력과 비용.
-              REBORN LABS는 무사고 차량만 엄선 매입하고, 반납형 구조로
-              월 납입료를 신차 대비 절반 수준으로 낮춥니다.
+              국내 프리미엄 중고차 시장은 빠르게 성장하고 있지만,
+              합리적 비용으로 무사고 차량을 이용할 수 있는 선택지는 제한적입니다.
+              REBORN LABS는 이 시장에 반납형 상품이라는
+              새로운 구조를 최초로 도입합니다.
             </p>
           </div>
 
           <div className={`market-stats fade-up fade-up-d2 ${isVisible("market") ? "visible" : ""}`}>
+            <div className="market-stat-card">
+              <p className="market-stat-eyebrow">REBORN LABS 큐레이션</p>
+              <p className="market-stat-number">
+                2,560<span className="market-stat-unit">+</span>
+              </p>
+              <p className="market-stat-label">
+                무사고 프리미엄 차량을 직접 매입·검수하여 누적 출고한 대수.
+                매입 단계부터 사고 이력·침수·주행거리를 다중 검증합니다.
+              </p>
+            </div>
             <div className="market-stat-card">
               <p className="market-stat-eyebrow">엄선 매입 기준</p>
               <p className="market-stat-number">
@@ -1376,16 +1387,6 @@ export default function RebornLabsLanding() {
               <p className="market-stat-label">
                 사고 이력·프레임 손상이 있는 차량은 매입 대상에서 제외됩니다.
                 고객이 받는 모든 차량은 검증된 무사고 차량입니다.
-              </p>
-            </div>
-            <div className="market-stat-card">
-              <p className="market-stat-eyebrow">월 납입료 시작</p>
-              <p className="market-stat-number">
-                50<span className="market-stat-unit">만원대~</span>
-              </p>
-              <p className="market-stat-label">
-                Mercedes-Benz E300 기준 월 50만원대부터 시작.
-                직접 매입과 반납형 구조로 신차 대비 부담을 절반 수준으로.
               </p>
             </div>
             <div className="market-stat-card">
@@ -1406,15 +1407,15 @@ export default function RebornLabsLanding() {
                 프리미엄 차량의 진입장벽을,<br className="mobile-br" /> 절반으로
               </h3>
               <p>
-                프리미엄 차량을 사려면 적게는 수천만 원의 보증금과
-                매월 100만원이 넘는 할부가 기본입니다.
-                여기에 사고 이력 검증이라는 부담까지 더해집니다.
+                프리미엄 중고차 시장은 차량 개체별 편차가 크고,
+                무사고·정비 이력 검증을 일반 소비자가 직접 수행하기 어렵습니다.
+                결과적으로 합리적 비용으로 안심하고 이용할 수 있는 선택지가 부족합니다.
               </p>
               <br />
               <p>
-                REBORN LABS는 무사고 차량만 엄선 매입하고,
-                반납형 36개월 구조로 보증금과 월 납입료를
-                신차 대비 절반 수준으로 낮춥니다.
+                REBORN LABS는 무사고 프리미엄 차량만 엄선 매입하여
+                정밀 검수를 거친 뒤, 반납형 상품이라는 전에 없던 구조로
+                소비자에게 직접 제공합니다.
               </p>
             </div>
             <div className="market-bottom-image" style={{ position: "relative" }}>
