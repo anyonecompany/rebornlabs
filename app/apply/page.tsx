@@ -275,10 +275,10 @@ export default function ApplyPage() {
             <span>
               대표전화{" "}
               <a
-                href="tel:02-462-5222"
+                href="tel:1811-7277"
                 className="underline decoration-[#c8bfa8]/30 underline-offset-4 hover:text-white"
               >
-                02-462-5222
+                1811-7277
               </a>
             </span>
           </div>
