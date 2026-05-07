@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/notification-bell";
 import type { UserRole } from "@/types/database";
+import { can, type Capability } from "@/lib/auth/capabilities";
 
 interface SidebarUser {
   name: string;
@@ -40,56 +41,40 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  /** capability — capabilities.ts SSOT의 메뉴 노출 권한 */
+  capability: Capability;
+  /** dealer 등 일부 역할에서 라벨이 다른 경우 — 예: "차량 관리" → "차량 목록" */
+  dealerLabel?: string;
   /** true 면 새 탭으로 열고 외부 링크 아이콘 표시. (예: 고객 시점 공개 페이지) */
   external?: boolean;
   /** 메뉴 그룹 — 같은 group 끼리 모이고 첫 항목 위에 헤더 라벨 표시. */
   group?: string;
 }
 
-const ADMIN_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
-  { label: "차량 관리", href: "/vehicles", icon: Car, group: "운영" },
-  { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd, group: "운영" },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
-  { label: "상담 관리", href: "/consultations", icon: MessageSquare, group: "영업" },
-  { label: "판매 관리", href: "/sales", icon: CreditCard, group: "영업" },
-  { label: "견적서 관리", href: "/quotes", icon: FileText, group: "영업" },
-  { label: "정산", href: "/settlements", icon: Calculator, group: "재무" },
-  { label: "지출결의", href: "/expenses", icon: Receipt, group: "재무" },
-  { label: "문서함", href: "/documents", icon: FolderOpen, group: "재무" },
-  { label: "사용자 관리", href: "/users", icon: Users, group: "관리" },
-  { label: "조직 관리", href: "/team-structure", icon: Network, group: "관리" },
-  { label: "감사 로그", href: "/audit-logs", icon: Shield, group: "관리" },
-];
-
-const STAFF_MENU: NavItem[] = ADMIN_MENU.filter(
-  (item) =>
-    item.href !== "/users" &&
-    item.href !== "/team-structure" &&
-    item.href !== "/audit-logs",
-);
-
-// director / team_leader — 영업 라인 관리직. 본사 전용(사용자/조직/감사/차량모델)만 제외.
-// 지출결의·문서함은 매니저도 영업 비용·자료 활용을 위해 노출.
-const MANAGER_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
-  { label: "차량 관리", href: "/vehicles", icon: Car, group: "운영" },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
-  { label: "상담 관리", href: "/consultations", icon: MessageSquare, group: "영업" },
-  { label: "판매 관리", href: "/sales", icon: CreditCard, group: "영업" },
-  { label: "견적서 관리", href: "/quotes", icon: FileText, group: "영업" },
-  { label: "정산", href: "/settlements", icon: Calculator, group: "재무" },
-  { label: "지출결의", href: "/expenses", icon: Receipt, group: "재무" },
-  { label: "문서함", href: "/documents", icon: FolderOpen, group: "재무" },
-];
-
-const DEALER_MENU: NavItem[] = [
-  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, group: "현황" },
-  { label: "차량 목록", href: "/vehicles", icon: Car, group: "운영" },
-  { label: "고객 가격 페이지", href: "/cars", icon: Tag, external: true, group: "운영" },
-  { label: "내 상담", href: "/consultations", icon: MessageSquare, group: "영업" },
-  { label: "내 판매", href: "/sales", icon: CreditCard, group: "영업" },
-  { label: "내 견적서", href: "/quotes", icon: FileText, group: "영업" },
+/**
+ * 단일 메뉴 정의 — capability로 노출 여부 결정.
+ *
+ * 신규 메뉴 추가 시:
+ *   1. 본 배열에 항목 추가
+ *   2. lib/auth/capabilities.ts CAPABILITIES에 menu:* 매핑 추가
+ *   3. proxy.ts PATH_CAPABILITY에 path → capability 매핑 추가
+ *
+ * 누락 시 컴파일러가 Capability 유니언으로 자동 감지.
+ */
+const ALL_MENU: NavItem[] = [
+  { label: "대시보드", href: "/dashboard", icon: LayoutDashboard, capability: "menu:dashboard", group: "현황" },
+  { label: "차량 관리", href: "/vehicles", icon: Car, capability: "menu:vehicles", dealerLabel: "차량 목록", group: "운영" },
+  { label: "차량 모델 관리", href: "/vehicle-models", icon: GalleryVerticalEnd, capability: "menu:vehicle-models", group: "운영" },
+  { label: "고객 가격 페이지", href: "/cars", icon: Tag, capability: "menu:cars-public", external: true, group: "운영" },
+  { label: "상담 관리", href: "/consultations", icon: MessageSquare, capability: "menu:consultations", dealerLabel: "내 상담", group: "영업" },
+  { label: "판매 관리", href: "/sales", icon: CreditCard, capability: "menu:sales", dealerLabel: "내 판매", group: "영업" },
+  { label: "견적서 관리", href: "/quotes", icon: FileText, capability: "menu:quotes", dealerLabel: "내 견적서", group: "영업" },
+  { label: "정산", href: "/settlements", icon: Calculator, capability: "menu:settlements", group: "재무" },
+  { label: "지출결의", href: "/expenses", icon: Receipt, capability: "menu:expenses", group: "재무" },
+  { label: "문서함", href: "/documents", icon: FolderOpen, capability: "menu:documents", group: "재무" },
+  { label: "사용자 관리", href: "/users", icon: Users, capability: "menu:users", group: "관리" },
+  { label: "조직 관리", href: "/team-structure", icon: Network, capability: "menu:team-structure", group: "관리" },
+  { label: "감사 로그", href: "/audit-logs", icon: Shield, capability: "menu:audit-logs", group: "관리" },
 ];
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -101,11 +86,21 @@ const ROLE_LABELS: Record<UserRole, string> = {
   pending: "대기중",
 };
 
+/**
+ * capabilities.ts SSOT 기반 메뉴 필터링.
+ *
+ * - pending: 모든 capability false → 빈 배열 (proxy가 /unauthorized로 리다이렉트하므로 도달 X, 방어)
+ * - 그 외 역할: can(role, item.capability) 통과 항목만
+ * - dealer는 일부 라벨 변형 (dealerLabel)
+ */
 function getMenuItems(role: UserRole): NavItem[] {
-  if (role === "admin") return ADMIN_MENU;
-  if (role === "staff") return STAFF_MENU;
-  if (role === "director" || role === "team_leader") return MANAGER_MENU;
-  return DEALER_MENU;
+  if (role === "pending") return [];
+  const isDealer = role === "dealer";
+  return ALL_MENU
+    .filter((item) => can(role, item.capability))
+    .map((item) =>
+      isDealer && item.dealerLabel ? { ...item, label: item.dealerLabel } : item,
+    );
 }
 
 function getInitials(name: string): string {
