@@ -1830,8 +1830,8 @@ export default function RebornLabsLanding() {
             대구광역시 동구 안심로69길 35 반야월매매단지
             <br />
             대표전화{" "}
-            <a href="tel:02-462-5222" className="footer-tel">
-              02-462-5222
+            <a href="tel:1811-7277" className="footer-tel">
+              1811-7277
             </a>
           </p>
           <p className="footer-copy">
