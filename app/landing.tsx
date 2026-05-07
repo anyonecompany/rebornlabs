@@ -1827,7 +1827,7 @@ export default function RebornLabsLanding() {
           <p className="footer-info">
             대표 심재윤
             <br />
-            서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)
+            대구광역시 동구 안심로69길 35 반야월매매단지
             <br />
             대표전화{" "}
             <a href="tel:02-462-5222" className="footer-tel">

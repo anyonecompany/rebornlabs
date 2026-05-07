@@ -172,7 +172,7 @@ ${articlesHtml}
 <div class="pf"><span class="val" style="font-weight:700">REBORN LABS Co., Ltd</span></div>
 <div class="pf"><span class="k">대표</span><span class="val">심재윤 <span class="seal">(직인)</span></span></div>
 <div class="pf"><span class="k">사업자번호</span><span class="val"></span></div>
-<div class="pf"><span class="k">주소</span><span class="val">서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)</span></div>
+<div class="pf"><span class="k">주소</span><span class="val">대구광역시 동구 안심로69길 35 반야월매매단지</span></div>
 <div class="pf"><span class="k">전화</span><span class="val"></span></div>
 </div>
 </div>
