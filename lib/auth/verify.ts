@@ -1,14 +1,15 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import type { UserRole as DbUserRole } from "@/types/database";
+import { can, type Capability } from "./capabilities";
 
-/** 시스템에서 사용하는 역할 타입 */
-export type UserRole =
-  | "admin"
-  | "director"
-  | "team_leader"
-  | "staff"
-  | "dealer"
-  | "pending"
-  | "none";
+/**
+ * 시스템에서 사용하는 역할 타입.
+ *
+ * **단일 진실 원천**: `types/database.ts`의 `UserRole`. 본 파일은 import만.
+ * `none`은 verifyUser 내부에서 인증 실패 표현용으로만 사용 (DB 컬럼에는 존재하지 않음).
+ */
+export type UserRole = DbUserRole;
+export type ServerUserRole = DbUserRole | "none";
 
 /** 인증 검증 결과 */
 export interface VerifiedUser {
@@ -179,12 +180,37 @@ export function hasRole(
 /**
  * 역할 확인 + 권한 없으면 에러.
  * Route Handler / Server Action에서 사용.
+ *
+ * @deprecated capability 기반 가드(`requireCapability`) 권장.
+ * 도메인별 마이그레이션 완료 후 제거 예정.
  */
 export function requireRole(
   user: VerifiedUser,
   allowedRoles: UserRole[],
 ): void {
   if (!hasRole(user, allowedRoles)) {
+    throw new AuthError(
+      "FORBIDDEN",
+      "이 작업을 수행할 권한이 없습니다.",
+    );
+  }
+}
+
+/**
+ * Capability 기반 권한 가드 (권장).
+ *
+ * `lib/auth/capabilities.ts`의 단일 진실 원천을 참조한다.
+ * 신규 라우트는 이 함수를 사용해야 한다.
+ *
+ * @example
+ * const user = await verifyUser(token);
+ * requireCapability(user, "sales:write:cancel");
+ */
+export function requireCapability(
+  user: VerifiedUser,
+  capability: Capability,
+): void {
+  if (!can(user.role, capability)) {
     throw new AuthError(
       "FORBIDDEN",
       "이 작업을 수행할 권한이 없습니다.",
