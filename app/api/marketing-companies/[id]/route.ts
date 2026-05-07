@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -21,7 +21,7 @@ export async function PATCH(
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "marketing-companies:write");
 
     const { id } = await params;
     const body = await request.json();

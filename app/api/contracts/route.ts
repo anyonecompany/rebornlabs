@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -60,8 +62,15 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // dealer: 본인 판매 건인지 확인
-    if (user.role === "dealer") {
+    // 역할별 단건 권한 — capabilities.ts SSOT
+    const scope = dataScope(user.role, "contracts");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope !== "all") {
       const { data: sale, error: saleError } = await serviceClient
         .from("sales")
         .select("dealer_id")
@@ -75,11 +84,20 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      if (sale.dealer_id !== user.id) {
+      if (scope === "self" && sale.dealer_id !== user.id) {
         return NextResponse.json(
           { error: "접근 권한이 없습니다." },
           { status: 403 },
         );
+      }
+      if (scope === "subordinate") {
+        const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+        if (!subordinateIds.includes(sale.dealer_id)) {
+          return NextResponse.json(
+            { error: "접근 권한이 없습니다." },
+            { status: 403 },
+          );
+        }
       }
     }
 
@@ -206,13 +224,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // dealer: 본인 판매 건만
-    if (user.role === "dealer" && sale.dealer_id !== user.id) {
+    // POST 역할별 권한 — capabilities.ts SSOT
+    const writeScope = dataScope(user.role, "contracts");
+    if (writeScope === "none") {
+      return NextResponse.json(
+        { error: "이 작업을 수행할 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (writeScope === "self" && sale.dealer_id !== user.id) {
       return NextResponse.json(
         { error: "본인의 판매 건에만 계약서를 생성할 수 있습니다." },
         { status: 403 },
       );
     }
+    if (writeScope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      if (!subordinateIds.includes(sale.dealer_id)) {
+        return NextResponse.json(
+          { error: "산하 딜러의 판매 건에만 계약서를 생성할 수 있습니다." },
+          { status: 403 },
+        );
+      }
+    }
+    // writeScope === "all" → 검증 없음
 
     // 차량 정보 조회
     const { data: vehicle, error: vehicleError } = await serviceClient

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { UserRole } from "@/types/database";
+import { can } from "@/lib/auth/capabilities";
 
 interface UseUserRoleResult {
   /** 확정된 role. 아직 DOM에서 읽기 전에는 null. */
@@ -34,26 +35,29 @@ export function isDealer(role: UserRole | null | undefined): boolean {
   return role === "dealer";
 }
 
-/** 조직 데이터(상담·판매·계약·견적·차량) 접근 가능 — 관리자·스태프·관리직 */
+/**
+ * 조직 데이터(상담·판매·계약·견적·차량) 접근 가능 — capabilities.ts SSOT 위임.
+ * 관리자/스태프/관리직(:read:all 또는 :read:subordinate)이 통과.
+ */
 export function canAccessOrgData(role: UserRole | null | undefined): boolean {
-  return isAdmin(role) || isStaff(role) || isManagerRole(role);
+  return can(role, "consultations:read:all") || can(role, "consultations:read:subordinate");
 }
 
-/** 지출결의·문서함 접근 가능 — 관리자·스태프 한정 */
+/** 지출결의 — capabilities SSOT (admin/staff/director/team_leader) */
 export function canAccessExpenses(role: UserRole | null | undefined): boolean {
-  return isAdmin(role) || isStaff(role);
+  return can(role, "expenses:read");
 }
 
-/** 사용자 관리·조직 관리·감사 로그 — 관리자 전용 */
+/** 사용자 관리 메뉴 — admin only (capabilities: menu:users) */
 export function canAccessUsers(role: UserRole | null | undefined): boolean {
-  return isAdmin(role);
+  return can(role, "menu:users");
 }
 
-/** 차량 모델 관리 — 관리자·스태프 한정 (관리직은 제외) */
+/** 차량 모델 관리 — admin/staff (capabilities: vehicle-models:read) */
 export function canAccessVehicleModels(
   role: UserRole | null | undefined,
 ): boolean {
-  return isAdmin(role) || isStaff(role);
+  return can(role, "vehicle-models:read");
 }
 
 /**

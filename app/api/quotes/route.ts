@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
@@ -19,18 +21,6 @@ function buildPublicUrl(request: NextRequest, token: string): string {
   return `${base.replace(/\/$/, "")}/quote/${token}`;
 }
 
-type ScopeRole = "admin" | "staff" | "dealer" | "director" | "team_leader";
-
-function isScopeRole(role: string): role is ScopeRole {
-  return (
-    role === "admin" ||
-    role === "staff" ||
-    role === "dealer" ||
-    role === "director" ||
-    role === "team_leader"
-  );
-}
-
 // ─── GET /api/quotes — 내 견적서 목록 ─────────────────────────
 //
 // - dealer: 본인 생성 견적
@@ -44,8 +34,8 @@ export async function GET(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    const role = user.role as string;
-    if (!isScopeRole(role)) {
+    const scope = dataScope(user.role, "quotes");
+    if (scope === "none") {
       return NextResponse.json(
         { error: "견적서 조회 권한이 없습니다." },
         { status: 403 },
@@ -66,30 +56,14 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    // 범위 필터용 dealer_id 배열 결정
+    // 범위 필터용 dealer_id 배열 결정 — capabilities.ts SSOT
     let dealerIdFilter: string[] | null = null;
-    if (role === "dealer") {
+    if (scope === "self") {
       dealerIdFilter = [user.id];
-    } else if (role === "director" || role === "team_leader") {
-      // get_subordinate_ids RPC로 본인 + 1·2단계 하위 조회
-      // RPC 미등록 시 폴백: 본인 ID만
-      type SubResult = { get_subordinate_ids: string } | string;
-      const { data: subData, error: subError } = await serviceClient.rpc(
-        "get_subordinate_ids" as never,
-        { p_user_id: user.id } as never,
-      );
-      if (subError || !subData) {
-        dealerIdFilter = [user.id];
-      } else {
-        const rows = subData as unknown as SubResult[];
-        dealerIdFilter = rows.map((r) =>
-          typeof r === "string"
-            ? r
-            : (r as { get_subordinate_ids: string }).get_subordinate_ids,
-        );
-        if (dealerIdFilter.length === 0) dealerIdFilter = [user.id];
-      }
+    } else if (scope === "subordinate") {
+      dealerIdFilter = await fetchSubordinateIds(serviceClient, user.id);
     }
+    // scope === "all" → dealerIdFilter는 null (필터 없음)
 
     // 차량명 검색이 있을 때 vehicles 쿼리로 vehicle_id 범위 확보
     let vehicleIdFilter: string[] | null = null;
@@ -178,10 +152,11 @@ export async function GET(request: NextRequest) {
       const isExpired =
         !!expiresAt && new Date(expiresAt).getTime() <= nowMs;
 
+      // canEdit: 관리자(all 스코프) 또는 본인 견적인 dealer
       const canEdit =
-        role === "admin" ||
-        role === "staff" ||
-        (role === "dealer" && dealer?.id === user.id);
+        scope === "all" ||
+        (scope === "self" && dealer?.id === user.id) ||
+        (scope === "subordinate" && dealer?.id !== null && dealer?.id !== undefined);
 
       return {
         id: row.id,

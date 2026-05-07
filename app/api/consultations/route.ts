@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 import { escapeLike } from "@/src/lib/escape-like";
 import type { ConsultationStatus } from "@/types/database";
 
@@ -62,38 +64,30 @@ export async function GET(request: NextRequest) {
       query = query.range(offset, offset + pageSize - 1);
     }
 
-    // 역할별 조회 범위 필터
-    //   dealer                  : 본인 배정 상담만
-    //   director / team_leader  : 산하 딜러(get_subordinate_ids) 배정 상담만
-    //   admin / staff           : 필터 없음 (전체 조회)
+    // 역할별 조회 범위 — capabilities.ts SSOT 기반.
+    //   all          : admin / staff (필터 없음)
+    //   subordinate  : director / team_leader → 산하 dealer 배정 + 미배정 (운영 정책)
+    //   self         : dealer (본인 배정만)
+    //   none         : pending → 403
     //
-    // RPC 실패 또는 산하 0명인 경우 UUID zero로 폴백 → 0건 매칭 (fail-closed).
-    // service_role 키로 RLS를 우회하고 있으므로 앱 레이어에서 명시 필터가 유일한 권한 경계다.
-    if (user.role === "dealer") {
-      query = query.eq("assigned_dealer_id", user.id);
-    } else if (user.role === "director" || user.role === "team_leader") {
-      const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-      type SubResult = { get_subordinate_ids: string } | string;
-      const { data: subData, error: subError } = await serviceClient.rpc(
-        "get_subordinate_ids" as never,
-        { p_user_id: user.id } as never,
-      );
-      let subordinateIds: string[] = [];
-      if (!subError && subData) {
-        const rows = subData as unknown as SubResult[];
-        subordinateIds = rows.map((r) =>
-          typeof r === "string"
-            ? r
-            : (r as { get_subordinate_ids: string }).get_subordinate_ids,
-        );
-      }
-      // manager 가시 범위: 산하 dealer 배정 상담 + 미배정 상담
-      // (운영 정책 — 매니저는 본인/산하가 처리하지 않은 신규 유입(미배정)도 본다)
-      const ids = subordinateIds.length > 0 ? subordinateIds : [ZERO_UUID];
-      query = query.or(
-        `assigned_dealer_id.in.(${ids.join(",")}),assigned_dealer_id.is.null`,
+    // service_role 키로 RLS 우회 중이므로 앱 레이어 명시 필터가 유일한 권한 경계다.
+    const scope = dataScope(user.role, "consultations");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "이 작업을 수행할 권한이 없습니다." },
+        { status: 403 },
       );
     }
+    if (scope === "self") {
+      query = query.eq("assigned_dealer_id", user.id);
+    } else if (scope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      // manager 가시 범위: 산하 dealer 배정 상담 + 미배정 상담
+      query = query.or(
+        `assigned_dealer_id.in.(${subordinateIds.join(",")}),assigned_dealer_id.is.null`,
+      );
+    }
+    // scope === "all" 인 경우 필터 없음
 
     // 검색 필터
     if (search) {

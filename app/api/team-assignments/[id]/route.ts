@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -19,12 +19,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        { error: "배치 해제는 경영진만 가능합니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "team-structure:manage");
 
     const serviceClient = createServiceClient();
 

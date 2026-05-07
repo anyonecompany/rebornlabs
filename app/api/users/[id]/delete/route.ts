@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import { maskEmail } from "@/src/lib/mask-pii";
 
 function extractToken(request: NextRequest): string {
@@ -25,7 +25,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { id: userId } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "users:write");
 
     // 본인 삭제 차단
     if (userId === user.id) {

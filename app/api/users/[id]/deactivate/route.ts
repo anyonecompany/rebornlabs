@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { AuthError, requireRole, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
+import { AuthError, requireCapability, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 
 function extractToken(request: NextRequest): string | null {
@@ -24,7 +24,7 @@ export async function PATCH(
   let currentUser;
   try {
     currentUser = await verifyUser(token);
-    requireRole(currentUser, ["admin"]);
+    requireCapability(currentUser, "users:write");
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" ? 401 : 403;

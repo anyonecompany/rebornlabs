@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff"]);
+    requireCapability(user, "users:read");
 
     const serviceClient = createServiceClient();
 

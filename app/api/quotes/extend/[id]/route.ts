@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 import { toKstEndOfDay } from "@/lib/kst";
 
 // ─── 스키마 ───────────────────────────────────────────────────
@@ -34,13 +36,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    const role = user.role as string;
-    if (!["admin", "staff", "dealer"].includes(role)) {
-      return NextResponse.json(
-        { error: "연장 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "quotes:write");
 
     const body = await request.json().catch(() => ({}));
     const parsed = ExtendSchema.safeParse(body);
@@ -71,18 +67,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const isOwner = quote.dealer_id === user.id;
-    const isPrivileged =
-      role === "admin" ||
-      role === "staff" ||
-      role === "director" ||
-      role === "team_leader";
-    if (!isPrivileged && !isOwner) {
+    // 소유권 / 산하 검증 — capabilities.ts SSOT
+    const scope = dataScope(user.role, "quotes");
+    if (scope === "self" && quote.dealer_id !== user.id) {
       return NextResponse.json(
         { error: "이 견적서의 만료를 연장할 권한이 없습니다." },
         { status: 403 },
       );
     }
+    if (scope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      if (!subordinateIds.includes(quote.dealer_id)) {
+        return NextResponse.json(
+          { error: "이 견적서의 만료를 연장할 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    }
+    // scope === "all" → 검증 없음 (admin/staff)
+    // scope === "none"은 위 requireCapability에서 이미 차단됨
 
     // 2. 새 expires_at 계산 (KST 23:59:59 기준으로 정규화)
     let newExpiresAt: string | null;

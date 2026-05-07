@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+// admin-only 작업 — 별도 capability 추가 시 requireCapability로 전환
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 

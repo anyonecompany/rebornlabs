@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+// admin-only DELETE — `users:write` 와 동일하게 admin only이므로 매핑
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 

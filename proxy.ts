@@ -2,28 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { createMiddlewareClient } from "@/lib/supabase/middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { UserRole } from "@/types/database";
+import { can, type Capability } from "@/lib/auth/capabilities";
 
-const DEALER_BLOCKED = [
-  "/settlements",
-  "/expenses",
-  "/documents",
-  "/users",
-  "/team-structure",
-  "/audit-logs",
-];
-const STAFF_BLOCKED = ["/users", "/team-structure", "/audit-logs"];
-// director / team_leader — 관리직. 조직 데이터(상담·판매·계약·견적·차량·정산·지출·문서)는 접근 허용.
-// 본사 전용 관리 기능(/users, /team-structure, /audit-logs, /vehicle-models)만 차단.
-// expenses/documents는 매니저도 영업 비용·자료 활용 필요 → 차단 해제 (등록·조회 가능, 삭제는 admin only).
-const MANAGER_BLOCKED = [
-  "/users",
-  "/team-structure",
-  "/audit-logs",
-  "/vehicle-models",
+/**
+ * 페이지 경로 → menu capability 매핑.
+ *
+ * 신규 페이지 추가 시:
+ *   1. 본 매핑에 path → capability 추가
+ *   2. lib/auth/capabilities.ts CAPABILITIES에 menu:* 정의
+ *   3. components/sidebar.tsx ALL_MENU에 항목 추가
+ *
+ * 매핑되지 않은 경로는 가드 없이 통과(공개 또는 자체 가드 라우트 — /api/* 등은 isPublicPath에서 처리됨).
+ */
+const PATH_CAPABILITY: ReadonlyArray<readonly [string, Capability]> = [
+  ["/dashboard", "menu:dashboard"],
+  ["/vehicles", "menu:vehicles"],
+  ["/vehicle-models", "menu:vehicle-models"],
+  ["/consultations", "menu:consultations"],
+  ["/sales", "menu:sales"],
+  ["/quotes", "menu:quotes"],
+  ["/settlements", "menu:settlements"],
+  ["/expenses", "menu:expenses"],
+  ["/documents", "menu:documents"],
+  ["/users", "menu:users"],
+  ["/team-structure", "menu:team-structure"],
+  ["/audit-logs", "menu:audit-logs"],
 ];
 
-function isBlocked(pathname: string, blockedPaths: string[]): boolean {
-  return blockedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+function getCapabilityForPath(pathname: string): Capability | null {
+  for (const [prefix, capability] of PATH_CAPABILITY) {
+    if (pathname === prefix || pathname.startsWith(prefix + "/")) {
+      return capability;
+    }
+  }
+  return null;
 }
 
 const PUBLIC_PATHS = ["/login", "/unauthorized", "/api", "/_next", "/favicon.ico", "/sign", "/quote", "/cars", "/apply", "/privacy"];
@@ -47,7 +59,11 @@ function sc() {
 }
 
 const CACHE_COOKIE = "x-profile-cache";
-const CACHE_MAX_AGE = 300; // 5분
+// 5분 → 30초로 단축 (결함 C 해결).
+// 사유: admin이 사용자 role을 변경(승격/강등)했을 때 최대 5분간 이전 권한 유지되던
+//       잠복 결함을 차단. 30초는 페이지 네비게이션 캐싱 효과는 유지하면서
+//       role 변경 즉시 반영 보장.
+const CACHE_MAX_AGE = 30;
 
 interface CachedProfile {
   id: string;
@@ -147,18 +163,10 @@ export async function proxy(request: NextRequest) {
 
   const role = profile.role as UserRole;
 
-  if (role === "dealer" && isBlocked(pathname, DEALER_BLOCKED)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  if (role === "staff" && isBlocked(pathname, STAFF_BLOCKED)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  if (
-    (role === "director" || role === "team_leader") &&
-    isBlocked(pathname, MANAGER_BLOCKED)
-  ) {
+  // capabilities.ts SSOT 기반 페이지 가드.
+  // PATH_CAPABILITY에 매핑된 경로만 검사 — 누락 페이지는 통과(자체 가드 또는 공개).
+  const requiredCapability = getCapabilityForPath(pathname);
+  if (requiredCapability && !can(role, requiredCapability)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

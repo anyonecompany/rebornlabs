@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -54,13 +56,30 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // dealer: 본인 건만
-    if (user.role === "dealer" && sale.dealer_id !== user.id) {
+    // 역할별 단건 접근 권한 — capabilities.ts SSOT 기반.
+    const scope = dataScope(user.role, "sales");
+    if (scope === "none") {
       return NextResponse.json(
         { error: "접근 권한이 없습니다." },
         { status: 403 },
       );
     }
+    if (scope === "self" && sale.dealer_id !== user.id) {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      if (!subordinateIds.includes(sale.dealer_id)) {
+        return NextResponse.json(
+          { error: "접근 권한이 없습니다." },
+          { status: 403 },
+        );
+      }
+    }
+    // scope === "all" → 추가 검증 없음
 
     // 차량, 딜러, 상담, 출고확인자 병렬 조회
     const [

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import type { DocumentCategory } from "@/types/database";
 
 // ─── 유효 카테고리 상수 ────────────────────────────────────────
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "documents:read");
 
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get("cursor"); // 레거시 호환
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "documents:write");
 
     let formData: FormData;
     try {

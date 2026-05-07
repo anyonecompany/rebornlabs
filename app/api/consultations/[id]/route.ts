@@ -2,39 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds, SUBORDINATE_ZERO_UUID as ZERO_UUID } from "@/lib/auth/subordinate";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
-
-const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
   return authHeader.replace(/^Bearer\s+/i, "");
-}
-
-/**
- * director/team_leader의 산하 dealer UUID 목록 조회.
- * 실패 또는 0명이면 [ZERO_UUID]로 폴백 → 0건 매칭 (fail-closed).
- */
-async function getSubordinateIds(
-  serviceClient: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<string[]> {
-  type SubResult = { get_subordinate_ids: string } | string;
-  const { data: subData, error: subError } = await serviceClient.rpc(
-    "get_subordinate_ids" as never,
-    { p_user_id: userId } as never,
-  );
-  if (!subError && subData) {
-    const rows = subData as unknown as SubResult[];
-    const ids = rows.map((r) =>
-      typeof r === "string"
-        ? r
-        : (r as { get_subordinate_ids: string }).get_subordinate_ids,
-    );
-    if (ids.length > 0) return ids;
-  }
-  return [ZERO_UUID];
 }
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -63,10 +38,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const serviceClient = createServiceClient();
 
-    // ── 산하 dealer 목록 (manager 역할만 미리 조회) ──────────────
+    // ── 역할별 데이터 스코프 (capabilities SSOT) ──────────────────
+    //   all          : admin / staff
+    //   subordinate  : director / team_leader (산하 + 미배정)
+    //   self         : dealer
+    //   none         : pending → 403
+    const scope = dataScope(user.role, "consultations");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+
+    // 산하 dealer 목록 (subordinate 스코프만 미리 조회)
     let subordinateIds: string[] | null = null;
-    if (user.role === "director" || user.role === "team_leader") {
-      subordinateIds = await getSubordinateIds(serviceClient, user.id);
+    if (scope === "subordinate") {
+      subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
     }
 
     // 상담 기본 정보 조회
@@ -83,16 +71,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // ── 역할별 접근 권한 검증 ─────────────────────────────────────
-    if (user.role === "dealer") {
-      if (consultation.assigned_dealer_id !== user.id) {
-        return NextResponse.json(
-          { error: "접근 권한이 없습니다." },
-          { status: 403 },
-        );
-      }
-    } else if (user.role === "director" || user.role === "team_leader") {
-      // manager 가시 범위: 산하 dealer 배정 + 미배정. 그 외는 403.
+    // ── 단건 접근 권한 검증 ──────────────────────────────────────
+    if (scope === "self" && consultation.assigned_dealer_id !== user.id) {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope === "subordinate") {
       const allowedIds = subordinateIds ?? [ZERO_UUID];
       const isAssignedToSubordinate =
         consultation.assigned_dealer_id !== null &&
@@ -105,10 +91,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
         );
       }
     }
-    // admin/staff: 추가 필터 없음
+    // scope === "all" → 추가 필터 없음
 
     // ── 동일 고객 이력 조회 (같은 phone, 본인 제외) ──────────────
-    // 권한 매트릭스 동일 적용 — dealer는 본인 상담만, manager는 산하 상담만.
+    // 동일 스코프 적용 — dealer는 본인 상담만, manager는 산하 상담만.
     let historyQuery = serviceClient
       .from("consultations")
       .select("id, customer_name, phone, status, created_at, source_ref, assigned_dealer_id")
@@ -116,10 +102,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .neq("id", id)
       .order("created_at", { ascending: false });
 
-    if (user.role === "dealer") {
+    if (scope === "self") {
       historyQuery = historyQuery.eq("assigned_dealer_id", user.id);
-    } else if (user.role === "director" || user.role === "team_leader") {
-      // manager: 산하 + 미배정 상담 history 노출
+    } else if (scope === "subordinate") {
       const ids = subordinateIds ?? [ZERO_UUID];
       historyQuery = historyQuery.or(
         `assigned_dealer_id.in.(${ids.join(",")}),assigned_dealer_id.is.null`,

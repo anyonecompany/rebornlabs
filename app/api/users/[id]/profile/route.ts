@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 const UpdateProfileSchema = z.object({
   name: z.string().min(1, "이름은 비워둘 수 없습니다.").optional(),
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id: userId } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "users:write");
 
     let body: unknown;
     try {

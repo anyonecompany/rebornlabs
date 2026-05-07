@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -52,8 +53,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .select("*")
       .eq("vehicle_id", vehicleId);
 
-    // 딜러: 본인 것만 조회
-    if (user.role === "dealer") {
+    // 딜러(vehicles:read:dealer-view): 본인 것만 조회
+    // 관리자/매니저(vehicles:read:all): 전체
+    if (!can(user.role, "vehicles:read:all")) {
       query = query.eq("dealer_id", user.id);
     }
 

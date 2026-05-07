@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 
 function extractToken(request: NextRequest): string {
   const authHeader = request.headers.get("Authorization") ?? "";
@@ -41,8 +43,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 인가 검증 — dealer: 본인 판매 건만 허용
-    if (user.role === "dealer") {
+    // 역할별 단건 권한 — capabilities.ts SSOT
+    const scope = dataScope(user.role, "contracts");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope !== "all") {
       const { data: sale, error: saleError } = await serviceClient
         .from("sales")
         .select("dealer_id")
@@ -56,11 +65,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
         );
       }
 
-      if (sale.dealer_id !== user.id) {
+      if (scope === "self" && sale.dealer_id !== user.id) {
         return NextResponse.json(
           { error: "접근 권한이 없습니다." },
           { status: 403 },
         );
+      }
+      if (scope === "subordinate") {
+        const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+        if (!subordinateIds.includes(sale.dealer_id)) {
+          return NextResponse.json(
+            { error: "접근 권한이 없습니다." },
+            { status: 403 },
+          );
+        }
       }
     }
 

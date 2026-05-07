@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 /**
  * 6자 영숫자 랜덤 ref_code 생성.
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "marketing-companies:read");
 
     const serviceClient = createServiceClient();
     const { searchParams } = new URL(request.url);
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "marketing-companies:write");
 
     const body = await request.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";

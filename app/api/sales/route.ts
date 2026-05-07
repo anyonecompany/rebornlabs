@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -68,10 +70,27 @@ export async function GET(request: NextRequest) {
       query = query.range(offset, offset + pageSize - 1);
     }
 
-    // dealer: 본인 건만 필터
-    if (user.role === "dealer") {
-      query = query.eq("dealer_id", user.id);
+    // 역할별 조회 범위 — capabilities.ts SSOT 기반.
+    //   all          : admin / staff
+    //   subordinate  : director / team_leader → 산하 dealer_id IN (...)
+    //   self         : dealer (본인 dealer_id)
+    //   none         : pending → 403
+    //
+    // service_role 키로 RLS 우회 중이므로 앱 레이어 명시 필터가 유일한 권한 경계.
+    const scope = dataScope(user.role, "sales");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "이 작업을 수행할 권한이 없습니다." },
+        { status: 403 },
+      );
     }
+    if (scope === "self") {
+      query = query.eq("dealer_id", user.id);
+    } else if (scope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      query = query.in("dealer_id", subordinateIds);
+    }
+    // scope === "all" → 필터 없음
 
     // 취소 여부 필터
     if (isCancelledParam === "true") {
@@ -242,13 +261,36 @@ export async function POST(request: NextRequest) {
     const { consultation_id, vehicle_id, dealer_id, quote_id, is_db_provided } =
       parsed.data;
 
-    // dealer: dealer_id는 반드시 본인
-    if (user.role === "dealer" && dealer_id !== user.id) {
+    const serviceClient = createServiceClient();
+
+    // 역할별 dealer_id 제약 — capabilities.ts SSOT 기반.
+    //   self        : dealer는 본인 명의로만 등록 가능
+    //   subordinate : director / team_leader는 산하 dealer_id로만 등록 가능
+    //   all         : admin / staff는 임의 dealer_id 가능
+    //   none        : pending → 403
+    const writeScope = dataScope(user.role, "sales");
+    if (writeScope === "none") {
+      return NextResponse.json(
+        { error: "이 작업을 수행할 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (writeScope === "self" && dealer_id !== user.id) {
       return NextResponse.json(
         { error: "딜러는 본인 명의로만 판매 등록이 가능합니다." },
         { status: 400 },
       );
     }
+    if (writeScope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      if (!subordinateIds.includes(dealer_id)) {
+        return NextResponse.json(
+          { error: "산하 딜러 명의로만 판매 등록이 가능합니다." },
+          { status: 400 },
+        );
+      }
+    }
+    // writeScope === "all" → 검증 없음
 
     // is_db_provided=true인데 consultation_id가 없으면 400
     if (is_db_provided && !consultation_id) {
@@ -257,8 +299,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    const serviceClient = createServiceClient();
 
     // P0-1: 견적서 만료 검증
     if (quote_id) {

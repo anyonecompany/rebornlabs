@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -87,11 +87,12 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
     if (rawModel) currentModel = rawModel;
 
     // 완전 빈 행 스킵
+    const isNullish = (v: unknown) => v === null || v === undefined;
     if (
       !rawTrim &&
-      rawCarPrice == null &&
-      rawMonthlyPayment == null &&
-      rawMaxDeposit == null
+      isNullish(rawCarPrice) &&
+      isNullish(rawMonthlyPayment) &&
+      isNullish(rawMaxDeposit)
     ) {
       continue;
     }
@@ -143,12 +144,12 @@ function parseWorkbook(buffer: ArrayBuffer): ParseResult {
 }
 
 function stringCell(v: unknown): string {
-  if (v == null) return "";
+  if (v === null || v === undefined) return "";
   return String(v).trim();
 }
 
 function toInt(v: unknown): number | null {
-  if (v == null || v === "") return null;
+  if (v === null || v === undefined || v === "") return null;
   if (typeof v === "number" && Number.isFinite(v)) {
     return Math.round(v);
   }
@@ -168,13 +169,7 @@ export async function POST(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    const role = user.role as string;
-    if (role !== "admin" && role !== "staff") {
-      return NextResponse.json(
-        { error: "가져오기 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "vehicle-models:write");
 
     const form = await request.formData();
     const file = form.get("file");
