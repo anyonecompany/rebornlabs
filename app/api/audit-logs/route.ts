@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "audit-logs:read");
 
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get("cursor"); // 레거시 호환

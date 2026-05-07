@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
@@ -119,7 +120,18 @@ export async function GET(request: NextRequest) {
     const PAGE_SIZE = 1000;
 
     const serviceClient = createServiceClient();
-    const isDealer = user.role === "dealer";
+
+    // 권한 분기 — capabilities.ts SSOT
+    //   vehicles:read:all          → admin/staff/director/team_leader (전체 조회)
+    //   vehicles:read:dealer-view  → dealer (민감 정보 제외)
+    if (!can(user.role, "vehicles:read:all") && !can(user.role, "vehicles:read:dealer-view")) {
+      return NextResponse.json(
+        { error: "차량 조회 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+
+    const isDealer = !can(user.role, "vehicles:read:all");
 
     // 딜러: vehicles에서 직접 조회 (purchase_price, margin 제외)
     // vehicles_dealer_view는 user_role() 의존으로 service_role에서 빈 결과 반환
@@ -252,7 +264,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "vehicles:write");
 
     let body: unknown;
     try {

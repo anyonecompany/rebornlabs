@@ -5,6 +5,7 @@ import {
   createServiceClient,
 } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -225,7 +226,8 @@ export async function GET(request: NextRequest) {
     const all_total_amount = activeDetails.reduce((s, d) => s + d.amount, 0);
     const all_count = activeDetails.length;
 
-    const isPrivileged = user.role === "admin" || user.role === "staff";
+    // 본인 외 전체 집계 권한 — capabilities.ts SSOT (admin/staff만 commissions:read:all)
+    const isPrivileged = can(user.role, "commissions:read:all");
 
     // 5. admin/staff: byEmployee 집계
     let byEmployee: EmployeeAggregate[] | undefined;

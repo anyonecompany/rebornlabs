@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import { escapeLike } from "@/src/lib/escape-like";
 
 // ─── 스키마 ───────────────────────────────────────────────────
@@ -25,10 +25,6 @@ function extractToken(request: NextRequest): string {
   return authHeader.replace(/^Bearer\s+/i, "");
 }
 
-function requireAdminStaff(role: string): boolean {
-  return role === "admin" || role === "staff";
-}
-
 // ─── GET /api/vehicle-models ─────────────────────────────────
 // 어드민 관리 목록. admin/staff만.
 // Query: search, status(all/active/inactive), page, pageSize
@@ -37,13 +33,7 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-
-    if (!requireAdminStaff(user.role as string)) {
-      return NextResponse.json(
-        { error: "조회 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "vehicle-models:read");
 
     const { searchParams } = new URL(request.url);
     const search = (searchParams.get("search") ?? "").trim();
@@ -126,12 +116,7 @@ export async function POST(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    if (!requireAdminStaff(user.role as string)) {
-      return NextResponse.json(
-        { error: "등록 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "vehicle-models:write");
 
     const body = await request.json().catch(() => ({}));
     const parsed = CreateSchema.safeParse(body);

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 
 // ─── 스키마 ───────────────────────────────────────────────────
 
@@ -27,8 +28,10 @@ export async function GET(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    const role = user.role as string;
-    if (!["admin", "staff", "director", "team_leader"].includes(role)) {
+    // 조회 권한: admin/staff(전체) + director/team_leader(self-related만)
+    const isAdminOrStaff = can(user.role, "team-structure:manage") || can(user.role, "users:read");
+    const isManager = can(user.role, "consultations:read:subordinate");
+    if (!isAdminOrStaff && !isManager) {
       return NextResponse.json(
         { error: "조회 권한이 없습니다." },
         { status: 403 },
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
       .select("id, user_id, leader_id, leader_type, created_at")
       .order("created_at", { ascending: true });
 
-    if (role === "director" || role === "team_leader") {
+    if (!isAdminOrStaff && isManager) {
       query = query.or(`leader_id.eq.${user.id},user_id.eq.${user.id}`);
     }
 
@@ -85,12 +88,7 @@ export async function POST(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        { error: "배치 생성은 경영진만 가능합니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "team-structure:manage");
 
     const body = await request.json().catch(() => ({}));
     const parsed = AssignmentSchema.safeParse(body);

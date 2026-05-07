@@ -3,35 +3,8 @@ import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
-
-// ─── 공통 헬퍼 ───────────────────────────────────────────────
-
-const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-
-/**
- * director/team_leader의 산하 dealer UUID 목록 조회.
- * 실패 또는 0명이면 [ZERO_UUID]로 폴백 → 0건 매칭 (fail-closed).
- */
-async function getSubordinateIds(
-  serviceClient: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<string[]> {
-  type SubResult = { get_subordinate_ids: string } | string;
-  const { data: subData, error: subError } = await serviceClient.rpc(
-    "get_subordinate_ids" as never,
-    { p_user_id: userId } as never,
-  );
-  if (!subError && subData) {
-    const rows = subData as unknown as SubResult[];
-    const ids = rows.map((r) =>
-      typeof r === "string"
-        ? r
-        : (r as { get_subordinate_ids: string }).get_subordinate_ids,
-    );
-    if (ids.length > 0) return ids;
-  }
-  return [ZERO_UUID];
-}
+import { dataScope } from "@/lib/auth/capabilities";
+import { fetchSubordinateIds } from "@/lib/auth/subordinate";
 
 // ─── 허용 status_snapshot 값 ─────────────────────────────────
 
@@ -111,21 +84,26 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // ── 역할별 접근 권한 검증 ─────────────────────────────────────
-    // 권한 매트릭스:
-    //   admin/staff:          모든 상담
-    //   director/team_leader: get_subordinate_ids에 포함된 dealer의 상담만
-    //   dealer:               assigned_dealer_id === user.id
-    if (user.role === "dealer") {
-      if (consultation.assigned_dealer_id !== user.id) {
-        return NextResponse.json(
-          { error: "접근 권한이 없습니다." },
-          { status: 403 },
-        );
-      }
-    } else if (user.role === "director" || user.role === "team_leader") {
-      // manager 가시 범위: 산하 dealer 배정 + 미배정. 그 외는 403.
-      const subordinateIds = await getSubordinateIds(serviceClient, user.id);
+    // ── 역할별 접근 권한 검증 (capabilities SSOT) ─────────────────
+    //   all          : admin / staff (전체 접근)
+    //   subordinate  : director / team_leader (산하 dealer 배정 + 미배정)
+    //   self         : dealer (본인 배정만)
+    //   none         : pending → 403
+    const scope = dataScope(user.role, "consultations");
+    if (scope === "none") {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope === "self" && consultation.assigned_dealer_id !== user.id) {
+      return NextResponse.json(
+        { error: "접근 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (scope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
       const isAssignedToSubordinate =
         consultation.assigned_dealer_id !== null &&
         subordinateIds.includes(consultation.assigned_dealer_id);
@@ -137,7 +115,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         );
       }
     }
-    // admin/staff: 추가 필터 없음
+    // scope === "all" → 추가 필터 없음
 
     // 상담 기록 조회 (오래된 순)
     const { data: logs, error: logsError } = await serviceClient
@@ -250,16 +228,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // dealer: 본인 배정 상담인지 확인
-    if (
-      user.role === "dealer" &&
-      consultation.assigned_dealer_id !== user.id
-    ) {
+    // 역할별 작성 권한 검증 (capabilities SSOT)
+    const writeScope = dataScope(user.role, "consultations");
+    if (writeScope === "none") {
+      return NextResponse.json(
+        { error: "이 작업을 수행할 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    if (writeScope === "self" && consultation.assigned_dealer_id !== user.id) {
       return NextResponse.json(
         { error: "본인이 담당하는 상담에만 기록을 작성할 수 있습니다." },
         { status: 403 },
       );
     }
+    if (writeScope === "subordinate") {
+      const subordinateIds = await fetchSubordinateIds(serviceClient, user.id);
+      const isAssignedToSubordinate =
+        consultation.assigned_dealer_id !== null &&
+        subordinateIds.includes(consultation.assigned_dealer_id);
+      const isUnassigned = consultation.assigned_dealer_id === null;
+      if (!isAssignedToSubordinate && !isUnassigned) {
+        return NextResponse.json(
+          { error: "산하 딜러 또는 미배정 상담에만 기록을 작성할 수 있습니다." },
+          { status: 403 },
+        );
+      }
+    }
+    // writeScope === "all" → 추가 검증 없음
 
     // 상담 기록 INSERT
     // status_snapshot: 현재 상담 상태를 스냅샷으로 사용

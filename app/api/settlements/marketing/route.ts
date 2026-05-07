@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 
 // ─── 헬퍼: Authorization 헤더에서 토큰 추출 ───────────────────
 
@@ -46,7 +47,9 @@ export async function GET(request: NextRequest) {
   try {
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    if (!can(user.role, "commissions:read:all") && !can(user.role, "commissions:read:subordinate")) {
+      return NextResponse.json({ error: "정산 조회 권한이 없습니다." }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const defaults = getDefaultDateRange();

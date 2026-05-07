@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── 스키마 ───────────────────────────────────────────────────
 
@@ -56,12 +56,7 @@ export async function POST(request: NextRequest) {
     const token = extractToken(request);
     const user = await verifyUser(token);
 
-    if (!["admin", "staff", "director", "team_leader", "dealer"].includes(user.role)) {
-      return NextResponse.json(
-        { error: "견적서 생성 권한이 없습니다." },
-        { status: 403 },
-      );
-    }
+    requireCapability(user, "quotes:write");
 
     const body = await request.json().catch(() => ({}));
     const parsed = GenerateSchema.safeParse(body);

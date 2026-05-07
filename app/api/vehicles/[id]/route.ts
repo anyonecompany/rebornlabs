@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { can } from "@/lib/auth/capabilities";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 
@@ -78,7 +79,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const user = await verifyUser(token);
 
     const serviceClient = createServiceClient();
-    const isDealer = user.role === "dealer";
+
+    // 권한 분기 — capabilities.ts SSOT
+    if (!can(user.role, "vehicles:read:all") && !can(user.role, "vehicles:read:dealer-view")) {
+      return NextResponse.json(
+        { error: "차량 조회 권한이 없습니다." },
+        { status: 403 },
+      );
+    }
+    const isDealer = !can(user.role, "vehicles:read:all");
 
     let vehicle: Record<string, unknown> | null = null;
 
@@ -164,7 +173,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "vehicles:write");
 
     const serviceClient = createServiceClient();
 
@@ -286,7 +295,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "vehicles:write");
 
     const serviceClient = createServiceClient();
 

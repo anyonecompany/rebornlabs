@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { AuthError, requireRole, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
+import { AuthError, requireCapability, verifyUser, getAuthErrorMessage } from "@/lib/auth/verify";
 import { createServiceClient } from "@/lib/supabase/server";
 import { maskEmail } from "@/src/lib/mask-pii";
 import { voidGasWebhook } from "@/src/lib/gas-webhook";
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await verifyUser(token);
-    requireRole(user, ["admin"]);
+    requireCapability(user, "users:write");
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.code === "NO_TOKEN" ? 401 : 403;

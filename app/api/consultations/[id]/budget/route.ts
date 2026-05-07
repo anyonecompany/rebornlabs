@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 
 // ─── Zod 스키마 ───────────────────────────────────────────────
 // 만원 단위 정수. null 허용 = 값 제거.
@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "consultations:write:status");
 
     let body: unknown;
     try {

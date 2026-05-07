@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { verifyUser, requireRole, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
+import { verifyUser, requireCapability, AuthError, getAuthErrorMessage } from "@/lib/auth/verify";
 import type { ConsultationStatus } from "@/types/database";
 
 // ─── 상태 전이 매트릭스 ───────────────────────────────────────
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const token = extractToken(request);
     const user = await verifyUser(token);
-    requireRole(user, ["admin", "staff", "director", "team_leader"]);
+    requireCapability(user, "consultations:write:status");
 
     let body: unknown;
     try {
