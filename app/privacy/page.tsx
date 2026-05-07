@@ -4,10 +4,10 @@ import Link from "next/link";
 const COMPANY_NAME = "리본랩스";
 const COMPANY_REG_NO = "817-05-03415";
 const COMPANY_ADDRESS =
-  "서울특별시 성동구 아차산로7길 21, 4층 199호 (성수동2가)";
+  "대구광역시 동구 안심로69길 35 반야월매매단지";
 const COMPANY_REPRESENTATIVE = "심재윤";
 const PRIVACY_OFFICER_EMAIL = "sungjun3216@gmail.com";
-const UPDATED_AT = "2026-04-22";
+const UPDATED_AT = "2026-05-07";
 
 export default function PrivacyPage() {
   return (
