@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:rls": "tsx scripts/check-rls-policies.ts",
+    "lint:rbac": "tsx scripts/check-rbac-guards.ts",
+    "lint:all": "npm run lint && npm run lint:rls && npm run lint:rbac"
   },
   "repository": {
     "type": "git",
@@ -39,8 +46,17 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@next/eslint-plugin-next": "^16.2.5",
     "@types/node": "25.5.0",
     "@types/react": "19.2.14",
-    "typescript": "6.0.2"
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.5",
+    "jsdom": "^26.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "6.0.2",
+    "vitest": "^3.2.4"
   }
 }
